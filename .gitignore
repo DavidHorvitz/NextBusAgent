@@ -1,0 +1,48 @@
+# Build output
+**/bin/
+**/obj/
+**/out/
+**/publish/
+artifacts/
+
+# Visual Studio and MSBuild
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.cache
+*.pdb
+*.ilk
+*.log
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# NuGet and local SDK state
+packages/
+*.nupkg
+*.snupkg
+NuGet.Config.local
+global.local.json
+
+# Local secrets and per-user settings
+appsettings.Local.json
+appsettings.*.local.json
+*.secrets.json
+settings.dpapi
+*.user.config
+
+# Test and profiling artifacts
+TestResults/
+coverage/
+coverage.*
+*.coverage
+*.trace
+*.diagsession
+
+# OS noise
+Thumbs.db
+Desktop.ini
+.DS_Store

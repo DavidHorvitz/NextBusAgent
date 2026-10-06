@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <sys:String x:Key="DashboardSubtitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">המסלולים שלך במבט אחד</sys:String>
+  <sys:String x:Key="MinimizeToTray" xmlns:sys="clr-namespace:System;assembly=mscorlib">הסתר למגש המערכת</sys:String>
+  <sys:String x:Key="ActiveProfile" xmlns:sys="clr-namespace:System;assembly=mscorlib">פרופיל פעיל</sys:String>
+  <sys:String x:Key="MuteNotifications" xmlns:sys="clr-namespace:System;assembly=mscorlib">השהה התראות</sys:String>
+  <sys:String x:Key="UnmuteNotifications" xmlns:sys="clr-namespace:System;assembly=mscorlib">חדש התראות</sys:String>
+  <sys:String x:Key="Routes" xmlns:sys="clr-namespace:System;assembly=mscorlib">מסלולים</sys:String>
+  <sys:String x:Key="StartPlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">מוצא</sys:String>
+  <sys:String x:Key="DestinationPlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">יעד</sys:String>
+  <sys:String x:Key="ManagePlaces" xmlns:sys="clr-namespace:System;assembly=mscorlib">מקומות שמורים</sys:String>
+  <sys:String x:Key="PlaceNameLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">שם המקום</sys:String>
+  <sys:String x:Key="PlaceStopCodeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">קוד תחנה ב־OpenBus</sys:String>
+  <sys:String x:Key="PlaceStopCodeHelp" xmlns:sys="clr-namespace:System;assembly=mscorlib">כדי לחפש בפיד נדרש כרגע קוד התחנה ב־OpenBus, לא רק שם המקום.</sys:String>
+  <sys:String x:Key="SavePlace" xmlns:sys="clr-namespace:System;assembly=mscorlib">שמור מקום</sys:String>
+  <sys:String x:Key="HomeName" xmlns:sys="clr-namespace:System;assembly=mscorlib">בית</sys:String>
+  <sys:String x:Key="SelectRouteMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">שמור לפחות שני מקומות, בחר מוצא ויעד, והזן מספר קו.</sys:String>
+  <sys:String x:Key="MatchesFoundAtStart" xmlns:sys="clr-namespace:System;assembly=mscorlib">אוטובוסים תואמים במוצא</sys:String>
+  <sys:String x:Key="PlaceAlreadyExists" xmlns:sys="clr-namespace:System;assembly=mscorlib">כבר קיים מקום בשם הזה.</sys:String>
+  <sys:String x:Key="PlaceSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">המקום נשמר.</sys:String>
+  <sys:String x:Key="InvalidPlaceMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">יש להזין שם מקום וקוד תחנה תקין ב־OpenBus.</sys:String>
+  <sys:String x:Key="PlaceSaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא ניתן לשמור את המקום.</sys:String>
+  <sys:String x:Key="NoRoutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">הזן קוד תחנה ומספר קו כדי לבדוק מול OpenBus.</sys:String>
+  <sys:String x:Key="StopCodeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">קוד תחנה</sys:String>
+  <sys:String x:Key="LineNameLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">מספר קו</sys:String>
+  <sys:String x:Key="AddRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">שמור ובדוק</sys:String>
+  <sys:String x:Key="CheckingOpenBus" xmlns:sys="clr-namespace:System;assembly=mscorlib">בודק מול OpenBus...</sys:String>
+  <sys:String x:Key="MatchesFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">נסיעות תואמות</sys:String>
+  <sys:String x:Key="OpenBusUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">OpenBus אינו זמין כרגע. המסלול השמור ייבדק שוב.</sys:String>
+  <sys:String x:Key="Monitoring" xmlns:sys="clr-namespace:System;assembly=mscorlib">מעקב</sys:String>
+  <sys:String x:Key="WaitingForRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">עדכוני הגעה יופיעו כאן לאחר חיבור מסלול.</sys:String>
+  <sys:String x:Key="PollingStatus" xmlns:sys="clr-namespace:System;assembly=mscorlib">מוכן · ממתין למסלול</sys:String>
+  <sys:String x:Key="UserModeNotice" xmlns:sys="clr-namespace:System;assembly=mscorlib">פועל בחשבון Windows שלך. ההגדרות מוגנות עבור משתמש זה.</sys:String>
+  <sys:String x:Key="RouteSetupPending" xmlns:sys="clr-namespace:System;assembly=mscorlib">התחבר לספק תחבורה כדי להגדיר חיפוש מסלולים.</sys:String>
+</ResourceDictionary>

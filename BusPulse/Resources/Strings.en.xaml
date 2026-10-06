@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <sys:String x:Key="DashboardSubtitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Your routes, at a glance</sys:String>
+  <sys:String x:Key="MinimizeToTray" xmlns:sys="clr-namespace:System;assembly=mscorlib">Hide to tray</sys:String>
+  <sys:String x:Key="ActiveProfile" xmlns:sys="clr-namespace:System;assembly=mscorlib">Active profile</sys:String>
+  <sys:String x:Key="MuteNotifications" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pause alerts</sys:String>
+  <sys:String x:Key="UnmuteNotifications" xmlns:sys="clr-namespace:System;assembly=mscorlib">Resume alerts</sys:String>
+  <sys:String x:Key="Routes" xmlns:sys="clr-namespace:System;assembly=mscorlib">Routes</sys:String>
+  <sys:String x:Key="StartPlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">From</sys:String>
+  <sys:String x:Key="DestinationPlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">To</sys:String>
+  <sys:String x:Key="ManagePlaces" xmlns:sys="clr-namespace:System;assembly=mscorlib">Saved places</sys:String>
+  <sys:String x:Key="PlaceNameLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Place name</sys:String>
+  <sys:String x:Key="PlaceStopCodeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">OpenBus stop code</sys:String>
+  <sys:String x:Key="PlaceStopCodeHelp" xmlns:sys="clr-namespace:System;assembly=mscorlib">A display name alone is not enough to search this transit feed yet. Enter its OpenBus stop code.</sys:String>
+  <sys:String x:Key="SavePlace" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save place</sys:String>
+  <sys:String x:Key="HomeName" xmlns:sys="clr-namespace:System;assembly=mscorlib">Home</sys:String>
+  <sys:String x:Key="SelectRouteMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save at least two places, choose a start and destination, and enter a line.</sys:String>
+  <sys:String x:Key="MatchesFoundAtStart" xmlns:sys="clr-namespace:System;assembly=mscorlib">Matching buses at start</sys:String>
+  <sys:String x:Key="PlaceAlreadyExists" xmlns:sys="clr-namespace:System;assembly=mscorlib">A place with that name already exists.</sys:String>
+  <sys:String x:Key="PlaceSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">Place saved.</sys:String>
+  <sys:String x:Key="InvalidPlaceMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Enter a place name and a valid OpenBus stop code.</sys:String>
+  <sys:String x:Key="PlaceSaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Could not save this place.</sys:String>
+  <sys:String x:Key="NoRoutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">Enter a stop code and line name to check OpenBus.</sys:String>
+  <sys:String x:Key="StopCodeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Stop code</sys:String>
+  <sys:String x:Key="LineNameLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Line name</sys:String>
+  <sys:String x:Key="AddRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save and check</sys:String>
+  <sys:String x:Key="CheckingOpenBus" xmlns:sys="clr-namespace:System;assembly=mscorlib">Checking OpenBus...</sys:String>
+  <sys:String x:Key="MatchesFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">Matching arrivals</sys:String>
+  <sys:String x:Key="OpenBusUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">OpenBus is unavailable. The saved route will be retried.</sys:String>
+  <sys:String x:Key="Monitoring" xmlns:sys="clr-namespace:System;assembly=mscorlib">Monitoring</sys:String>
+  <sys:String x:Key="WaitingForRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">Arrival updates will appear here after a route is connected.</sys:String>
+  <sys:String x:Key="PollingStatus" xmlns:sys="clr-namespace:System;assembly=mscorlib">Ready · waiting for route</sys:String>
+  <sys:String x:Key="UserModeNotice" xmlns:sys="clr-namespace:System;assembly=mscorlib">Runs in your Windows user session. Settings are protected for this user.</sys:String>
+  <sys:String x:Key="RouteSetupPending" xmlns:sys="clr-namespace:System;assembly=mscorlib">Connect a transit provider to configure route search.</sys:String>
+</ResourceDictionary>

@@ -13,7 +13,7 @@ Non-negotiables: **secure**, **interactive**, **real live data**. Nothing schedu
 - **TLS:** use the OS default (TLS 1.2 or later), certificate validation always on. The forced TLS 1.3 was removed because the Stride API only speaks TLS 1.2. Done.
 - **CI:** GitHub-hosted `windows-latest`. No self-hosted runner. Done.
 - **Primary live source:** Curlbus (unofficial, no SLA). The public Stride SIRI feed is stale (last real snapshot 2026-03-19, with impossible dates such as 2036/2038) and is not used as live data. Stride GTFS static data is current and serves as the schedule fallback.
-- **Israel Railways:** keep the provider disabled until an official API key is supplied through configuration (`RailApiKey`). The key embedded in rail.co.il's public JavaScript, used by the `israel-rail-api` package, is deliberately not used.
+- **Israel Railways:** keep the provider disabled until an official API key is supplied through configuration (`RailApiKey`). The key embedded in rail.co.il's public JavaScript, used by the `israel-rail-api` package, is deliberately not used: Israel Railways states that access to its internal interfaces requires a dedicated key and has threatened legal action against a third-party app that used them. No public, official key-request process was found (searched 2026-10-20). The recommended route is the Ministry of Transport data channel (GTFS and real-time SIRI via the gov.il application, which needs an approved request and a static-IP whitelist), or a direct request to Israel Railways. Until then, trains show the GTFS schedule only.
 - **Location:** Windows Location API only. No IP-based fallback (it would send the user's IP to a third party). The user can anchor the search on a saved place instead.
 - **Installers:** local installers such as `docs/Claude Setup.exe` are git-ignored.
 - **Ministry of Transport SIRI-SM:** implement behind configuration only, disabled by default. Access needs an approved application and a static-IP whitelist, so it realistically needs a small proxy server.
@@ -122,7 +122,7 @@ Integration order: confirm schemas against reachable endpoints (done), replace p
 3. Lines tab with ordered stops and vehicle positions from Curlbus line endpoints.
 4. Settings: Home/Work, polling interval, notification lead time, theme, clear history; add the history store with a size cap.
 5. Replace the single connection probe with retry plus exponential backoff, adopt `Microsoft.Extensions.Http.Resilience`, and pause polling when the machine is idle or locked.
-6. Rail: obtain an official key, then implement the client and the general-updates disruptions provider; add `StrideSiriProvider` (only when the newest snapshot is under 5 minutes old) and the config-only `MotSiriProvider` with `docs/live-data.md`.
+6. Official data access (maintainer action): apply for Ministry of Transport SIRI access, which also gives an official live bus source to replace Curlbus, and optionally contact Israel Railways about developer access. Then implement the rail client and the general-updates disruptions provider; add `StrideSiriProvider` (only when the newest snapshot is under 5 minutes old) and the config-only `MotSiriProvider` with `docs/live-data.md`.
 7. Design pass (Phase 5): WPF-UI, `Theme.xaml` tokens, Hebrew font, states, motion, accessibility, screenshots.
 8. Packaging: per-user installer, AUMID and Start Menu shortcut for toasts, signing, .NET 8 end-of-support (2026-11-10) upgrade plan.
 
@@ -141,4 +141,4 @@ Integration order: confirm schemas against reachable endpoints (done), replace p
 2. Live-data probe results per provider.
 3. What changed, by area, with key files.
 4. Screenshots (light and dark, each tab).
-5. Deferred items, known limitations (unofficial sources may break, location accuracy on desktops without GPS, data lag) and anything needed from the maintainer (Israel Railways key).
+5. Deferred items, known limitations (unofficial sources may break, location accuracy on desktops without GPS, data lag) and anything needed from the maintainer (Ministry of Transport or Israel Railways data access).

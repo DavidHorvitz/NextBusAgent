@@ -24,6 +24,8 @@ internal static class Program
                 services.AddSingleton<IClock, SystemClock>();
                 services.AddSingleton<ILiveArrivalsProvider, CurlbusArrivalsProvider>();
                 services.AddSingleton<ILiveArrivalsProvider, RailProvider>();
+                services.AddSingleton<IScheduleProvider, StrideScheduleProvider>();
+                services.AddSingleton<ILiveDataAggregator, LiveDataAggregator>();
                 services.AddHttpClient(CurlbusArrivalsProvider.ClientName, client =>
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);

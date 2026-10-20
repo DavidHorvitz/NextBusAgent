@@ -2,8 +2,10 @@ using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
 using BusPulse.Configuration;
+using BusPulse.Infrastructure;
 using BusPulse.Services;
 using BusPulse.Services.LiveData;
+using BusPulse.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -18,7 +20,6 @@ internal static class Program
             {
                 services.AddSingleton(config);
                 services.AddSingleton(configStore);
-                services.AddSingleton<OpenBusService>();
                 services.AddSingleton<ToastNotificationService>();
                 services.AddSingleton<SoundService>();
                 services.AddSingleton<IClock, SystemClock>();
@@ -35,6 +36,16 @@ internal static class Program
                 {
                     AllowAutoRedirect = false
                 });
+                services.AddSingleton<IDispatcher, WpfDispatcher>();
+                services.AddSingleton<ILocalizer, ResourceLocalizer>();
+                services.AddSingleton<ISettingsService, SettingsService>();
+                services.AddSingleton<SavedPlaceCollection>();
+                services.AddSingleton<StopsViewModel>();
+                services.AddSingleton<TripPlannerViewModel>();
+                services.AddSingleton<LinesViewModel>();
+                services.AddSingleton<SettingsViewModel>();
+                services.AddSingleton<ShellViewModel>();
+                services.AddSingleton<TrayController>();
                 services.AddSingleton<MainWindow>();
                 services.AddHttpClient("TransitApi", client =>
                 {

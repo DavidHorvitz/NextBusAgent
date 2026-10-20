@@ -32,4 +32,25 @@
   <sys:String x:Key="PollingStatus" xmlns:sys="clr-namespace:System;assembly=mscorlib">Ready · waiting for route</sys:String>
   <sys:String x:Key="UserModeNotice" xmlns:sys="clr-namespace:System;assembly=mscorlib">Runs in your Windows user session. Settings are protected for this user.</sys:String>
   <sys:String x:Key="RouteSetupPending" xmlns:sys="clr-namespace:System;assembly=mscorlib">Connect a transit provider to configure route search.</sys:String>
+  <sys:String x:Key="TabStops" xmlns:sys="clr-namespace:System;assembly=mscorlib">Stops</sys:String>
+  <sys:String x:Key="TabTrip" xmlns:sys="clr-namespace:System;assembly=mscorlib">Trip planner</sys:String>
+  <sys:String x:Key="TabLines" xmlns:sys="clr-namespace:System;assembly=mscorlib">Lines</sys:String>
+  <sys:String x:Key="TabSettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">Settings</sys:String>
+  <sys:String x:Key="StopsEmpty" xmlns:sys="clr-namespace:System;assembly=mscorlib">Nearby stops will appear here once location is available.</sys:String>
+  <sys:String x:Key="LinesEmpty" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pick a line to see its stops and live vehicles. No line data is connected yet.</sys:String>
+  <sys:String x:Key="ProviderStatusTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Data sources</sys:String>
+  <sys:String x:Key="CheckConnection" xmlns:sys="clr-namespace:System;assembly=mscorlib">Check connection</sys:String>
+  <sys:String x:Key="AddPlaceFirst" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save a place with a stop code first, then check the connection.</sys:String>
+  <sys:String x:Key="LiveBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">live</sys:String>
+  <sys:String x:Key="ScheduledBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">scheduled</sys:String>
+  <sys:String x:Key="StatusOk" xmlns:sys="clr-namespace:System;assembly=mscorlib">OK</sys:String>
+  <sys:String x:Key="StatusNoData" xmlns:sys="clr-namespace:System;assembly=mscorlib">No data</sys:String>
+  <sys:String x:Key="StatusUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">Unavailable</sys:String>
+  <sys:String x:Key="StatusCircuitOpen" xmlns:sys="clr-namespace:System;assembly=mscorlib">Paused after failures</sys:String>
+  <sys:String x:Key="StatusDisabled" xmlns:sys="clr-namespace:System;assembly=mscorlib">Not configured</sys:String>
+  <sys:String x:Key="ProviderCurlbus" xmlns:sys="clr-namespace:System;assembly=mscorlib">Curlbus (live buses)</sys:String>
+  <sys:String x:Key="ProviderRail" xmlns:sys="clr-namespace:System;assembly=mscorlib">Israel Railways</sys:String>
+  <sys:String x:Key="ProviderStride" xmlns:sys="clr-namespace:System;assembly=mscorlib">Stride SIRI</sys:String>
+  <sys:String x:Key="ProviderMot" xmlns:sys="clr-namespace:System;assembly=mscorlib">Ministry of Transport SIRI</sys:String>
+  <sys:String x:Key="ProviderSchedule" xmlns:sys="clr-namespace:System;assembly=mscorlib">Schedule (GTFS)</sys:String>
 </ResourceDictionary>

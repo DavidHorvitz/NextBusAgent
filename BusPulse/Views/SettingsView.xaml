@@ -1,0 +1,46 @@
+<UserControl x:Class="BusPulse.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel>
+      <Border Background="White" BorderBrush="#DCE5E2" BorderThickness="1" CornerRadius="6" Padding="20" Margin="0,0,0,16">
+        <StackPanel>
+          <TextBlock Text="{DynamicResource ManagePlaces}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource PlaceNameLabel}" Foreground="#52615E" Margin="0,14,0,4" />
+          <TextBox Text="{Binding NewPlaceName, UpdateSourceTrigger=PropertyChanged}" MaxLength="64" MinHeight="32"
+                   AutomationProperties.Name="{DynamicResource PlaceNameLabel}" />
+          <TextBlock Text="{DynamicResource PlaceStopCodeLabel}" Foreground="#52615E" Margin="0,10,0,4" />
+          <TextBox Text="{Binding NewPlaceStopCode, UpdateSourceTrigger=PropertyChanged}" MaxLength="32" MinHeight="32"
+                   AutomationProperties.Name="{DynamicResource PlaceStopCodeLabel}" />
+          <TextBlock Text="{DynamicResource PlaceStopCodeHelp}" Foreground="#52615E" FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap" />
+          <Button Content="{DynamicResource SavePlace}" Command="{Binding AddPlaceCommand}" HorizontalAlignment="Left" Padding="12,7" Margin="0,10,0,0" />
+          <TextBlock Text="{Binding PlaceStatus}" Foreground="#52615E" Margin="0,8,0,0" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding Places}" Margin="0,12,0,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Margin="0,2">
+                  <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " /><Run Text="{Binding StopCode, Mode=OneWay}" />
+                </TextBlock>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+      <Border Background="White" BorderBrush="#DCE5E2" BorderThickness="1" CornerRadius="6" Padding="20">
+        <StackPanel>
+          <TextBlock Text="{DynamicResource ProviderStatusTitle}" FontSize="18" FontWeight="SemiBold" />
+          <Button Content="{DynamicResource CheckConnection}" Command="{Binding CheckConnectionCommand}" HorizontalAlignment="Left" Padding="12,7" Margin="0,12,0,0" />
+          <ItemsControl ItemsSource="{Binding ProviderStatuses}" Margin="0,12,0,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Margin="0,2">
+                  <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=": " /><Run Text="{Binding Status, Mode=OneWay}" />
+                </TextBlock>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

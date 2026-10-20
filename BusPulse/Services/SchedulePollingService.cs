@@ -2,13 +2,14 @@ using System.IO;
 using System.Net.Http;
 using System.Text.Json;
 using BusPulse.Configuration;
+using BusPulse.Services.LiveData;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace BusPulse.Services;
 
 public sealed class SchedulePollingService(
-    OpenBusService openBusService,
+    ILiveDataAggregator aggregator,
     AppConfig config,
     ILogger<SchedulePollingService> logger) : BackgroundService
 {
@@ -33,7 +34,7 @@ public sealed class SchedulePollingService(
                 continue;
             }
 
-            await PollOpenBusAsync(startPlace, lineName, stoppingToken);
+            await PollAsync(startPlace, lineName, stoppingToken);
         }
     }
 
@@ -49,16 +50,20 @@ public sealed class SchedulePollingService(
             : ApproachingArrivalInterval;
     }
 
-    private async Task PollOpenBusAsync(SavedPlace startPlace, string lineName, CancellationToken cancellationToken)
+    private async Task PollAsync(SavedPlace startPlace, string lineName, CancellationToken cancellationToken)
     {
         try
         {
-            var arrivals = await openBusService.GetBusArrivalsAsync(startPlace.StopCode, lineName, cancellationToken);
+            var result = await aggregator.GetArrivalsAsync(startPlace.StopCode, cancellationToken);
+            var matches = result.Arrivals
+                .Where(arrival => string.Equals(arrival.LineName, lineName, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
             logger.LogInformation(
-                "Received {ArrivalCount} OpenBus records for line {LineName} at place {PlaceName}.",
-                arrivals.Count,
+                "Polled line {LineName} at place {PlaceName}: {LiveCount} live, {ScheduledCount} scheduled.",
                 lineName,
-                startPlace.Name);
+                startPlace.Name,
+                matches.Count(arrival => arrival.IsLive),
+                matches.Count(arrival => !arrival.IsLive));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -66,7 +71,7 @@ public sealed class SchedulePollingService(
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or JsonException)
         {
-            logger.LogWarning(exception, "OpenBus polling failed; the next scheduled poll will retry.");
+            logger.LogWarning(exception, "Polling failed; the next scheduled poll will retry.");
         }
     }
 }

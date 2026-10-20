@@ -1,0 +1,7 @@
+<UserControl x:Class="BusPulse.Views.LinesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Border Background="White" BorderBrush="#DCE5E2" BorderThickness="1" CornerRadius="6" Padding="20">
+    <TextBlock Text="{Binding EmptyMessage}" Foreground="#52615E" TextWrapping="Wrap" />
+  </Border>
+</UserControl>

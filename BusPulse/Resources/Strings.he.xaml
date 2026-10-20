@@ -32,4 +32,25 @@
   <sys:String x:Key="PollingStatus" xmlns:sys="clr-namespace:System;assembly=mscorlib">מוכן · ממתין למסלול</sys:String>
   <sys:String x:Key="UserModeNotice" xmlns:sys="clr-namespace:System;assembly=mscorlib">פועל בחשבון Windows שלך. ההגדרות מוגנות עבור משתמש זה.</sys:String>
   <sys:String x:Key="RouteSetupPending" xmlns:sys="clr-namespace:System;assembly=mscorlib">התחבר לספק תחבורה כדי להגדיר חיפוש מסלולים.</sys:String>
+  <sys:String x:Key="TabStops" xmlns:sys="clr-namespace:System;assembly=mscorlib">תחנות</sys:String>
+  <sys:String x:Key="TabTrip" xmlns:sys="clr-namespace:System;assembly=mscorlib">תכנון מסלול</sys:String>
+  <sys:String x:Key="TabLines" xmlns:sys="clr-namespace:System;assembly=mscorlib">קווים</sys:String>
+  <sys:String x:Key="TabSettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">הגדרות</sys:String>
+  <sys:String x:Key="StopsEmpty" xmlns:sys="clr-namespace:System;assembly=mscorlib">תחנות קרובות יופיעו כאן כשהמיקום יהיה זמין.</sys:String>
+  <sys:String x:Key="LinesEmpty" xmlns:sys="clr-namespace:System;assembly=mscorlib">בחרו קו כדי לראות את התחנות והאוטובוסים החיים שלו. עדיין לא מחובר מידע על קווים.</sys:String>
+  <sys:String x:Key="ProviderStatusTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">מקורות מידע</sys:String>
+  <sys:String x:Key="CheckConnection" xmlns:sys="clr-namespace:System;assembly=mscorlib">בדיקת חיבור</sys:String>
+  <sys:String x:Key="AddPlaceFirst" xmlns:sys="clr-namespace:System;assembly=mscorlib">שמרו קודם מקום עם קוד תחנה, ואז בדקו את החיבור.</sys:String>
+  <sys:String x:Key="LiveBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">חי</sys:String>
+  <sys:String x:Key="ScheduledBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">מתוכנן</sys:String>
+  <sys:String x:Key="StatusOk" xmlns:sys="clr-namespace:System;assembly=mscorlib">תקין</sys:String>
+  <sys:String x:Key="StatusNoData" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין נתונים</sys:String>
+  <sys:String x:Key="StatusUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא זמין</sys:String>
+  <sys:String x:Key="StatusCircuitOpen" xmlns:sys="clr-namespace:System;assembly=mscorlib">מושהה אחרי כשלונות</sys:String>
+  <sys:String x:Key="StatusDisabled" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא מוגדר</sys:String>
+  <sys:String x:Key="ProviderCurlbus" xmlns:sys="clr-namespace:System;assembly=mscorlib">Curlbus (אוטובוסים חיים)</sys:String>
+  <sys:String x:Key="ProviderRail" xmlns:sys="clr-namespace:System;assembly=mscorlib">רכבת ישראל</sys:String>
+  <sys:String x:Key="ProviderStride" xmlns:sys="clr-namespace:System;assembly=mscorlib">Stride SIRI</sys:String>
+  <sys:String x:Key="ProviderMot" xmlns:sys="clr-namespace:System;assembly=mscorlib">SIRI משרד התחבורה</sys:String>
+  <sys:String x:Key="ProviderSchedule" xmlns:sys="clr-namespace:System;assembly=mscorlib">לוח זמנים (GTFS)</sys:String>
 </ResourceDictionary>

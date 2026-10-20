@@ -135,4 +135,13 @@
   <sys:String x:Key="TestNotificationBody" xmlns:sys="clr-namespace:System;assembly=mscorlib">Notifications are working.</sys:String>
   <sys:String x:Key="TestNotificationSent" xmlns:sys="clr-namespace:System;assembly=mscorlib">Test notification sent.</sys:String>
   <sys:String x:Key="NotificationsOffStatus" xmlns:sys="clr-namespace:System;assembly=mscorlib">Notifications are off. Turn them on first.</sys:String>
+  <sys:String x:Key="TrayQuickMute" xmlns:sys="clr-namespace:System;assembly=mscorlib">Quick mute</sys:String>
+  <sys:String x:Key="TrayResume" xmlns:sys="clr-namespace:System;assembly=mscorlib">Resume notifications</sys:String>
+  <sys:String x:Key="TrayMuted" xmlns:sys="clr-namespace:System;assembly=mscorlib">BusPulse - muted</sys:String>
+  <sys:String x:Key="TrayMonitoring" xmlns:sys="clr-namespace:System;assembly=mscorlib">BusPulse - monitoring</sys:String>
+  <sys:String x:Key="TrayProfiles" xmlns:sys="clr-namespace:System;assembly=mscorlib">Profiles</sys:String>
+  <sys:String x:Key="TraySettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">Settings</sys:String>
+  <sys:String x:Key="TrayExit" xmlns:sys="clr-namespace:System;assembly=mscorlib">Exit</sys:String>
+  <sys:String x:Key="TrayNextDeparture" xmlns:sys="clr-namespace:System;assembly=mscorlib">Next: Line {0} in {1} min</sys:String>
+  <sys:String x:Key="TrayNoRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">BusPulse - no route selected</sys:String>
 </ResourceDictionary>

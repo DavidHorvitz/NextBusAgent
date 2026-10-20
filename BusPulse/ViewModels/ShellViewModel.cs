@@ -68,9 +68,9 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public string MuteButtonText => _localizer.Get(IsMuted ? "UnmuteNotifications" : "MuteNotifications");
 
-    public string TrayMenuMuteText => IsMuted ? "Resume notifications" : "Quick mute";
+    public string TrayMenuMuteText => _localizer.Get(IsMuted ? "TrayResume" : "TrayQuickMute");
 
-    public string TrayText => IsMuted ? "BusPulse - muted" : "BusPulse - monitoring";
+    public string TrayText => _localizer.Get(IsMuted ? "TrayMuted" : "TrayMonitoring");
 
     public string LanguageButtonText => FlowDirection == System.Windows.FlowDirection.RightToLeft ? "English" : "עברית";
 

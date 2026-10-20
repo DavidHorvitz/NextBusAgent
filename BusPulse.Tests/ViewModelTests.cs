@@ -24,7 +24,7 @@ public sealed class ShellAndSettingsTests
         Assert.True(f.Settings.Config.NotificationsMuted);
         Assert.Equal(1, f.Settings.SaveCount);
         Assert.Equal("UnmuteNotifications", f.Shell.MuteButtonText);
-        Assert.Contains("muted", f.Shell.TrayText);
+        Assert.Equal("TrayMuted", f.Shell.TrayText);
         Assert.False(f.SettingsTab.NotificationsEnabled);
     }
 
@@ -37,7 +37,7 @@ public sealed class ShellAndSettingsTests
 
         Assert.True(f.Shell.IsMuted);
         Assert.True(f.Settings.Config.NotificationsMuted);
-        Assert.Equal("Resume notifications", f.Shell.TrayMenuMuteText);
+        Assert.Equal("TrayResume", f.Shell.TrayMenuMuteText);
 
         f.SettingsTab.NotificationsEnabled = true;
 

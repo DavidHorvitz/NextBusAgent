@@ -144,4 +144,6 @@
   <sys:String x:Key="TrayExit" xmlns:sys="clr-namespace:System;assembly=mscorlib">יציאה</sys:String>
   <sys:String x:Key="TrayNextDeparture" xmlns:sys="clr-namespace:System;assembly=mscorlib">הבא: קו {0} בעוד {1} דק׳</sys:String>
   <sys:String x:Key="TrayNoRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">BusPulse - לא נבחר מסלול</sys:String>
+  <sys:String x:Key="WalkUnderMinute" xmlns:sys="clr-namespace:System;assembly=mscorlib">פחות מדקה הליכה אל {0}</sys:String>
+  <sys:String x:Key="SettingsSaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא ניתן לשמור את ההגדרה. היא תישאר פעילה עד שתסגרו את האפליקציה.</sys:String>
 </ResourceDictionary>

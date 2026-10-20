@@ -144,4 +144,6 @@
   <sys:String x:Key="TrayExit" xmlns:sys="clr-namespace:System;assembly=mscorlib">Exit</sys:String>
   <sys:String x:Key="TrayNextDeparture" xmlns:sys="clr-namespace:System;assembly=mscorlib">Next: Line {0} in {1} min</sys:String>
   <sys:String x:Key="TrayNoRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">BusPulse - no route selected</sys:String>
+  <sys:String x:Key="WalkUnderMinute" xmlns:sys="clr-namespace:System;assembly=mscorlib">Less than 1 min walk to {0}</sys:String>
+  <sys:String x:Key="SettingsSaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Could not save the setting. It will apply until you close the app.</sys:String>
 </ResourceDictionary>

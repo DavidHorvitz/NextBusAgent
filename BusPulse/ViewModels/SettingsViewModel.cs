@@ -65,6 +65,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _testStatus = string.Empty;
 
+    [ObservableProperty]
+    private string _saveStatus = string.Empty;
+
     public SettingsViewModel(
         ISettingsService settings,
         SavedPlaceCollection places,
@@ -155,7 +158,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         _settings.Config.NotificationsMuted = !value;
         NotificationsToggled?.Invoke(this, value);
-        _ = _settings.SaveAsync();
+        _ = PersistAsync();
     }
 
     partial void OnSelectedLeadMinutesChanged(int value)
@@ -163,7 +166,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading)
         {
             _settings.Config.LeadMinutes = value;
-            _ = _settings.SaveAsync();
+            _ = PersistAsync();
         }
     }
 
@@ -172,7 +175,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading)
         {
             _settings.Config.PollingSeconds = value;
-            _ = _settings.SaveAsync();
+            _ = PersistAsync();
         }
     }
 
@@ -181,7 +184,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading)
         {
             _settings.Config.HomePlaceId = value?.Id;
-            _ = _settings.SaveAsync();
+            _ = PersistAsync();
         }
     }
 
@@ -190,8 +193,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading)
         {
             _settings.Config.WorkPlaceId = value?.Id;
-            _ = _settings.SaveAsync();
+            _ = PersistAsync();
         }
+    }
+
+    /// <summary>Saves a changed setting and reports a failure, instead of dropping the result of an un-awaited save.</summary>
+    private async Task PersistAsync()
+    {
+        var saved = await _settings.SaveAsync();
+        SaveStatus = saved ? string.Empty : _localizer.Get("SettingsSaveFailed");
     }
 
     [RelayCommand]

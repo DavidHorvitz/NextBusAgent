@@ -258,6 +258,18 @@ public sealed class ShellAndSettingsTests
             f.SettingsTab.ProviderStatuses.Select(item => $"{item.Name}: {item.Status}").ToArray());
     }
 
+    [Fact]
+    public async Task Settings_WhenASaveFails_IsReportedInTheSettingsTab()
+    {
+        var f = new Fixture();
+        f.Settings.SaveSucceeds = false;
+
+        f.SettingsTab.SelectedLeadMinutes = 10;
+        await Task.Delay(20);
+
+        Assert.Equal("SettingsSaveFailed", f.SettingsTab.SaveStatus);
+    }
+
     private sealed class Fixture
     {
         public Fixture(Action<AppConfig>? configure = null)
@@ -622,6 +634,17 @@ public sealed class TripPlannerViewModelTests
         Assert.Equal(90, Geo.BearingDegrees(32.0, 34.8, 32.0, 34.9), 0);
         Assert.Equal(180, Geo.BearingDegrees(32.1, 34.8, 32.0, 34.8), 1);
         Assert.Equal(270, Geo.BearingDegrees(32.0, 34.9, 32.0, 34.8), 0);
+    }
+
+    [Fact]
+    public void WalkText_UnderThirtySeconds_SaysLessThanAMinute()
+    {
+        var f = new Fixture();
+        var brief = Option(10, 5) with { WalkToStop = TimeSpan.FromSeconds(10) };
+        var five = Option(10, 5) with { WalkToStop = TimeSpan.FromMinutes(5) };
+
+        Assert.Contains("Less than 1 min walk", new TripOptionViewModel(brief, 0, false, new TemplateLocalizer(), Now).WalkText);
+        Assert.Contains("5 min walk", new TripOptionViewModel(five, 0, false, new TemplateLocalizer(), Now).WalkText);
     }
 
     private static TripOption Option(long rideId, int leaveInMinutes) => new(

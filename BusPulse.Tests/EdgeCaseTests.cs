@@ -71,6 +71,31 @@ public sealed class EdgeCaseTests
     }
 
     [Fact]
+    public void TripTime_KeepsTheWallClockHourOnEveryDayOfTheYear()
+    {
+        var zone = TripTime.IsraelZone;
+        var start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        for (var day = 0; day < 365; day++)
+        {
+            var now = start.AddDays(day);
+            var target = TripTime.Resolve(now, TimeSpan.FromHours(12), zone);
+
+            Assert.Equal(12, TimeZoneInfo.ConvertTime(target, zone).Hour);
+        }
+    }
+
+    [Fact]
+    public void TripTime_PastTimeTodayMovesToTomorrow()
+    {
+        var zone = TripTime.IsraelZone;
+        var now = new DateTimeOffset(2026, 10, 20, 12, 0, 0, TimeSpan.Zero);
+
+        var target = TripTime.Resolve(now, TimeSpan.FromHours(9), zone);
+
+        Assert.Equal(21, TimeZoneInfo.ConvertTime(target, zone).Day);
+    }
+
+    [Fact]
     public void Geo_AntipodalPoints_DoNotProduceNaN()
     {
         var meters = Geo.DistanceMeters(32, 35, -32, -145);

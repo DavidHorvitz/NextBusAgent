@@ -11,6 +11,7 @@
                     AutomationProperties.Name="{DynamicResource LanguageLabel}" />
           <CheckBox Content="{DynamicResource NotificationsEnabledLabel}" IsChecked="{Binding NotificationsEnabled, Mode=TwoWay}" Margin="0,14,0,0"
                     AutomationProperties.Name="{DynamicResource NotificationsEnabledLabel}" />
+          <TextBlock Text="{Binding SaveStatus}" Foreground="#B01E1E" TextWrapping="Wrap" Margin="0,8,0,0" />
           <TextBlock Text="{DynamicResource LeadTimeLabel}" Foreground="#52615E" Margin="0,14,0,4" />
           <ComboBox ItemsSource="{Binding LeadOptions}" SelectedItem="{Binding SelectedLeadMinutes}" Width="120" HorizontalAlignment="Left" MinHeight="32"
                     AutomationProperties.Name="{DynamicResource LeadTimeLabel}">

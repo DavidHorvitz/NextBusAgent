@@ -79,7 +79,8 @@ internal sealed class TemplateLocalizer : ILocalizer
         ["AlertMissed"] = "You missed Line {0}.",
         ["AlertMissedNext"] = "You missed Line {0}. Next option: Line {1} in {2} min",
         ["AlertWalkDetail"] = "{0} min walk + {1} min wait = {2} min before departure · leave in {3} min",
-        ["AlertAtStop"] = "Stop: {0}"
+        ["AlertAtStop"] = "Stop: {0}",
+        ["WalkUnderMinute"] = "Less than 1 min walk to {0}"
     };
 
     public string Language { get; private set; } = "en";

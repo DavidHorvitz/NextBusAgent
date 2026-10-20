@@ -88,11 +88,13 @@ public sealed partial class TripOptionViewModel : ObservableObject
 
     public string ArriveText => string.Format(CultureInfo.CurrentCulture, _localizer.Get("ArriveAt"), Option.ArriveAt.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture));
 
-    public string WalkText => string.Format(
-        CultureInfo.CurrentCulture,
-        _localizer.Get("WalkTo"),
-        Math.Max(1, (int)Math.Round(Option.WalkToStop.TotalMinutes)),
-        Option.OriginStop.Name);
+    public string WalkText => Option.WalkToStop < TimeSpan.FromSeconds(30)
+        ? string.Format(CultureInfo.CurrentCulture, _localizer.Get("WalkUnderMinute"), Option.OriginStop.Name)
+        : string.Format(
+            CultureInfo.CurrentCulture,
+            _localizer.Get("WalkTo"),
+            (int)Math.Round(Option.WalkToStop.TotalMinutes),
+            Option.OriginStop.Name);
 
     public string Tooltip { get; private set; } = string.Empty;
 
@@ -555,17 +557,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     }
 
     /// <summary>Time-of-day targets mean today, or tomorrow when that time has already passed.</summary>
-    private DateTimeOffset ResolveTarget(DateTimeOffset now)
-    {
-        var local = now.ToLocalTime();
-        var target = new DateTimeOffset(local.Date + TargetTime, local.Offset);
-        if (target < local - TimeSpan.FromMinutes(1))
-        {
-            target = target.AddDays(1);
-        }
-
-        return target.ToUniversalTime();
-    }
+    private DateTimeOffset ResolveTarget(DateTimeOffset now) => TripTime.Resolve(now, TargetTime, TripTime.IsraelZone);
 
     private async Task<(double Latitude, double Longitude, string? Failure)> ResolveAsync(
         LocationChoice choice,

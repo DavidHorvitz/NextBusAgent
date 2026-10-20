@@ -37,7 +37,7 @@ public interface ICalendarService
 
 /// <summary>
 /// Google OAuth "installed app" flow: PKCE, the system browser, and a one-shot listener on 127.0.0.1 for the redirect.
-/// The client secret comes from configuration (user-secrets or environment), never from the repository. The refresh token is
+/// The client id and secret come from environment variables (or the config), never from the repository. The refresh token is
 /// stored with DPAPI for the current Windows user only.
 /// </summary>
 public sealed class GoogleCalendarService(
@@ -49,7 +49,15 @@ public sealed class GoogleCalendarService(
     public const string ClientName = "Google";
     private static readonly TimeSpan ConsentTimeout = TimeSpan.FromMinutes(3);
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(config.GoogleClientId) && !string.IsNullOrWhiteSpace(config.GoogleClientSecret);
+    /// <summary>Environment variables win over the config so the client can be set without touching the settings file.</summary>
+    public const string ClientIdVariable = "BUSPULSE_GOOGLE_CLIENT_ID";
+    public const string ClientSecretVariable = "BUSPULSE_GOOGLE_CLIENT_SECRET";
+
+    private string? ClientId => Environment.GetEnvironmentVariable(ClientIdVariable) is { Length: > 0 } fromEnv ? fromEnv : config.GoogleClientId;
+
+    private string? ClientSecret => Environment.GetEnvironmentVariable(ClientSecretVariable) is { Length: > 0 } fromEnv ? fromEnv : config.GoogleClientSecret;
+
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(ClientId) && !string.IsNullOrWhiteSpace(ClientSecret);
 
     public bool IsConnected => tokens.Exists;
 
@@ -69,7 +77,7 @@ public sealed class GoogleCalendarService(
         listener.Start();
         try
         {
-            Process.Start(new ProcessStartInfo(GoogleOAuth.BuildAuthUrl(config.GoogleClientId!, redirect.TrimEnd('/'), pkce.Challenge, state).ToString())
+            Process.Start(new ProcessStartInfo(GoogleOAuth.BuildAuthUrl(ClientId!, redirect.TrimEnd('/'), pkce.Challenge, state).ToString())
             {
                 UseShellExecute = true
             });
@@ -167,8 +175,8 @@ public sealed class GoogleCalendarService(
     private async Task<TokenResult> ExchangeAsync(Dictionary<string, string> fields, CancellationToken cancellationToken)
     {
         var client = httpClientFactory.CreateClient(ClientName);
-        fields["client_id"] = config.GoogleClientId!;
-        fields["client_secret"] = config.GoogleClientSecret!;
+        fields["client_id"] = ClientId!;
+        fields["client_secret"] = ClientSecret!;
         using var content = new FormUrlEncodedContent(fields);
         using var response = await client.PostAsync(GoogleOAuth.TokenEndpoint, content, cancellationToken);
         var body = await response.Content.ReadAsByteArrayAsync(cancellationToken);

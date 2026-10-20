@@ -36,7 +36,7 @@ public sealed class AppConfig
     public string? ApiEndpoint { get; set; }
     public string? ApiKey { get; set; }
 
-    /// <summary>Google OAuth client for the read-only calendar link. Set with user-secrets, never committed.</summary>
+    /// <summary>Google OAuth client for the read-only calendar link. Environment variables BUSPULSE_GOOGLE_CLIENT_ID / _SECRET take precedence.</summary>
     public string? GoogleClientId { get; set; }
 
     public string? GoogleClientSecret { get; set; }

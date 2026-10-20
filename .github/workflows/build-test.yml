@@ -1,0 +1,43 @@
+name: Build & Test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Restore
+        run: dotnet restore BusPulse.sln
+
+      - name: Build
+        run: dotnet build BusPulse.sln --no-restore -c Release
+
+      - name: Unit tests (live probes excluded)
+        run: dotnet test BusPulse.sln --no-build -c Release --filter "Category!=Live"
+
+      - name: Vulnerable packages
+        shell: pwsh
+        run: |
+          $report = dotnet list BusPulse.sln package --vulnerable --include-transitive | Out-String
+          Write-Host $report
+          if ($report -match 'has the following vulnerable packages') {
+            throw 'Vulnerable NuGet packages found.'
+          }
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

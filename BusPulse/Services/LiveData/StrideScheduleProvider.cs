@@ -17,7 +17,7 @@ public sealed partial class StrideScheduleProvider(
     private const string BaseAddress = "https://open-bus-stride-api.hasadna.org.il/";
     private const int MaxResponseBytes = 1_048_576;
     private const int MaxStringLength = 128;
-    private const int MaxRows = 60;
+    private const int MaxRows = 100;
     private static readonly TimeSpan LookBehind = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan LookAhead = TimeSpan.FromMinutes(90);
 

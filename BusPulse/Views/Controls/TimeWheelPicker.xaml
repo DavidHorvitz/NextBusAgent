@@ -4,18 +4,18 @@
              Focusable="True" FocusVisualStyle="{x:Null}" FlowDirection="LeftToRight"
              AutomationProperties.Name="{DynamicResource TimePickerLabel}"
              MouseWheel="OnMouseWheel" KeyDown="OnKeyDown" GotKeyboardFocus="OnFocus" LostKeyboardFocus="OnFocus">
-  <Border x:Name="Frame" BorderBrush="#DCE5E2" BorderThickness="1" CornerRadius="8" Padding="6" Background="White">
+  <Border x:Name="Frame" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="6" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
       <StackPanel x:Name="HourColumn" Width="44" MouseLeftButtonDown="OnColumnDown" MouseMove="OnColumnMove" MouseLeftButtonUp="OnColumnUp" Tag="hour">
-        <TextBlock x:Name="HourPrev" HorizontalAlignment="Center" Foreground="#9AA8A5" FontSize="13" />
+        <TextBlock x:Name="HourPrev" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="13" />
         <TextBlock x:Name="HourNow" HorizontalAlignment="Center" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
-        <TextBlock x:Name="HourNext" HorizontalAlignment="Center" Foreground="#9AA8A5" FontSize="13" />
+        <TextBlock x:Name="HourNext" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="13" />
       </StackPanel>
       <TextBlock Text=":" FontSize="22" FontWeight="Bold" VerticalAlignment="Center" Margin="2,0" />
       <StackPanel x:Name="MinuteColumn" Width="44" MouseLeftButtonDown="OnColumnDown" MouseMove="OnColumnMove" MouseLeftButtonUp="OnColumnUp" Tag="minute">
-        <TextBlock x:Name="MinutePrev" HorizontalAlignment="Center" Foreground="#9AA8A5" FontSize="13" />
+        <TextBlock x:Name="MinutePrev" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="13" />
         <TextBlock x:Name="MinuteNow" HorizontalAlignment="Center" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
-        <TextBlock x:Name="MinuteNext" HorizontalAlignment="Center" Foreground="#9AA8A5" FontSize="13" />
+        <TextBlock x:Name="MinuteNext" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="13" />
       </StackPanel>
     </StackPanel>
   </Border>

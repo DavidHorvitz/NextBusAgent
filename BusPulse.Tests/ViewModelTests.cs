@@ -174,6 +174,35 @@ public sealed class ShellAndSettingsTests
         f.Settings.Config.Validate();
     }
 
+    [Theory]
+    [InlineData("0", 0)]
+    [InlineData("1", 1)]
+    [InlineData("3", 3)]
+    [InlineData("4", 0)]
+    [InlineData("-1", 0)]
+    [InlineData("abc", 0)]
+    [InlineData("", 0)]
+    public void Shell_SelectTab_AcceptsTextParametersFromKeyBindings_AndIgnoresBadOnes(string parameter, int expected)
+    {
+        // XAML passes CommandParameter="1" as a string; a strongly typed command threw and crashed the app.
+        var f = new Fixture();
+
+        Assert.True(f.Shell.SelectTabCommand.CanExecute(parameter));
+        f.Shell.SelectTabCommand.Execute(parameter);
+
+        Assert.Equal(expected, f.Shell.SelectedTabIndex);
+    }
+
+    [Fact]
+    public void Shell_SelectTab_IgnoresNull()
+    {
+        var f = new Fixture();
+
+        f.Shell.SelectTabCommand.Execute(null);
+
+        Assert.Equal(0, f.Shell.SelectedTabIndex);
+    }
+
     [Fact]
     public void CtrlF_OpensThePlannerAndRequestsSearchFocus()
     {

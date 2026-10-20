@@ -139,9 +139,19 @@ public sealed partial class ShellViewModel : ObservableObject
         await _settings.SaveAsync();
     }
 
+    /// <summary>
+    /// Accepts the tab as an int or as text: a XAML <c>CommandParameter="1"</c> arrives as a string, and a strongly typed
+    /// command would throw (and crash the app) on the first keyboard shortcut.
+    /// </summary>
     [RelayCommand]
-    private void SelectTab(int index)
+    private void SelectTab(object? tab)
     {
+        var index = tab switch
+        {
+            int number => number,
+            string text when int.TryParse(text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsed) => parsed,
+            _ => -1
+        };
         if (index is >= 0 and < TabCount)
         {
             SelectedTabIndex = index;

@@ -326,6 +326,42 @@ public sealed class StopsViewModelTests
         Assert.Equal(farthest.Code, f.Stops.Stops[0].Code);
     }
 
+    [Fact]
+    public async Task ToggleStop_ShowsEveryLineDueSoon_EvenWhenOneLineIsVeryFrequent()
+    {
+        var f = await LoadedAsync();
+        var arrivals = Enumerable.Range(1, 12).Select(minute => Live("1", minute)).ToList();
+        arrivals.Add(Live("2", 20));
+        arrivals.Add(Live("3", 30));
+        f.Aggregator.Result = Result(arrivals.ToArray());
+
+        await f.Stops.ToggleStopCommand.ExecuteAsync(f.Stops.Stops[0]);
+
+        var rows = f.Stops.Stops[0].Arrivals;
+        Assert.Equal(["1", "2", "3"], rows.Select(row => row.LineName).Distinct().ToArray());
+        Assert.Equal(4, rows.Count);
+        Assert.Equal(["1m", "2m", "20m", "30m"], rows.Select(row => row.EtaText).ToArray());
+    }
+
+    [Fact]
+    public void PickRows_KeepsTheNextTwoArrivalsOfEachLineSoonestFirst()
+    {
+        var picked = StopsViewModel.PickRows(
+        [
+            Live("5", 9), Live("5", 3), Live("5", 15), Live("7", 6), Live("7", 8), Live("7", 40)
+        ]);
+
+        Assert.Equal(["5@3", "7@6", "7@8", "5@9"], picked.Select(a => $"{a.LineName}@{(int)(a.Eta - Now).TotalMinutes}").ToArray());
+    }
+
+    [Fact]
+    public void PickRows_IsCaseInsensitiveOnTheLineAndHandlesNoArrivals()
+    {
+        Assert.Empty(StopsViewModel.PickRows([]));
+        Assert.Single(StopsViewModel.PickRows([Live("4a", 5)]));
+        Assert.Equal(2, StopsViewModel.PickRows([Live("4A", 5), Live("4a", 9), Live("4a", 12)]).Count);
+    }
+
     private static async Task<Fixture> LoadedAsync()
     {
         var f = new Fixture();

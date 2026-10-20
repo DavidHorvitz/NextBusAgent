@@ -85,9 +85,15 @@ internal sealed class TemplateLocalizer : ILocalizer
 
     public string Language { get; private set; } = "en";
 
+    public event EventHandler? LanguageChanged;
+
     public string Get(string key) => Templates.GetValueOrDefault(key, key);
 
-    public void SetLanguage(string language) => Language = language;
+    public void SetLanguage(string language)
+    {
+        Language = language;
+        LanguageChanged?.Invoke(this, EventArgs.Empty);
+    }
 }
 
 internal sealed class FakeHistory : IHistoryService
@@ -145,5 +151,21 @@ internal sealed class FakeTripPlanner : ITripPlannerService
         Calls++;
         LastRequest = request;
         return Task.FromResult(Plan);
+    }
+}
+
+/// <summary>Tags every lookup with the active language so tests can see whether text was refreshed.</summary>
+internal sealed class LanguageAwareLocalizer : ILocalizer
+{
+    public string Language { get; private set; } = "en";
+
+    public event EventHandler? LanguageChanged;
+
+    public string Get(string key) => $"{key}:{Language}";
+
+    public void SetLanguage(string language)
+    {
+        Language = language;
+        LanguageChanged?.Invoke(this, EventArgs.Empty);
     }
 }

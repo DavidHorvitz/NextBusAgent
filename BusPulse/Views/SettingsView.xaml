@@ -3,16 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel>
-      <Border Background="White" BorderBrush="#DCE5E2" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,16">
+      <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,16">
         <StackPanel>
           <TextBlock Text="{DynamicResource NotificationSettings}" FontSize="18" FontWeight="SemiBold" />
-          <TextBlock Text="{DynamicResource LanguageLabel}" Foreground="#52615E" Margin="0,14,0,4" />
+          <TextBlock Text="{DynamicResource LanguageLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,14,0,4" />
           <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" DisplayMemberPath="Name" Width="160" HorizontalAlignment="Left" MinHeight="32"
                     AutomationProperties.Name="{DynamicResource LanguageLabel}" />
           <CheckBox Content="{DynamicResource NotificationsEnabledLabel}" IsChecked="{Binding NotificationsEnabled, Mode=TwoWay}" Margin="0,14,0,0"
                     AutomationProperties.Name="{DynamicResource NotificationsEnabledLabel}" />
-          <TextBlock Text="{Binding SaveStatus}" Foreground="#B01E1E" TextWrapping="Wrap" Margin="0,8,0,0" />
-          <TextBlock Text="{DynamicResource LeadTimeLabel}" Foreground="#52615E" Margin="0,14,0,4" />
+          <TextBlock Text="{Binding SaveStatus}" Foreground="{DynamicResource ErrorTextBrush}" TextWrapping="Wrap" Margin="0,8,0,0" />
+          <TextBlock Text="{DynamicResource LeadTimeLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,14,0,4" />
           <ComboBox ItemsSource="{Binding LeadOptions}" SelectedItem="{Binding SelectedLeadMinutes}" Width="120" HorizontalAlignment="Left" MinHeight="32"
                     AutomationProperties.Name="{DynamicResource LeadTimeLabel}">
             <ComboBox.ItemTemplate>
@@ -21,7 +21,7 @@
               </DataTemplate>
             </ComboBox.ItemTemplate>
           </ComboBox>
-          <TextBlock Text="{DynamicResource PollingLabel}" Foreground="#52615E" Margin="0,14,0,4" />
+          <TextBlock Text="{DynamicResource PollingLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,14,0,4" />
           <ComboBox ItemsSource="{Binding PollingOptions}" SelectedItem="{Binding SelectedPollingSeconds}" Width="120" HorizontalAlignment="Left" MinHeight="32"
                     AutomationProperties.Name="{DynamicResource PollingLabel}">
             <ComboBox.ItemTemplate>
@@ -31,42 +31,42 @@
             </ComboBox.ItemTemplate>
           </ComboBox>
           <Button Content="{DynamicResource SendTestNotification}" Command="{Binding SendTestNotificationCommand}" HorizontalAlignment="Left" Padding="12,6" Margin="0,16,0,0" />
-          <TextBlock Text="{Binding TestStatus}" Foreground="#52615E" Margin="0,6,0,0" />
+          <TextBlock Text="{Binding TestStatus}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,6,0,0" />
         </StackPanel>
       </Border>
 
-      <Border Background="White" BorderBrush="#DCE5E2" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,16">
+      <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,16">
         <StackPanel>
           <TextBlock Text="{DynamicResource SavedPlacesQuick}" FontSize="18" FontWeight="SemiBold" />
-          <TextBlock Text="{DynamicResource HomePlaceLabel}" Foreground="#52615E" Margin="0,14,0,4" />
+          <TextBlock Text="{DynamicResource HomePlaceLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,14,0,4" />
           <StackPanel Orientation="Horizontal">
             <ComboBox ItemsSource="{Binding Places}" SelectedItem="{Binding HomePlace}" DisplayMemberPath="Name" MinWidth="200" MinHeight="32"
                       AutomationProperties.Name="{DynamicResource HomePlaceLabel}" />
             <Button Content="{DynamicResource ClearPlace}" Command="{Binding ClearHomeCommand}" Margin="8,0,0,0" Padding="10,4" />
           </StackPanel>
-          <TextBlock Text="{DynamicResource WorkPlaceLabel}" Foreground="#52615E" Margin="0,12,0,4" />
+          <TextBlock Text="{DynamicResource WorkPlaceLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,12,0,4" />
           <StackPanel Orientation="Horizontal">
             <ComboBox ItemsSource="{Binding Places}" SelectedItem="{Binding WorkPlace}" DisplayMemberPath="Name" MinWidth="200" MinHeight="32"
                       AutomationProperties.Name="{DynamicResource WorkPlaceLabel}" />
             <Button Content="{DynamicResource ClearPlace}" Command="{Binding ClearWorkCommand}" Margin="8,0,0,0" Padding="10,4" />
           </StackPanel>
           <Button Content="{DynamicResource ClearHistory}" Command="{Binding ClearHistoryCommand}" HorizontalAlignment="Left" Padding="12,6" Margin="0,16,0,0" />
-          <TextBlock Text="{Binding HistoryStatus}" Foreground="#52615E" Margin="0,6,0,0" />
+          <TextBlock Text="{Binding HistoryStatus}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,6,0,0" />
         </StackPanel>
       </Border>
 
-      <Border Background="White" BorderBrush="#DCE5E2" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,16">
+      <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,16">
         <StackPanel>
           <TextBlock Text="{DynamicResource ManagePlaces}" FontSize="18" FontWeight="SemiBold" />
-          <TextBlock Text="{DynamicResource PlaceNameLabel}" Foreground="#52615E" Margin="0,14,0,4" />
+          <TextBlock Text="{DynamicResource PlaceNameLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,14,0,4" />
           <TextBox Text="{Binding NewPlaceName, UpdateSourceTrigger=PropertyChanged}" MaxLength="64" MinHeight="32"
                    AutomationProperties.Name="{DynamicResource PlaceNameLabel}" />
-          <TextBlock Text="{DynamicResource PlaceStopCodeLabel}" Foreground="#52615E" Margin="0,10,0,4" />
+          <TextBlock Text="{DynamicResource PlaceStopCodeLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,10,0,4" />
           <TextBox Text="{Binding NewPlaceStopCode, UpdateSourceTrigger=PropertyChanged}" MaxLength="32" MinHeight="32"
                    AutomationProperties.Name="{DynamicResource PlaceStopCodeLabel}" />
-          <TextBlock Text="{DynamicResource PlaceStopCodeHelp}" Foreground="#52615E" FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap" />
+          <TextBlock Text="{DynamicResource PlaceStopCodeHelp}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap" />
           <Button Content="{DynamicResource SavePlace}" Command="{Binding AddPlaceCommand}" HorizontalAlignment="Left" Padding="12,7" Margin="0,10,0,0" />
-          <TextBlock Text="{Binding PlaceStatus}" Foreground="#52615E" Margin="0,8,0,0" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding PlaceStatus}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,8,0,0" TextWrapping="Wrap" />
           <ItemsControl ItemsSource="{Binding Places}" Margin="0,12,0,0">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
@@ -79,7 +79,7 @@
         </StackPanel>
       </Border>
 
-      <Border Background="White" BorderBrush="#DCE5E2" BorderThickness="1" CornerRadius="12" Padding="20">
+      <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20">
         <StackPanel>
           <TextBlock Text="{DynamicResource ProviderStatusTitle}" FontSize="18" FontWeight="SemiBold" />
           <Button Content="{DynamicResource CheckConnection}" Command="{Binding CheckConnectionCommand}" HorizontalAlignment="Left" Padding="12,7" Margin="0,12,0,0" />

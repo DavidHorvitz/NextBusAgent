@@ -42,6 +42,7 @@ public sealed partial class LinesViewModel : ObservableObject
     private readonly IClock _clock;
     private readonly ILogger<LinesViewModel> _logger;
     private CancellationTokenSource? _loadCts;
+    private string _hintText;
 
     [ObservableProperty]
     private string _lineName = string.Empty;
@@ -80,11 +81,27 @@ public sealed partial class LinesViewModel : ObservableObject
         _clock = clock;
         _logger = logger;
         MyLocation = new LocationChoice(localizer.Get("MyLocation"));
+        _hintText = localizer.Get("LinesHint");
+        localizer.LanguageChanged += (_, _) => RefreshLanguage();
         _selectedOrigin = MyLocation;
-        _statusText = localizer.Get("LinesHint");
+        _statusText = _hintText;
         FavoriteLines = new ObservableCollection<string>(settings.Config.FavoriteLines);
         RebuildOrigins();
         places.Items.CollectionChanged += (_, _) => RebuildOrigins();
+    }
+
+    private void RefreshLanguage()
+    {
+        MyLocation.DisplayName = _localizer.Get("MyLocation");
+        var newHint = _localizer.Get("LinesHint");
+        if (StatusText == _hintText)
+        {
+            StatusText = newHint;
+        }
+
+        _hintText = newHint;
+        OnPropertyChanged(nameof(PinText));
+        OnPropertyChanged(nameof(ScheduleNotice));
     }
 
     private void RebuildOrigins()

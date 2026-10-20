@@ -51,6 +51,7 @@ internal static class Program
                     AllowAutoRedirect = false
                 });
                 services.AddSingleton<IDispatcher, WpfDispatcher>();
+                services.AddSingleton<IThemeService, WpfUiThemeService>();
                 services.AddSingleton<ILocalizer, ResourceLocalizer>();
                 services.AddSingleton<ISettingsService, SettingsService>();
                 services.AddSingleton<SavedPlaceCollection>();

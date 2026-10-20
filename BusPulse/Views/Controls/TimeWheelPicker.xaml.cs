@@ -112,7 +112,7 @@ public partial class TimeWheelPicker : UserControl
     private bool IsFocusOnMinutes { get; set; }
 
     private void OnFocus(object sender, KeyboardFocusChangedEventArgs e) =>
-        Frame.BorderBrush = IsKeyboardFocusWithin ? (Brush)FindResource("AccentBrush") : new SolidColorBrush(Color.FromRgb(0xDC, 0xE5, 0xE2));
+        Frame.BorderBrush = (Brush)FindResource(IsKeyboardFocusWithin ? "AccentBrush" : "CardStrokeColorDefaultBrush");
 
     private void OnColumnDown(object sender, MouseButtonEventArgs e)
     {

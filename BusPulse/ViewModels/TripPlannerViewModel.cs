@@ -15,16 +15,17 @@ using Microsoft.Extensions.Logging;
 namespace BusPulse.ViewModels;
 
 /// <summary>An origin or destination: the user's current location, a saved place, or a specific stop.</summary>
-public sealed class LocationChoice
+public sealed partial class LocationChoice : ObservableObject
 {
     public LocationChoice(string displayName, SavedPlace? place = null, Stop? stop = null)
     {
-        DisplayName = displayName;
+        _displayName = displayName;
         Place = place;
         Stop = stop;
     }
 
-    public string DisplayName { get; }
+    [ObservableProperty]
+    private string _displayName;
 
     public SavedPlace? Place { get; }
 
@@ -144,6 +145,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     private CancellationTokenSource? _tickerCts;
     private CancellationTokenSource? _suggestCts;
     private TripRequest? _lastRequest;
+    private string _hintText;
 
     [ObservableProperty]
     private LocationChoice _selectedOrigin;
@@ -196,6 +198,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         _dispatcher = dispatcher;
         _logger = logger;
         MyLocation = new LocationChoice(localizer.Get("MyLocation"));
+        _hintText = localizer.Get("PlanHint");
+        localizer.LanguageChanged += (_, _) => RefreshLanguage();
         RebuildChoices();
         places.Items.CollectionChanged += (_, _) => RebuildChoices();
         // The planner always starts from the user's current location.
@@ -204,7 +208,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
             ? Choices.FirstOrDefault(c => c.Place?.Id == destinationId)
             : null;
         _lineName = settings.Config.LineName ?? string.Empty;
-        _statusText = localizer.Get("PlanHint");
+        _statusText = _hintText;
         _targetTime = TimeSpan.FromHours(DateTime.Now.Hour).Add(TimeSpan.FromMinutes(DateTime.Now.Minute));
         reminder.Changed += (_, _) => _dispatcher.Post(SyncWatched);
     }
@@ -273,6 +277,20 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     }
 
     partial void OnDestinationQueryChanged(string value) => _ = UpdateSuggestionsAsync();
+
+    /// <summary>Re-reads text that was captured while the previous language was active.</summary>
+    private void RefreshLanguage()
+    {
+        MyLocation.DisplayName = _localizer.Get("MyLocation");
+        var newHint = _localizer.Get("PlanHint");
+        if (StatusText == _hintText)
+        {
+            StatusText = newHint;
+        }
+
+        _hintText = newHint;
+        OnPropertyChanged(nameof(RouteSummary));
+    }
 
     /// <summary>Raised when the destination search should take keyboard focus (Ctrl+F).</summary>
     public event EventHandler? SearchFocusRequested;

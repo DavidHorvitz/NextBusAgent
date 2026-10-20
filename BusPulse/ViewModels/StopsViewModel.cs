@@ -119,6 +119,7 @@ public sealed partial class StopItemViewModel : ObservableObject
 public sealed partial class StopsViewModel : ObservableObject
 {
     private const int MaxStops = 15;
+    private const int MaxArrivalRows = 40;
     private const double MaxDistanceMeters = 3000;
 
     private readonly ISettingsService _settings;
@@ -132,6 +133,7 @@ public sealed partial class StopsViewModel : ObservableObject
     private readonly ILogger<StopsViewModel> _logger;
     private CancellationTokenSource? _tickerCts;
     private bool _loadedOnce;
+    private string _emptyText = string.Empty;
     private IReadOnlyList<NearbyStop> _lastNearby = [];
 
     [ObservableProperty]
@@ -167,6 +169,18 @@ public sealed partial class StopsViewModel : ObservableObject
         _dispatcher = dispatcher;
         _logger = logger;
         _statusText = localizer.Get("StopsEmpty");
+        _emptyText = _statusText;
+        localizer.LanguageChanged += (_, _) =>
+        {
+            var current = localizer.Get("StopsEmpty");
+            if (StatusText == _emptyText)
+            {
+                StatusText = current;
+            }
+
+            _emptyText = current;
+            OnPropertyChanged(nameof(EmptyMessage));
+        };
     }
 
     public ObservableCollection<StopItemViewModel> Stops { get; } = [];
@@ -288,6 +302,23 @@ public sealed partial class StopsViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Every line that is due soon gets a row: each line's next arrival, plus its second one, soonest first. A plain "first N
+    /// arrivals" would let a frequent line push the others off the list.
+    /// </summary>
+    public static IReadOnlyList<Arrival> PickRows(IEnumerable<Arrival> arrivals)
+    {
+        var lines = arrivals
+            .GroupBy(arrival => arrival.LineName, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.OrderBy(arrival => arrival.Eta).ToList())
+            .ToList();
+        return lines.Select(line => line[0])
+            .Concat(lines.Where(line => line.Count > 1).Select(line => line[1]))
+            .OrderBy(arrival => arrival.Eta)
+            .Take(MaxArrivalRows)
+            .ToArray();
+    }
+
     private async Task LoadArrivalsAsync(StopItemViewModel item, CancellationToken cancellationToken)
     {
         item.IsLoading = item.Arrivals.Count == 0;
@@ -295,8 +326,8 @@ public sealed partial class StopsViewModel : ObservableObject
         {
             var result = await _aggregator.GetArrivalsAsync(item.Code, cancellationToken);
             var now = _clock.UtcNow;
-            var arrivals = result.Arrivals.Take(8).ToArray();
-            for (var i = 0; i < arrivals.Length; i++)
+            var arrivals = PickRows(result.Arrivals);
+            for (var i = 0; i < arrivals.Count; i++)
             {
                 if (i < item.Arrivals.Count)
                 {
@@ -308,12 +339,12 @@ public sealed partial class StopsViewModel : ObservableObject
                 }
             }
 
-            while (item.Arrivals.Count > arrivals.Length)
+            while (item.Arrivals.Count > arrivals.Count)
             {
                 item.Arrivals.RemoveAt(item.Arrivals.Count - 1);
             }
 
-            item.ArrivalsStatus = arrivals.Length == 0
+            item.ArrivalsStatus = arrivals.Count == 0
                 ? _localizer.Get("NoArrivals")
                 : arrivals.Any(arrival => arrival.IsLive) ? string.Empty : _localizer.Get("NoLiveData");
         }

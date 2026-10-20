@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using BusPulse.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,7 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        RegisterCrashLogging();
 
         try
         {
@@ -26,6 +28,9 @@ public partial class App : Application
             window.Show();
             window.Visibility = Visibility.Visible;
             window.Activate();
+            var themeService = _host.Services.GetRequiredService<Infrastructure.IThemeService>();
+            themeService.Attach(window);
+            themeService.Apply(config.Theme);
 
             _ = StartHostAsync(_host);
         }
@@ -37,6 +42,39 @@ public partial class App : Application
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(-1);
+        }
+    }
+
+    /// <summary>Writes unhandled exceptions to %LOCALAPPDATA%\BusPulse\crash.log so a crash leaves a trace.</summary>
+    private void RegisterCrashLogging()
+    {
+        DispatcherUnhandledException += (_, args) =>
+        {
+            LogCrash("UI thread", args.Exception);
+            System.Windows.MessageBox.Show(args.Exception.Message, "BusPulse", MessageBoxButton.OK, MessageBoxImage.Error);
+            args.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) => LogCrash("AppDomain", args.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            LogCrash("Task", args.Exception);
+            args.SetObserved();
+        };
+    }
+
+    private static void LogCrash(string source, Exception? exception)
+    {
+        try
+        {
+            var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BusPulse");
+            Directory.CreateDirectory(directory);
+            File.AppendAllText(
+                Path.Combine(directory, "crash.log"),
+                $"{DateTimeOffset.Now:O} [{source}]{Environment.NewLine}{exception}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch (Exception logFailure) when (logFailure is IOException or UnauthorizedAccessException)
+        {
+            // Nothing more can be done if the log itself cannot be written.
         }
     }
 

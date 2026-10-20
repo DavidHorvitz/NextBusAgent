@@ -34,10 +34,15 @@ public interface ILocalizer
     string Get(string key);
 
     void SetLanguage(string language);
+
+    /// <summary>Raised after the language changed, so text captured earlier can be refreshed.</summary>
+    event EventHandler? LanguageChanged;
 }
 
 public sealed class ResourceLocalizer : ILocalizer
 {
+    public event EventHandler? LanguageChanged;
+
     public string Get(string key) => Application.Current?.TryFindResource(key) as string ?? key;
 
     public void SetLanguage(string language)
@@ -49,6 +54,7 @@ public sealed class ResourceLocalizer : ILocalizer
         var dictionaries = Application.Current.Resources.MergedDictionaries;
         dictionaries.RemoveAt(0);
         dictionaries.Insert(0, dictionary);
+        LanguageChanged?.Invoke(this, EventArgs.Empty);
     }
 }
 

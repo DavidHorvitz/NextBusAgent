@@ -3,24 +3,42 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <!-- A full-width row that is still a real Button (keyboard and screen-reader friendly). -->
+    <Style x:Key="RowButton" TargetType="Button">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Row" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Row" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Row" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
   </UserControl.Resources>
-  <Border Background="White" BorderBrush="#DCE5E2" BorderThickness="1" CornerRadius="6" Padding="20">
+  <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="20">
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
         <RowDefinition Height="*" />
       </Grid.RowDefinitions>
-      <StackPanel Orientation="Horizontal">
-        <TextBlock Text="{DynamicResource NearPlaceLabel}" Foreground="#52615E" VerticalAlignment="Center" Margin="0,0,8,0" />
-        <ComboBox ItemsSource="{Binding Places}" SelectedItem="{Binding SelectedAnchor}" DisplayMemberPath="Name"
-                  MinWidth="180" MinHeight="32" AutomationProperties.Name="{DynamicResource NearPlaceLabel}" />
-        <Button Content="{DynamicResource UseMyLocation}" Margin="8,0,0,0" Padding="12,5"
-                Command="{Binding LoadCommand}" />
-      </StackPanel>
       <StackPanel Grid.Row="1" Margin="0,12,0,8">
-        <TextBlock Text="{Binding LocationText}" Foreground="#52615E" FontSize="12" />
-        <TextBlock Text="{Binding StatusText}" Foreground="#52615E" TextWrapping="Wrap" Margin="0,4,0,0" />
+        <TextBlock Text="{Binding LocationText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
+        <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
         <ProgressBar IsIndeterminate="True" Height="3" Margin="0,6,0,0"
                      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
       </StackPanel>
@@ -28,13 +46,13 @@
         <ItemsControl ItemsSource="{Binding Stops}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Border BorderBrush="#E5ECEA" BorderThickness="0,0,0,1" Padding="0,8">
+              <Border BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Padding="0,8">
                 <StackPanel>
                   <Button HorizontalAlignment="Right" Padding="8,2" Margin="0,0,0,4"
                           Command="{Binding DataContext.TogglePinStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                           CommandParameter="{Binding}">
                     <Button.Style>
-                      <Style TargetType="Button">
+                      <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                         <Setter Property="Content" Value="{DynamicResource StopPin}" />
                         <Style.Triggers>
                           <DataTrigger Binding="{Binding IsFavorite}" Value="True">
@@ -45,7 +63,7 @@
                     </Button.Style>
                   </Button>
                   <Button Command="{Binding DataContext.ToggleStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                          CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0"
+                          CommandParameter="{Binding}" Style="{StaticResource RowButton}"
                           AutomationProperties.Name="{Binding Name}">
                     <Grid>
                       <Grid.ColumnDefinitions>
@@ -54,16 +72,16 @@
                       </Grid.ColumnDefinitions>
                       <StackPanel>
                         <StackPanel Orientation="Horizontal">
-                          <TextBlock Text="★ " Foreground="#147D70" FontWeight="Bold" Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibility}}" />
+                          <TextBlock Text="★ " Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibility}}" />
                           <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
-                        <TextBlock Text="{Binding Code}" Foreground="#52615E" FontSize="12" />
+                        <TextBlock Text="{Binding Code}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
                       </StackPanel>
-                      <TextBlock Grid.Column="1" Text="{Binding DistanceText}" Foreground="#147D70" FontWeight="SemiBold" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="1" Text="{Binding DistanceText}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </Grid>
                   </Button>
                   <StackPanel Margin="12,6,0,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Text="{Binding ArrivalsStatus}" Foreground="#8A5A00" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding ArrivalsStatus}" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding Arrivals}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -91,10 +109,10 @@
                             <Border Grid.Column="3" CornerRadius="8" Padding="8,2" VerticalAlignment="Center">
                               <Border.Style>
                                 <Style TargetType="Border">
-                                  <Setter Property="Background" Value="#FFF1D6" />
+                                  <Setter Property="Background" Value="{DynamicResource ScheduledBadgeBrush}" />
                                   <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsLive}" Value="True">
-                                      <Setter Property="Background" Value="#D8F1EC" />
+                                      <Setter Property="Background" Value="{DynamicResource LiveBadgeBrush}" />
                                     </DataTrigger>
                                   </Style.Triggers>
                                 </Style>

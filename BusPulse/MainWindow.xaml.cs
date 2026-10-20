@@ -4,7 +4,7 @@ using BusPulse.ViewModels;
 
 namespace BusPulse;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 {
     private readonly TrayController _tray;
 

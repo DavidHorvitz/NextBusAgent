@@ -28,6 +28,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IHistoryService _history;
     private readonly INotifier _notifier;
     private bool _loading = true;
+    private string _defaultPlaceName = string.Empty;
 
     [ObservableProperty]
     private string _newPlaceName;
@@ -85,6 +86,17 @@ public sealed partial class SettingsViewModel : ObservableObject
         _history = history;
         _notifier = notifier;
         _newPlaceName = localizer.Get("HomeName");
+        _defaultPlaceName = _newPlaceName;
+        localizer.LanguageChanged += (_, _) =>
+        {
+            var current = localizer.Get("HomeName");
+            if (NewPlaceName == _defaultPlaceName)
+            {
+                NewPlaceName = current;
+            }
+
+            _defaultPlaceName = current;
+        };
         var config = settings.Config;
         _notificationsEnabled = !config.NotificationsMuted;
         _selectedLeadMinutes = Nearest(LeadMinutesOptions, config.LeadMinutes);

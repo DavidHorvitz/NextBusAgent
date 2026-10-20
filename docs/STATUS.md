@@ -1,6 +1,6 @@
 # BusPulse status (2026-10-20)
 
-Snapshot of what works, what was verified and how, what is still open, and known edge cases. [PLAN.md](PLAN.md) holds scope and decisions; this file holds the current state.
+Start with [HANDOFF.md](HANDOFF.md) for the current handoff. Snapshot of what works, what was verified and how, what is still open, and known edge cases. [PLAN.md](PLAN.md) holds scope and decisions; this file holds the current state.
 
 ## Verified
 

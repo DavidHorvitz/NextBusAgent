@@ -7,6 +7,7 @@ using BusPulse.Services;
 using BusPulse.Services.LiveData;
 using BusPulse.Services.Location;
 using BusPulse.Services.Stops;
+using BusPulse.Services.Trips;
 using BusPulse.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,6 +24,7 @@ internal static class Program
                 services.AddSingleton(config);
                 services.AddSingleton(configStore);
                 services.AddSingleton<ToastNotificationService>();
+                services.AddSingleton<INotifier>(provider => provider.GetRequiredService<ToastNotificationService>());
                 services.AddSingleton<SoundService>();
                 services.AddSingleton<IClock, SystemClock>();
                 services.AddSingleton<ILiveArrivalsProvider, CurlbusArrivalsProvider>();
@@ -31,6 +33,12 @@ internal static class Program
                 services.AddSingleton<ILiveDataAggregator, LiveDataAggregator>();
                 services.AddSingleton<ILocationService, WindowsLocationService>();
                 services.AddSingleton<IStopCatalog, StrideStopCatalog>();
+                services.AddSingleton<IRideScheduleSource, StrideRideScheduleSource>();
+                services.AddSingleton<ITripPlannerService, TripPlannerService>();
+                services.AddSingleton<IHistoryService, HistoryService>();
+                services.AddSingleton<DepartureReminderService>();
+                services.AddSingleton<IDepartureReminder>(provider => provider.GetRequiredService<DepartureReminderService>());
+                services.AddHostedService<DepartureReminderWorker>();
                 services.AddHttpClient(CurlbusArrivalsProvider.ClientName, client =>
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);

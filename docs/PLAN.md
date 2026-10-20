@@ -1,6 +1,6 @@
 # BusPulse Plan
 
-Single source of truth for scope, decisions, status and next steps. It merges the original agent brief, the follow-up brief and the four-workstream execution plan. Status is as of 2026-10-20 (`dotnet build`: 0 errors; 74 unit tests and 2 live probes pass). Supporting documents: [audit.md](audit.md) (requirement-by-requirement audit), [live-data-probe.md](live-data-probe.md) (measured provider behavior), [assets.md](assets.md) (icon and audio specs), [../SECURITY.md](../SECURITY.md).
+Single source of truth for scope, decisions, status and next steps. It merges the original agent brief, the follow-up brief and the four-workstream execution plan. Status is as of 2026-10-20 (`dotnet build`: 0 errors; 74 unit tests and 2 live probes pass). Supporting documents: [audit.md](audit.md) (requirement-by-requirement audit), [live-data-probe.md](live-data-probe.md) (measured provider behavior), [assets.md](assets.md) (icon and audio specs), [UML.md](UML.md) (class and sequence diagrams), [../SECURITY.md](../SECURITY.md).
 
 ## 1. Product
 

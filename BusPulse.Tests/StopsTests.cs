@@ -295,6 +295,37 @@ public sealed class StopsViewModelTests
         Assert.Equal("now", row.EtaText);
     }
 
+    [Fact]
+    public async Task PinningAStop_MovesItToTheTopAndPersists()
+    {
+        var f = await LoadedAsync();
+        var settings = f.Settings;
+        var farthest = f.Stops.Stops.Last();
+
+        await f.Stops.TogglePinStopCommand.ExecuteAsync(farthest);
+
+        Assert.Equal(farthest.Code, f.Stops.Stops[0].Code);
+        Assert.True(f.Stops.Stops[0].IsFavorite);
+        Assert.Contains(farthest.Code, settings.Config.FavoriteStopCodes);
+
+        await f.Stops.TogglePinStopCommand.ExecuteAsync(f.Stops.Stops[0]);
+
+        Assert.Empty(settings.Config.FavoriteStopCodes);
+        Assert.False(f.Stops.Stops.Any(stop => stop.IsFavorite));
+    }
+
+    [Fact]
+    public async Task PinnedStops_StayOnTopAfterAReload()
+    {
+        var f = await LoadedAsync();
+        var farthest = f.Stops.Stops.Last();
+        await f.Stops.TogglePinStopCommand.ExecuteAsync(farthest);
+
+        await f.Stops.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal(farthest.Code, f.Stops.Stops[0].Code);
+    }
+
     private static async Task<Fixture> LoadedAsync()
     {
         var f = new Fixture();
@@ -321,12 +352,14 @@ public sealed class StopsViewModelTests
             Catalog = new FakeCatalog(Far, Near, Middle);
             Aggregator = new CountingAggregator();
             var settings = new MemorySettings();
+            Settings = settings;
             Places = new SavedPlaceCollection(settings);
             Stops = new StopsViewModel(
                 settings, Location, Catalog, Aggregator, Places, new TemplateLocalizer(), Clock, new ImmediateDispatcher(),
                 NullLogger<StopsViewModel>.Instance);
         }
 
+        public MemorySettings Settings { get; }
         public FixedClock Clock { get; }
         public FakeLocation Location { get; }
         public FakeCatalog Catalog { get; }

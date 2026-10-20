@@ -274,6 +274,11 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     partial void OnDestinationQueryChanged(string value) => _ = UpdateSuggestionsAsync();
 
+    /// <summary>Raised when the destination search should take keyboard focus (Ctrl+F).</summary>
+    public event EventHandler? SearchFocusRequested;
+
+    public void RequestSearchFocus() => SearchFocusRequested?.Invoke(this, EventArgs.Empty);
+
     /// <summary>Called by the shell while this tab is visible: keeps the plan fresh and counts down.</summary>
     public void SetActive(bool active)
     {

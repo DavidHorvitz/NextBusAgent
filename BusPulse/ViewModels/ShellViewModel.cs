@@ -148,6 +148,14 @@ public sealed partial class ShellViewModel : ObservableObject
         }
     }
 
+    /// <summary>Ctrl+F: opens the trip planner and puts the cursor in its destination search.</summary>
+    [RelayCommand]
+    private void FocusSearch()
+    {
+        SelectedTabIndex = 1;
+        TripPlanner.RequestSearchFocus();
+    }
+
     [RelayCommand]
     private void Hide() => HideRequested?.Invoke(this, EventArgs.Empty);
 

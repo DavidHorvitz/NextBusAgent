@@ -159,4 +159,7 @@
   <sys:String x:Key="LineFavorites" xmlns:sys="clr-namespace:System;assembly=mscorlib">קווים מוצמדים</sys:String>
   <sys:String x:Key="LineOriginMark" xmlns:sys="clr-namespace:System;assembly=mscorlib">התחנה שלכם</sys:String>
   <sys:String x:Key="LineLoadLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">מספר קו</sys:String>
+  <sys:String x:Key="StopPin" xmlns:sys="clr-namespace:System;assembly=mscorlib">הצמדת תחנה</sys:String>
+  <sys:String x:Key="StopUnpin" xmlns:sys="clr-namespace:System;assembly=mscorlib">ביטול הצמדת תחנה</sys:String>
+  <sys:String x:Key="FavoriteBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">מוצמדת</sys:String>
 </ResourceDictionary>

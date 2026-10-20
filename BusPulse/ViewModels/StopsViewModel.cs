@@ -96,6 +96,9 @@ public sealed partial class StopItemViewModel : ObservableObject
     private bool _isExpanded;
 
     [ObservableProperty]
+    private bool _isFavorite;
+
+    [ObservableProperty]
     private bool _isLoading;
 
     [ObservableProperty]
@@ -129,6 +132,7 @@ public sealed partial class StopsViewModel : ObservableObject
     private readonly ILogger<StopsViewModel> _logger;
     private CancellationTokenSource? _tickerCts;
     private bool _loadedOnce;
+    private IReadOnlyList<NearbyStop> _lastNearby = [];
 
     [ObservableProperty]
     private string _statusText = string.Empty;
@@ -232,6 +236,7 @@ public sealed partial class StopsViewModel : ObservableObject
 
             LocationText = originText;
             var nearby = Geo.FindNearby(stops, latitude, longitude, MaxStops, MaxDistanceMeters);
+            _lastNearby = nearby;
             Reconcile(nearby);
             StatusText = nearby.Count == 0 ? _localizer.Get("NoStopsNearby") : string.Empty;
         }
@@ -322,14 +327,45 @@ public sealed partial class StopsViewModel : ObservableObject
         }
     }
 
+    /// <summary>Pinned stops first, then nearest first. Pinning is stored in the config, so it survives restarts.</summary>
+    [RelayCommand]
+    private async Task TogglePinStopAsync(StopItemViewModel? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        var favorites = _settings.Config.FavoriteStopCodes;
+        var code = item.Code;
+        if (favorites.Contains(code))
+        {
+            favorites.Remove(code);
+        }
+        else
+        {
+            favorites.Add(code);
+        }
+
+        await _settings.SaveAsync();
+        Reconcile(_lastNearby);
+    }
+
     private void Reconcile(IReadOnlyList<NearbyStop> nearby)
     {
+        var favorites = _settings.Config.FavoriteStopCodes.ToHashSet(StringComparer.Ordinal);
+        nearby = nearby
+            .OrderByDescending(stop => favorites.Contains(stop.Stop.Code))
+            .ThenBy(stop => stop.DistanceMeters)
+            .ToArray();
+
         var sameOrder = nearby.Count == Stops.Count && nearby.Select(n => n.Stop.Code).SequenceEqual(Stops.Select(s => s.Code));
         if (sameOrder)
         {
             for (var i = 0; i < nearby.Count; i++)
             {
                 Stops[i].UpdateDistance(nearby[i].DistanceMeters, _localizer);
+                Stops[i].IsFavorite = favorites.Contains(nearby[i].Stop.Code);
             }
 
             return;
@@ -339,7 +375,7 @@ public sealed partial class StopsViewModel : ObservableObject
         Stops.Clear();
         foreach (var stop in nearby)
         {
-            Stops.Add(new StopItemViewModel(stop, _localizer) { IsExpanded = false });
+            Stops.Add(new StopItemViewModel(stop, _localizer) { IsExpanded = false, IsFavorite = favorites.Contains(stop.Stop.Code) });
         }
 
         foreach (var stop in Stops.Where(stop => expanded.Contains(stop.Code)))

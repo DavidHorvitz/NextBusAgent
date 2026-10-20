@@ -9,9 +9,29 @@ public partial class TripPlannerView : System.Windows.Controls.UserControl
     public TripPlannerView()
     {
         InitializeComponent();
+        DataContextChanged += (_, e) =>
+        {
+            if (e.OldValue is TripPlannerViewModel previous)
+            {
+                previous.SearchFocusRequested -= OnSearchFocusRequested;
+            }
+
+            if (e.NewValue is TripPlannerViewModel current)
+            {
+                current.SearchFocusRequested += OnSearchFocusRequested;
+            }
+        };
     }
 
     private TripPlannerViewModel? ViewModel => DataContext as TripPlannerViewModel;
+
+    // The tab may still be switching in when the request arrives, so focus after pending layout work.
+    private void OnSearchFocusRequested(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(() =>
+        {
+            SearchBox.Focus();
+            SearchBox.SelectAll();
+        }, System.Windows.Threading.DispatcherPriority.Input);
 
     // Keyboard navigation for the destination search: Down enters the list, Esc clears, Enter picks the first match.
     private void SearchBox_PreviewKeyDown(object sender, KeyEventArgs e)

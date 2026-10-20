@@ -30,6 +30,20 @@
             <DataTemplate>
               <Border BorderBrush="#E5ECEA" BorderThickness="0,0,0,1" Padding="0,8">
                 <StackPanel>
+                  <Button HorizontalAlignment="Right" Padding="8,2" Margin="0,0,0,4"
+                          Command="{Binding DataContext.TogglePinStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                          CommandParameter="{Binding}">
+                    <Button.Style>
+                      <Style TargetType="Button">
+                        <Setter Property="Content" Value="{DynamicResource StopPin}" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                            <Setter Property="Content" Value="{DynamicResource StopUnpin}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Button.Style>
+                  </Button>
                   <Button Command="{Binding DataContext.ToggleStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                           CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0"
                           AutomationProperties.Name="{Binding Name}">
@@ -39,7 +53,10 @@
                         <ColumnDefinition Width="Auto" />
                       </Grid.ColumnDefinitions>
                       <StackPanel>
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Orientation="Horizontal">
+                          <TextBlock Text="★ " Foreground="#147D70" FontWeight="Bold" Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibility}}" />
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
                         <TextBlock Text="{Binding Code}" Foreground="#52615E" FontSize="12" />
                       </StackPanel>
                       <TextBlock Grid.Column="1" Text="{Binding DistanceText}" Foreground="#147D70" FontWeight="SemiBold" VerticalAlignment="Center" />

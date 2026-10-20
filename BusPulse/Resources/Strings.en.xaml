@@ -159,4 +159,7 @@
   <sys:String x:Key="LineFavorites" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pinned lines</sys:String>
   <sys:String x:Key="LineOriginMark" xmlns:sys="clr-namespace:System;assembly=mscorlib">Your stop</sys:String>
   <sys:String x:Key="LineLoadLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Line number</sys:String>
+  <sys:String x:Key="StopPin" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pin stop</sys:String>
+  <sys:String x:Key="StopUnpin" xmlns:sys="clr-namespace:System;assembly=mscorlib">Unpin stop</sys:String>
+  <sys:String x:Key="FavoriteBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pinned</sys:String>
 </ResourceDictionary>

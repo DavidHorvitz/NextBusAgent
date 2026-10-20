@@ -175,6 +175,19 @@ public sealed class ShellAndSettingsTests
     }
 
     [Fact]
+    public void CtrlF_OpensThePlannerAndRequestsSearchFocus()
+    {
+        var f = new Fixture();
+        var requested = 0;
+        f.Shell.TripPlanner.SearchFocusRequested += (_, _) => requested++;
+
+        f.Shell.FocusSearchCommand.Execute(null);
+
+        Assert.Equal(1, f.Shell.SelectedTabIndex);
+        Assert.Equal(1, requested);
+    }
+
+    [Fact]
     public void Settings_ClearHistory_ClearsTheStoreAndConfirms()
     {
         var f = new Fixture();

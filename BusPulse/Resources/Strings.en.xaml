@@ -146,4 +146,17 @@
   <sys:String x:Key="TrayNoRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">BusPulse - no route selected</sys:String>
   <sys:String x:Key="WalkUnderMinute" xmlns:sys="clr-namespace:System;assembly=mscorlib">Less than 1 min walk to {0}</sys:String>
   <sys:String x:Key="SettingsSaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Could not save the setting. It will apply until you close the app.</sys:String>
+  <sys:String x:Key="LinesHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">Enter a line number and choose where you are. Directions and stops come from the schedule.</sys:String>
+  <sys:String x:Key="LinesEnterLine" xmlns:sys="clr-namespace:System;assembly=mscorlib">Enter a line number (up to 32 characters).</sys:String>
+  <sys:String x:Key="LinesNoService" xmlns:sys="clr-namespace:System;assembly=mscorlib">This line has no departures from this stop in the next 3 hours.</sys:String>
+  <sys:String x:Key="LinesLoadFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Could not load the line. Press Load to retry.</sys:String>
+  <sys:String x:Key="LinesScheduleOnly" xmlns:sys="clr-namespace:System;assembly=mscorlib">No live vehicle positions are available for lines. Times shown are from the schedule.</sys:String>
+  <sys:String x:Key="LineFrom" xmlns:sys="clr-namespace:System;assembly=mscorlib">From</sys:String>
+  <sys:String x:Key="LineLoad" xmlns:sys="clr-namespace:System;assembly=mscorlib">Load line</sys:String>
+  <sys:String x:Key="LineDirection" xmlns:sys="clr-namespace:System;assembly=mscorlib">Direction</sys:String>
+  <sys:String x:Key="LinePin" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pin line</sys:String>
+  <sys:String x:Key="LineUnpin" xmlns:sys="clr-namespace:System;assembly=mscorlib">Unpin line</sys:String>
+  <sys:String x:Key="LineFavorites" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pinned lines</sys:String>
+  <sys:String x:Key="LineOriginMark" xmlns:sys="clr-namespace:System;assembly=mscorlib">Your stop</sys:String>
+  <sys:String x:Key="LineLoadLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Line number</sys:String>
 </ResourceDictionary>

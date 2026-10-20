@@ -14,13 +14,22 @@ public sealed record RideStop(
     DateTimeOffset Time,
     string Line,
     string? Agency,
-    string? RouteLongName);
+    string? RouteLongName,
+    string? StopName = null,
+    string? StopCode = null);
 
 public interface IRideScheduleSource
 {
     /// <summary>Scheduled stops of any ride at one stop within a time window.</summary>
     Task<IReadOnlyList<RideStop>> GetStopDeparturesAsync(
         long stopId,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Every stop of one ride in calling order, within a time window around the ride.</summary>
+    Task<IReadOnlyList<RideStop>> GetRideStopsAsync(
+        long rideId,
         DateTimeOffset from,
         DateTimeOffset to,
         CancellationToken cancellationToken = default);
@@ -50,6 +59,16 @@ public sealed class StrideRideScheduleSource(IHttpClientFactory httpClientFactor
         CancellationToken cancellationToken = default)
     {
         var uri = $"{BaseAddress}gtfs_ride_stops/list?gtfs_stop_ids={stopId}&{Window(from, to)}&order_by=arrival_time%20asc&limit=100";
+        return Parse(await GetBytesAsync(uri, cancellationToken));
+    }
+
+    public async Task<IReadOnlyList<RideStop>> GetRideStopsAsync(
+        long rideId,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default)
+    {
+        var uri = $"{BaseAddress}gtfs_ride_stops/list?gtfs_ride_ids={rideId}&{Window(from, to)}&order_by=stop_sequence%20asc&limit={MaxRows}";
         return Parse(await GetBytesAsync(uri, cancellationToken));
     }
 
@@ -106,7 +125,9 @@ public sealed class StrideRideScheduleSource(IHttpClientFactory httpClientFactor
                 time,
                 line,
                 GetString(row, "gtfs_route__agency_name"),
-                GetString(row, "gtfs_route__route_long_name")));
+                GetString(row, "gtfs_route__route_long_name"),
+                GetString(row, "gtfs_stop__name"),
+                GetNumberText(row, "gtfs_stop__code")));
         }
 
         return rows;
@@ -139,6 +160,11 @@ public sealed class StrideRideScheduleSource(IHttpClientFactory httpClientFactor
             throw;
         }
     }
+
+    private static string? GetNumberText(JsonElement row, string name) =>
+        row.TryGetProperty(name, out var property) && property.ValueKind == JsonValueKind.Number && property.TryGetInt64(out var value)
+            ? value.ToString(CultureInfo.InvariantCulture)
+            : null;
 
     private static bool TryGetLong(JsonElement row, string name, out long value)
     {

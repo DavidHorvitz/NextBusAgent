@@ -273,6 +273,11 @@ public sealed class TripPlannerServiceTests
         public Task<IReadOnlyList<RideStop>> GetStopDeparturesAsync(long stopId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default) =>
             Task.FromResult(Departures.GetValueOrDefault(stopId) ?? []);
 
+        public Task<IReadOnlyList<RideStop>> GetRideStopsAsync(long rideId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<RideStop>>(RideStops.Where(row => row.RideId == rideId).ToArray());
+
+        public List<RideStop> RideStops { get; } = [];
+
         public Task<IReadOnlyList<RideStop>> GetRideStopsAtAsync(
             IReadOnlyCollection<long> rideIds,
             IReadOnlyCollection<long> stopIds,

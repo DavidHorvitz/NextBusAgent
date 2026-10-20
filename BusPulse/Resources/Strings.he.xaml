@@ -146,4 +146,17 @@
   <sys:String x:Key="TrayNoRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">BusPulse - לא נבחר מסלול</sys:String>
   <sys:String x:Key="WalkUnderMinute" xmlns:sys="clr-namespace:System;assembly=mscorlib">פחות מדקה הליכה אל {0}</sys:String>
   <sys:String x:Key="SettingsSaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא ניתן לשמור את ההגדרה. היא תישאר פעילה עד שתסגרו את האפליקציה.</sys:String>
+  <sys:String x:Key="LinesHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">הזינו מספר קו ובחרו איפה אתם. הכיוונים והתחנות מגיעים מלוח הזמנים.</sys:String>
+  <sys:String x:Key="LinesEnterLine" xmlns:sys="clr-namespace:System;assembly=mscorlib">הזינו מספר קו (עד 32 תווים).</sys:String>
+  <sys:String x:Key="LinesNoService" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין נסיעות של קו זה מהתחנה הזו ב-3 השעות הקרובות.</sys:String>
+  <sys:String x:Key="LinesLoadFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא ניתן לטעון את הקו. לחצו על טעינה לניסיון חוזר.</sys:String>
+  <sys:String x:Key="LinesScheduleOnly" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין מיקומי רכבים חיים לקווים. הזמנים המוצגים מלוח הזמנים.</sys:String>
+  <sys:String x:Key="LineFrom" xmlns:sys="clr-namespace:System;assembly=mscorlib">מ</sys:String>
+  <sys:String x:Key="LineLoad" xmlns:sys="clr-namespace:System;assembly=mscorlib">טעינת קו</sys:String>
+  <sys:String x:Key="LineDirection" xmlns:sys="clr-namespace:System;assembly=mscorlib">כיוון</sys:String>
+  <sys:String x:Key="LinePin" xmlns:sys="clr-namespace:System;assembly=mscorlib">הצמדת קו</sys:String>
+  <sys:String x:Key="LineUnpin" xmlns:sys="clr-namespace:System;assembly=mscorlib">ביטול הצמדה</sys:String>
+  <sys:String x:Key="LineFavorites" xmlns:sys="clr-namespace:System;assembly=mscorlib">קווים מוצמדים</sys:String>
+  <sys:String x:Key="LineOriginMark" xmlns:sys="clr-namespace:System;assembly=mscorlib">התחנה שלכם</sys:String>
+  <sys:String x:Key="LineLoadLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">מספר קו</sys:String>
 </ResourceDictionary>

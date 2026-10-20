@@ -294,7 +294,7 @@ public sealed class ShellAndSettingsTests
                     Settings, Places, Localizer, new FakeTripPlanner(), new FakeCatalog(), new FakeLocation(), History,
                     new FakeReminder(), Notifier, new FixedClock(DateTimeOffset.UtcNow), new ImmediateDispatcher(),
                     NullLogger<TripPlannerViewModel>.Instance),
-                new LinesViewModel(Localizer),
+                new LinesViewModel(Settings, Places, Localizer, new FakeCatalog(), new FakeLocation(), new LinesViewModelTests.FakeSchedule(), new FixedClock(DateTimeOffset.UtcNow), NullLogger<LinesViewModel>.Instance),
                 SettingsTab);
         }
 

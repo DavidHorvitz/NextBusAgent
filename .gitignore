@@ -49,3 +49,6 @@ Desktop.ini
 # Local installers
 docs/Claude Setup.exe
 *.exe
+
+__pycache__/
+*.pyc

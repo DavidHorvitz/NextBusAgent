@@ -77,13 +77,13 @@ General rules for every tab: in-place updates without flicker, ETAs counting dow
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| Shortcuts: `Ctrl+1..4`, `F5`, `Ctrl+,` | Done | `Ctrl+F` focus search open |
+| Shortcuts: `Ctrl+1..4`, `F5`, `Ctrl+,`, `Ctrl+F` | Done | |
 | **Stops tab:** loads on entry, sorted by distance, name/code/distance only, expands to arrivals with "live"/"scheduled" badge, source and freshness tooltip, countdown in place, stale data greyed after 2 minutes | Done | |
 | Location accuracy shown, saved-place override, how-to message when permission is off | Done | |
 | Address search, "approximate location" label | Open | IP fallback intentionally excluded |
-| Debounced search, favorites, context menu | Open | |
+| Debounced search, favorites | Done | Context menu still open |
 | **Trip planner:** origin/destination/line check against the aggregator | Partial | Open: "my location" default and swap button, Home/Work quick buttons, history suggestions, time selector (now / depart at / arrive by) with wheel picker, regional filtering with operator and endpoints, direction arrow, time-to-leave with optional toast |
-| **Lines tab:** line and direction picker, ordered stops, live vehicles between stops | Open | Empty state only |
+| **Lines tab:** line and direction picker, ordered stops | Done | Schedule only; live vehicles are not available from any connected source |
 | **Settings:** places, provider status | Partial | Open: Home/Work, polling interval, notification lead time, theme, favorites, clear history |
 | Tray tooltip with next favorite departure; optional always-on-top mini window | Open | Tray icon states (active/muted/alert) and mute are done |
 

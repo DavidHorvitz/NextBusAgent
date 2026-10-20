@@ -7,9 +7,9 @@ Snapshot of what works, what was verified and how, what is still open, and known
 | Area | Evidence |
 | --- | --- |
 | Build | `dotnet build BusPulse.sln`: 0 errors |
-| Unit tests | 171 passing (`dotnet test --filter "Category!=Live"`) |
+| Unit tests | 187 passing (`dotnet test --filter "Category!=Live"`) |
 | Live probes | Curlbus stop 3490 and the Stride stop list pass (`Category=Live`) |
-| App start | Smoke launch: the window opens, dependency injection resolves, and the stop catalog downloads (about 30k stops, 5.7 MB cached) |
+| App start | Smoke launch after the latest changes: the window opens and stays up (14 s, no crash events); dependency injection resolves and XAML loads |
 | Vulnerable packages | `dotnet list package --vulnerable --include-transitive` clean after pinning `System.Drawing.Common` 8.0.10 |
 
 ## Not verified
@@ -31,10 +31,10 @@ Snapshot of what works, what was verified and how, what is still open, and known
 | Smart alerts (upcoming, soon, leave now, popup, late, missed) | Done | Logic tested; popup and toast presentation not visually verified |
 | Full-screen red popup | Done (untested visually) | Stays until dismissed; shown once per stage |
 | Settings: language, lead time, refresh interval, notifications on/off, test notification, Home/Work, history clear | Done | |
-| Lines tab | **Open** | Empty state only |
-| Live vehicle positions on the line | **Open** | Depends on a live source for vehicles; see the Curlbus finding below |
-| Favorites (pin stops and lines) | **Open** | `AppConfig` has the fields; no UI or ordering yet |
-| Keyboard shortcuts | Partly | `Ctrl+1..4`, `Ctrl+,` and `F5` exist; `Ctrl+F` (focus search) is missing |
+| Lines tab | Done (schedule only) | Pick a line, an origin and a direction; stops listed in calling order with your stop marked |
+| Live vehicle positions on the line | **Not available** | No connected source provides them; the Lines tab says times come from the schedule |
+| Favorites (pin stops and lines) | Done | Stops: pinned first with a star. Lines: quick buttons. Stored in the config, not a separate favorites.json |
+| Keyboard shortcuts | Done | `Ctrl+1..4`, `Ctrl+,`, `F5`, and `Ctrl+F` (opens the planner and focuses the destination search) |
 | Rail provider | Disabled | Needs an official key; see [live-data-probe.md](live-data-probe.md) |
 | Notification delivery on Windows | Unverified | Toast XML is built; delivery depends on AUMID / Start Menu shortcut registration |
 
@@ -43,18 +43,22 @@ Snapshot of what works, what was verified and how, what is still open, and known
 - **Curlbus line endpoint:** `https://curlbus.app/dan/4` returns route alternatives, but `/dan/4/<index>` and `/dan/4/<name>` return HTTP 500 from the server (checked for indexes 0-2). No line-level vehicle data is available from this source, so the Lines tab falls back to the schedule when it is built.
 - **Edge cases tested** (16 tests in `EdgeCaseTests.cs`): exactly 2 minutes, lead time 0, zero walk and wait, departure instant, stage reset, antipodal distance, zero radius, malformed and wrong-typed Curlbus and Stride payloads, a visit with no line name, oversized history names, and config bounds and references.
 
-## Known issues (found by reading the code, not yet fixed)
+## Known issues
 
-1. **DST day:** `TripPlannerViewModel.ResolveTarget` applies the current UTC offset to the chosen time. On a daylight-saving change day, a target time can be off by an hour.
-2. **Zero walk text:** `WalkText` shows "1 min walk" when the walk is under 30 seconds, because it clamps to 1.
-3. **Settings save:** language, lead time and notification changes call `SaveAsync()` without awaiting it, so a failed save is only logged.
-4. **Missed bus after a route is cancelled:** cancelling a route removes the watch; if the user re-selects the same route, the popup can fire again for that stage (intended, but worth knowing).
-5. **Stop catalog on midnight rollover:** the catalog is keyed by the Israel date, so the first request after midnight downloads the list again (about 2 MB). Intended, but it adds a download at a fixed time.
+Fixed in this round: the daylight-saving target time (now `TripTime`, tested for every day of 2026), the "1 min walk" text for walks under 30 seconds, and the discarded settings-save result (now reported in the Settings tab).
+
+Still open:
+
+1. **Missed bus after a route is cancelled:** cancelling a route removes the watch; re-selecting the same route can show the popup again for that stage (intended, but worth knowing).
+2. **Stop catalog on midnight rollover:** the catalog is keyed by the Israel date, so the first request after midnight downloads the list again (about 2 MB). Intended.
+3. **Favorites storage:** the brief asked for `favorites.json`; favorites live in the already-validated config instead, so there is one settings file.
+4. **No "clear favorites" button** in Settings yet.
+5. **Lines tab uses one ride per direction:** the stop list comes from the first matching ride; a line with several route patterns shows one per distinct destination.
 
 ## Next steps
 
-1. Click through the app with a person at the screen: toasts, popup, RTL, tray, time wheel. Record the results here.
-2. Build the Lines tab from the Stride schedule (no live vehicles), then decide on a vehicle source.
-3. Favorites: store in `AppConfig` (already validated) and add pin commands and ordering.
-4. Add `Ctrl+F` to focus the destination search.
-5. Fix known issues 1 and 2 and add tests for them.
+1. Click through the app with a person at the screen: toasts, popup, RTL, tray, time wheel, the new Lines tab and pin buttons. Record the results here.
+2. Add a "Clear favorites" button to Settings.
+3. Decide on a live vehicle source (Curlbus does not expose one), or keep the Lines tab schedule-only.
+4. Apply for official Ministry of Transport access (see PLAN.md) so there is an official live source and a rail option.
+5. Design pass (Fluent, theme tokens, dark mode) once behavior is confirmed.

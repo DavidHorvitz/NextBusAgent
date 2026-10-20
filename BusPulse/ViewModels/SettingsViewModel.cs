@@ -11,6 +11,8 @@ namespace BusPulse.ViewModels;
 
 public sealed record ProviderStatusItem(string Name, string Status);
 
+public sealed record LanguageOption(string Code, string Name);
+
 public sealed partial class SettingsViewModel : ObservableObject
 {
     /// <summary>Choices offered by the dropdowns; the config accepts any value in its valid range.</summary>
@@ -24,6 +26,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IReadOnlyList<ILiveArrivalsProvider> _providers;
     private readonly IScheduleProvider _schedule;
     private readonly IHistoryService _history;
+    private readonly INotifier _notifier;
     private bool _loading = true;
 
     [ObservableProperty]
@@ -56,13 +59,20 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _historyStatus = string.Empty;
 
+    [ObservableProperty]
+    private LanguageOption _selectedLanguage;
+
+    [ObservableProperty]
+    private string _testStatus = string.Empty;
+
     public SettingsViewModel(
         ISettingsService settings,
         SavedPlaceCollection places,
         ILocalizer localizer,
         IEnumerable<ILiveArrivalsProvider> providers,
         IScheduleProvider schedule,
-        IHistoryService history)
+        IHistoryService history,
+        INotifier notifier)
     {
         _settings = settings;
         _places = places;
@@ -70,6 +80,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _providers = providers.OrderBy(provider => provider.Source).ToArray();
         _schedule = schedule;
         _history = history;
+        _notifier = notifier;
         _newPlaceName = localizer.Get("HomeName");
         var config = settings.Config;
         _notificationsEnabled = !config.NotificationsMuted;
@@ -77,6 +88,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _selectedPollingSeconds = Nearest(PollingSecondsOptions, config.PollingSeconds);
         _homePlace = places.Items.FirstOrDefault(place => place.Id == config.HomePlaceId);
         _workPlace = places.Items.FirstOrDefault(place => place.Id == config.WorkPlaceId);
+        _selectedLanguage = Languages.First(option => option.Code == config.Language);
         _loading = false;
     }
 
@@ -86,10 +98,16 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public IReadOnlyList<int> LeadOptions => LeadMinutesOptions;
 
+    /// <summary>Language names are shown in their own language so either can be found.</summary>
+    public IReadOnlyList<LanguageOption> Languages { get; } = [new("en", "English"), new("he", "עברית")];
+
     public IReadOnlyList<int> PollingOptions => PollingSecondsOptions;
 
     /// <summary>Raised when the user flips the notifications switch so the shell can mirror it on the tray.</summary>
     public event EventHandler<bool>? NotificationsToggled;
+
+    /// <summary>Raised when the user picks a language; the shell applies it to the UI and toasts.</summary>
+    public event EventHandler<string>? LanguageSelected;
 
     /// <summary>Applies a change made elsewhere (the tray menu) without echoing it back.</summary>
     public void SyncNotifications(bool enabled)
@@ -97,6 +115,35 @@ public sealed partial class SettingsViewModel : ObservableObject
         _loading = true;
         NotificationsEnabled = enabled;
         _loading = false;
+    }
+
+    /// <summary>Applies a language change made elsewhere (the header button) without echoing it back.</summary>
+    public void SyncLanguage(string code)
+    {
+        _loading = true;
+        SelectedLanguage = Languages.FirstOrDefault(option => option.Code == code) ?? Languages[0];
+        _loading = false;
+    }
+
+    partial void OnSelectedLanguageChanged(LanguageOption value)
+    {
+        if (!_loading && value is not null)
+        {
+            LanguageSelected?.Invoke(this, value.Code);
+        }
+    }
+
+    [RelayCommand]
+    private void SendTestNotification()
+    {
+        if (_settings.Config.NotificationsMuted)
+        {
+            TestStatus = _localizer.Get("NotificationsOffStatus");
+            return;
+        }
+
+        _notifier.Notify(_localizer.Get("TestNotificationTitle"), _localizer.Get("TestNotificationBody"), NotificationKind.Info);
+        TestStatus = _localizer.Get("TestNotificationSent");
     }
 
     partial void OnNotificationsEnabledChanged(bool value)

@@ -5,6 +5,7 @@ using BusPulse.Configuration;
 using BusPulse.Infrastructure;
 using BusPulse.Services;
 using BusPulse.Services.LiveData;
+using BusPulse.Services.Notifications;
 using BusPulse.Services.Location;
 using BusPulse.Services.Stops;
 using BusPulse.Services.Trips;
@@ -36,6 +37,7 @@ internal static class Program
                 services.AddSingleton<IRideScheduleSource, StrideRideScheduleSource>();
                 services.AddSingleton<ITripPlannerService, TripPlannerService>();
                 services.AddSingleton<IHistoryService, HistoryService>();
+                services.AddSingleton<IAlertPresenter, WindowsAlertPresenter>();
                 services.AddSingleton<DepartureReminderService>();
                 services.AddSingleton<IDepartureReminder>(provider => provider.GetRequiredService<DepartureReminderService>());
                 services.AddHostedService<DepartureReminderWorker>();

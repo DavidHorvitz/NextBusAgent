@@ -1,6 +1,7 @@
 using System.Globalization;
 using BusPulse.Configuration;
 using BusPulse.Infrastructure;
+using BusPulse.Services.Notifications;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -8,6 +9,7 @@ namespace BusPulse.Services.Trips;
 
 public interface IDepartureReminder
 {
+    /// <summary>The route the user selected for alerts, refreshed with live data; null when none is selected.</summary>
     TripOption? Watched { get; }
 
     event EventHandler? Changed;
@@ -16,25 +18,25 @@ public interface IDepartureReminder
 
     void Cancel();
 
-    /// <summary>Re-plans the watched trip and notifies when it is time to leave or when the bus is delayed.</summary>
-    Task<bool> CheckAsync(CancellationToken cancellationToken = default);
+    /// <summary>Re-plans when the polling interval has passed and shows whatever alert is due now.</summary>
+    Task<AlertMessage?> TickAsync(CancellationToken cancellationToken = default);
 }
 
+/// <summary>Drives the smart alerts for the selected route. Alerts run only while a route is selected.</summary>
 public sealed class DepartureReminderService(
     ITripPlannerService planner,
     INotifier notifier,
+    IAlertPresenter presenter,
     IClock clock,
     AppConfig config,
     ILocalizer localizer,
     ILogger<DepartureReminderService> logger) : IDepartureReminder
 {
-    private static readonly TimeSpan DelayThreshold = TimeSpan.FromMinutes(3);
-    private static readonly TimeSpan MissedGrace = TimeSpan.FromMinutes(2);
-
     private readonly object _gate = new();
+    private readonly SmartAlertEngine _engine = new(localizer);
     private TripRequest? _request;
-    private DateTimeOffset _notifiedBusDeparture;
-    private bool _leaveNotified;
+    private TripOption? _next;
+    private DateTimeOffset _lastPlanAt = DateTimeOffset.MinValue;
 
     public TripOption? Watched { get; private set; }
 
@@ -46,10 +48,12 @@ public sealed class DepartureReminderService(
         {
             _request = request;
             Watched = option;
-            _leaveNotified = false;
-            _notifiedBusDeparture = option.BusDeparture;
+            _next = null;
+            _lastPlanAt = clock.UtcNow;
+            _engine.Reset();
         }
 
+        presenter.DismissAll();
         notifier.Notify(
             string.Format(CultureInfo.CurrentCulture, localizer.Get("ToastAlertAdded"), option.Line, option.ToEndpoint ?? option.DestinationStop.Name),
             string.Format(CultureInfo.CurrentCulture, localizer.Get("ToastLeaveBy"), option.LeaveBy.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture), option.OriginStop.Name),
@@ -63,14 +67,15 @@ public sealed class DepartureReminderService(
         {
             _request = null;
             Watched = null;
-            _leaveNotified = false;
+            _next = null;
+            _engine.Reset();
         }
 
+        presenter.DismissAll();
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
-
-    public async Task<bool> CheckAsync(CancellationToken cancellationToken = default)
+    public async Task<AlertMessage?> TickAsync(CancellationToken cancellationToken = default)
     {
         TripRequest? request;
         TripOption? watched;
@@ -82,78 +87,100 @@ public sealed class DepartureReminderService(
 
         if (request is null || watched is null)
         {
-            return false;
+            return null;
         }
 
         var now = clock.UtcNow;
-        var plan = await planner.PlanAsync(request, cancellationToken);
-        var current = plan.Options.FirstOrDefault(option => option.RideId == watched.RideId);
-        if (current is null)
+        if (now - _lastPlanAt >= TimeSpan.FromSeconds(Math.Clamp(config.PollingSeconds, 15, 60)))
         {
-            // The ride dropped out of the plan; if it is clearly in the past, stop watching.
-            if (watched.LeaveBy < now - MissedGrace)
+            await RefreshAsync(request, watched, now, cancellationToken);
+            lock (_gate)
             {
-                Cancel();
+                watched = Watched;
             }
 
-            return false;
+            if (watched is null)
+            {
+                return null;
+            }
         }
 
+        AlertMessage? message;
         lock (_gate)
         {
-            Watched = current;
+            message = _engine.Evaluate(watched, _next, now, config.LeadMinutes);
+        }
+
+        if (message is null)
+        {
+            return null;
+        }
+
+        if (message.FullScreen)
+        {
+            presenter.ShowFullScreen(message);
+        }
+        else
+        {
+            presenter.ShowToast(message);
+        }
+
+        logger.LogDebug("Trip alert {Kind} shown for line {Line}.", message.Kind, watched.Line);
+        if (message.Kind == AlertKind.Missed)
+        {
+            // The bus has gone; the user picks the next option from the planner.
+            lock (_gate)
+            {
+                _request = null;
+                Watched = null;
+            }
+
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        return message;
+    }
+
+    private async Task RefreshAsync(TripRequest request, TripOption watched, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        _lastPlanAt = now;
+        var plan = await planner.PlanAsync(request, cancellationToken);
+        var current = plan.Options.FirstOrDefault(option => option.RideId == watched.RideId);
+        var next = plan.Options
+            .Where(option => option.RideId != watched.RideId && option.BusDeparture > now)
+            .OrderBy(option => option.BusDeparture)
+            .FirstOrDefault();
+        lock (_gate)
+        {
+            if (Watched?.RideId != watched.RideId)
+            {
+                return;
+            }
+
+            // Keep the last known times if the ride dropped out of the plan (for example after it departed).
+            Watched = current ?? watched;
+            _next = next;
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
-        if (current.LeaveBy < now - MissedGrace)
-        {
-            Cancel();
-            return false;
-        }
-
-        var notified = false;
-        var minutesToLeave = (int)Math.Ceiling((current.LeaveBy - now).TotalMinutes);
-        if (!_leaveNotified && minutesToLeave <= Math.Clamp(config.LeadMinutes, 0, 15))
-        {
-            _leaveNotified = true;
-            _notifiedBusDeparture = current.BusDeparture;
-            var busInMinutes = Math.Max(0, (int)Math.Ceiling((current.BusDeparture - now).TotalMinutes));
-            notifier.Notify(
-                string.Format(CultureInfo.CurrentCulture, localizer.Get("ToastLineIn"), current.Line, busInMinutes),
-                string.Format(CultureInfo.CurrentCulture, localizer.Get("ToastLeaveBy"), current.LeaveBy.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture), current.OriginStop.Name),
-                NotificationKind.Departure);
-            notified = true;
-        }
-        else if (_leaveNotified && current.BusDeparture - _notifiedBusDeparture >= DelayThreshold)
-        {
-            var delay = (int)Math.Round((current.BusDeparture - _notifiedBusDeparture).TotalMinutes);
-            _notifiedBusDeparture = current.BusDeparture;
-            notifier.Notify(
-                string.Format(CultureInfo.CurrentCulture, localizer.Get("ToastDelayed"), current.Line, delay, current.BusDeparture.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture)),
-                current.OriginStop.Name,
-                NotificationKind.Delay);
-            notified = true;
-        }
-
-        logger.LogDebug("Reminder check: {Minutes} min to leave, notified={Notified}.", minutesToLeave, notified);
-        return notified;
     }
 }
 
-/// <summary>Runs the reminder check on the configured polling interval, independent of the window being visible.</summary>
-public sealed class DepartureReminderWorker(IDepartureReminder reminder, AppConfig config, ILogger<DepartureReminderWorker> logger)
-    : BackgroundService
+/// <summary>Ticks the reminder every few seconds, independent of the window being visible.</summary>
+public sealed class DepartureReminderWorker(IDepartureReminder reminder, ILogger<DepartureReminderWorker> logger) : BackgroundService
 {
+    private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(5);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        using var timer = new PeriodicTimer(TickInterval);
+        while (await WaitAsync(timer, stoppingToken))
         {
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(Math.Clamp(config.PollingSeconds, 15, 60)), stoppingToken);
                 if (reminder.Watched is not null)
                 {
-                    await reminder.CheckAsync(stoppingToken);
+                    await reminder.TickAsync(stoppingToken);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -162,8 +189,20 @@ public sealed class DepartureReminderWorker(IDepartureReminder reminder, AppConf
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                logger.LogWarning(exception, "Departure reminder check failed; it will retry.");
+                logger.LogWarning(exception, "Trip alert tick failed; it will retry.");
             }
+        }
+    }
+
+    private static async Task<bool> WaitAsync(PeriodicTimer timer, CancellationToken token)
+    {
+        try
+        {
+            return await timer.WaitForNextTickAsync(token);
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
         }
     }
 }

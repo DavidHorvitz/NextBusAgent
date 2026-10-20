@@ -134,6 +134,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     private readonly ILocationService _location;
     private readonly IHistoryService _history;
     private readonly IDepartureReminder _reminder;
+    private readonly INotifier _notifier;
+    private DateTimeOffset _lastPromptAt = DateTimeOffset.MinValue;
     private readonly IClock _clock;
     private readonly IDispatcher _dispatcher;
     private readonly ILogger<TripPlannerViewModel> _logger;
@@ -174,6 +176,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         ILocationService location,
         IHistoryService history,
         IDepartureReminder reminder,
+        INotifier notifier,
         IClock clock,
         IDispatcher dispatcher,
         ILogger<TripPlannerViewModel> logger)
@@ -186,6 +189,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         _location = location;
         _history = history;
         _reminder = reminder;
+        _notifier = notifier;
         _clock = clock;
         _dispatcher = dispatcher;
         _logger = logger;
@@ -239,6 +243,31 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(Mode));
         OnPropertyChanged(nameof(IsTimeSelectable));
+        if (Mode != TripTimeMode.Now)
+        {
+            PromptForRoute("PromptSelectRoute");
+        }
+    }
+
+    partial void OnTargetTimeChanged(TimeSpan value)
+    {
+        if (Mode != TripTimeMode.Now)
+        {
+            PromptForRoute("PromptSelectRoute");
+        }
+    }
+
+    /// <summary>Reminds the user that alerts need a selected route; at most once a minute and never while one is selected.</summary>
+    private void PromptForRoute(string key)
+    {
+        var now = _clock.UtcNow;
+        if (_reminder.Watched is not null || now - _lastPromptAt < TimeSpan.FromMinutes(1))
+        {
+            return;
+        }
+
+        _lastPromptAt = now;
+        _notifier.Notify("BusPulse", _localizer.Get(key), NotificationKind.Info);
     }
 
     partial void OnDestinationQueryChanged(string value) => _ = UpdateSuggestionsAsync();
@@ -399,6 +428,10 @@ public sealed partial class TripPlannerViewModel : ObservableObject
                 _settings.Config.BufferMinutes);
             await RunPlanAsync(_lastRequest, cancellationToken);
             await RememberSelectionAsync();
+            if (Mode != TripTimeMode.Now && Options.Count > 0)
+            {
+                PromptForRoute("PromptEnableAlerts");
+            }
         }
         catch (OperationCanceledException)
         {

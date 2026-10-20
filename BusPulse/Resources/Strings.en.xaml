@@ -114,4 +114,25 @@
   <sys:String x:Key="ToastAlertAdded" xmlns:sys="clr-namespace:System;assembly=mscorlib">Alert added: Line {0} to {1}</sys:String>
   <sys:String x:Key="ToastFavoriteAdded" xmlns:sys="clr-namespace:System;assembly=mscorlib">Added to favorites: Line {0}</sys:String>
   <sys:String x:Key="ToastAlertRemoved" xmlns:sys="clr-namespace:System;assembly=mscorlib">Alert removed: Line {0}</sys:String>
+  <sys:String x:Key="AlertUpcoming" xmlns:sys="clr-namespace:System;assembly=mscorlib">Line {0} departs in {1} min</sys:String>
+  <sys:String x:Key="AlertSoon" xmlns:sys="clr-namespace:System;assembly=mscorlib">Line {0} departs in {1} min — you should leave soon</sys:String>
+  <sys:String x:Key="AlertLeaveNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">🟡 Line {0} departs in {1} min — leave NOW</sys:String>
+  <sys:String x:Key="AlertPopupBody" xmlns:sys="clr-namespace:System;assembly=mscorlib">LEAVE NOW — Line {0} in {1} min!</sys:String>
+  <sys:String x:Key="AlertPopupUnderMinute" xmlns:sys="clr-namespace:System;assembly=mscorlib">LEAVE NOW — Line {0} in under a minute!</sys:String>
+  <sys:String x:Key="AlertLate" xmlns:sys="clr-namespace:System;assembly=mscorlib">🔴 You are LATE — Line {0} departs in {1} seconds. HURRY!</sys:String>
+  <sys:String x:Key="AlertMissed" xmlns:sys="clr-namespace:System;assembly=mscorlib">You missed Line {0}.</sys:String>
+  <sys:String x:Key="AlertMissedNext" xmlns:sys="clr-namespace:System;assembly=mscorlib">You missed Line {0}. Next option: Line {1} in {2} min</sys:String>
+  <sys:String x:Key="AlertWalkDetail" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} min walk + {1} min wait = {2} min before departure · leave in {3} min</sys:String>
+  <sys:String x:Key="AlertAtStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">Stop: {0}</sys:String>
+  <sys:String x:Key="DismissAlert" xmlns:sys="clr-namespace:System;assembly=mscorlib">Dismiss</sys:String>
+  <sys:String x:Key="PromptSelectRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">Select a route to see exact times</sys:String>
+  <sys:String x:Key="PromptEnableAlerts" xmlns:sys="clr-namespace:System;assembly=mscorlib">Select a route to enable departure alerts</sys:String>
+  <sys:String x:Key="LanguageLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Language</sys:String>
+  <sys:String x:Key="LanguageEnglish" xmlns:sys="clr-namespace:System;assembly=mscorlib">English</sys:String>
+  <sys:String x:Key="LanguageHebrew" xmlns:sys="clr-namespace:System;assembly=mscorlib">עברית</sys:String>
+  <sys:String x:Key="SendTestNotification" xmlns:sys="clr-namespace:System;assembly=mscorlib">Send test notification</sys:String>
+  <sys:String x:Key="TestNotificationTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">BusPulse</sys:String>
+  <sys:String x:Key="TestNotificationBody" xmlns:sys="clr-namespace:System;assembly=mscorlib">Notifications are working.</sys:String>
+  <sys:String x:Key="TestNotificationSent" xmlns:sys="clr-namespace:System;assembly=mscorlib">Test notification sent.</sys:String>
+  <sys:String x:Key="NotificationsOffStatus" xmlns:sys="clr-namespace:System;assembly=mscorlib">Notifications are off. Turn them on first.</sys:String>
 </ResourceDictionary>

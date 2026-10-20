@@ -83,6 +83,45 @@ public sealed class ShellAndSettingsTests
     }
 
     [Fact]
+    public void Settings_LanguageDropdown_SwitchesTheWholeUi_AndTheHeaderButtonStaysInSync()
+    {
+        var f = new Fixture();
+
+        f.SettingsTab.SelectedLanguage = f.SettingsTab.Languages.Single(option => option.Code == "he");
+
+        Assert.Equal("he", f.Settings.Config.Language);
+        Assert.Equal("he", f.Localizer.Language);
+        Assert.Equal(System.Windows.FlowDirection.RightToLeft, f.Shell.FlowDirection);
+    }
+
+    [Fact]
+    public async Task Shell_LanguageButton_UpdatesTheSettingsDropdown()
+    {
+        var f = new Fixture();
+
+        await f.Shell.ToggleLanguageCommand.ExecuteAsync(null);
+
+        Assert.Equal("he", f.SettingsTab.SelectedLanguage.Code);
+    }
+
+    [Fact]
+    public void Settings_TestNotification_SendsOne_OrExplainsThatNotificationsAreOff()
+    {
+        var f = new Fixture();
+
+        f.SettingsTab.SendTestNotificationCommand.Execute(null);
+
+        Assert.Equal("TestNotificationSent", f.SettingsTab.TestStatus);
+        Assert.Equal(("TestNotificationTitle", "TestNotificationBody", NotificationKind.Info), Assert.Single(f.Notifier.Sent));
+
+        f.SettingsTab.NotificationsEnabled = false;
+        f.SettingsTab.SendTestNotificationCommand.Execute(null);
+
+        Assert.Equal("NotificationsOffStatus", f.SettingsTab.TestStatus);
+        Assert.Single(f.Notifier.Sent);
+    }
+
+    [Fact]
     public void Settings_DefaultsMatchTheConfig_AndOffListValuesSnapToTheNearestOption()
     {
         var f = new Fixture(config => { config.LeadMinutes = 7; config.PollingSeconds = 60; });
@@ -231,7 +270,8 @@ public sealed class ShellAndSettingsTests
             Curlbus = new FakeProvider(ArrivalSource.Curlbus);
             Rail = new FakeProvider(ArrivalSource.Rail);
             Schedule = new FakeSchedule();
-            SettingsTab = new SettingsViewModel(Settings, Places, Localizer, [Rail, Curlbus], Schedule, History);
+            Notifier = new RecordingNotifier();
+            SettingsTab = new SettingsViewModel(Settings, Places, Localizer, [Rail, Curlbus], Schedule, History, Notifier);
             Shell = new ShellViewModel(
                 Settings,
                 Localizer,
@@ -240,7 +280,7 @@ public sealed class ShellAndSettingsTests
                     new FixedClock(DateTimeOffset.UtcNow), new ImmediateDispatcher(), NullLogger<StopsViewModel>.Instance),
                 new TripPlannerViewModel(
                     Settings, Places, Localizer, new FakeTripPlanner(), new FakeCatalog(), new FakeLocation(), History,
-                    new FakeReminder(), new FixedClock(DateTimeOffset.UtcNow), new ImmediateDispatcher(),
+                    new FakeReminder(), Notifier, new FixedClock(DateTimeOffset.UtcNow), new ImmediateDispatcher(),
                     NullLogger<TripPlannerViewModel>.Instance),
                 new LinesViewModel(Localizer),
                 SettingsTab);
@@ -250,6 +290,7 @@ public sealed class ShellAndSettingsTests
         public TemplateLocalizer Localizer { get; }
         public SavedPlaceCollection Places { get; }
         public FakeHistory History { get; }
+        public RecordingNotifier Notifier { get; }
         public FakeProvider Curlbus { get; }
         public FakeProvider Rail { get; }
         public FakeSchedule Schedule { get; }
@@ -411,6 +452,48 @@ public sealed class TripPlannerViewModelTests
         await f.Vm.PlanCommand.ExecuteAsync(null);
 
         Assert.Equal("SameOriginDestination", f.Vm.StatusText);
+    }
+
+    [Fact]
+    public void ChoosingATime_WithoutASelectedRoute_PromptsToSelectOne_AtMostOncePerMinute()
+    {
+        var f = new Fixture();
+
+        f.Vm.SelectedModeIndex = 1;
+        f.Vm.TargetTime = TimeSpan.FromHours(9);
+
+        Assert.Equal(("BusPulse", "PromptSelectRoute", NotificationKind.Info), Assert.Single(f.Notifier.Sent));
+
+        f.Clock.UtcNow = Now.AddMinutes(2);
+        f.Vm.TargetTime = TimeSpan.FromHours(10);
+
+        Assert.Equal(2, f.Notifier.Sent.Count);
+    }
+
+    [Fact]
+    public void ChoosingATime_WhileARouteIsSelected_DoesNotPrompt()
+    {
+        var f = new Fixture();
+        f.Reminder.Watch(new TripRequest(0, 0, 0, 0), Option(1, 5));
+
+        f.Vm.SelectedModeIndex = 2;
+
+        Assert.Empty(f.Notifier.Sent);
+    }
+
+    [Fact]
+    public async Task PlanningForALaterTime_WithResults_PromptsToEnableAlerts()
+    {
+        var f = new Fixture();
+        f.Location.Result = new LocationResult(LocationStatus.Ok, 32.09, 34.79, 20);
+        f.Vm.SetDestination(f.Choice("Work"));
+        f.Planner.Plan = new TripPlan(TripPlanStatus.Ok, [Option(10, 5)]);
+        f.Vm.SelectedModeIndex = 1;
+        f.Clock.UtcNow = Now.AddMinutes(5);
+
+        await f.Vm.PlanCommand.ExecuteAsync(null);
+
+        Assert.Equal("PromptEnableAlerts", f.Notifier.Sent[^1].Message);
     }
 
     [Fact]
@@ -576,9 +659,10 @@ public sealed class TripPlannerViewModelTests
             Planner = new FakeTripPlanner();
             History = new FakeHistory();
             Reminder = new FakeReminder();
+            Notifier = new RecordingNotifier();
             Vm = new TripPlannerViewModel(
                 Settings, Places, new TemplateLocalizer(), Planner, new FakeCatalog(HomeStop, WorkStop), Location, History,
-                Reminder, Clock, new ImmediateDispatcher(), NullLogger<TripPlannerViewModel>.Instance)
+                Reminder, Notifier, Clock, new ImmediateDispatcher(), NullLogger<TripPlannerViewModel>.Instance)
             {
                 DebounceDelay = TimeSpan.Zero
             };
@@ -591,6 +675,7 @@ public sealed class TripPlannerViewModelTests
         public FakeTripPlanner Planner { get; }
         public FakeHistory History { get; }
         public FakeReminder Reminder { get; }
+        public RecordingNotifier Notifier { get; }
         public TripPlannerViewModel Vm { get; }
 
         public LocationChoice Choice(string name) => Vm.Choices.First(choice => choice.DisplayName == name);

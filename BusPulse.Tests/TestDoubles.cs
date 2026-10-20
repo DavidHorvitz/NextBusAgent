@@ -69,7 +69,17 @@ internal sealed class TemplateLocalizer : ILocalizer
         ["ToastLineIn"] = "Line {0} in {1} min",
         ["ToastLeaveBy"] = "Leave by {0} · {1}",
         ["ToastDelayed"] = "Line {0} delayed by {1} min · now at {2}",
-        ["ToastAlertAdded"] = "Alert added: Line {0} to {1}"
+        ["ToastAlertAdded"] = "Alert added: Line {0} to {1}",
+        ["AlertUpcoming"] = "Line {0} departs in {1} min",
+        ["AlertSoon"] = "Line {0} departs in {1} min — you should leave soon",
+        ["AlertLeaveNow"] = "Line {0} departs in {1} min — leave NOW",
+        ["AlertPopupBody"] = "LEAVE NOW — Line {0} in {1} min!",
+        ["AlertPopupUnderMinute"] = "LEAVE NOW — Line {0} in under a minute!",
+        ["AlertLate"] = "You are LATE — Line {0} departs in {1} seconds. HURRY!",
+        ["AlertMissed"] = "You missed Line {0}.",
+        ["AlertMissedNext"] = "You missed Line {0}. Next option: Line {1} in {2} min",
+        ["AlertWalkDetail"] = "{0} min walk + {1} min wait = {2} min before departure · leave in {3} min",
+        ["AlertAtStop"] = "Stop: {0}"
     };
 
     public string Language { get; private set; } = "en";
@@ -119,7 +129,8 @@ internal sealed class FakeReminder : IDepartureReminder
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
-    public Task<bool> CheckAsync(CancellationToken cancellationToken = default) => Task.FromResult(false);
+    public Task<BusPulse.Services.Notifications.AlertMessage?> TickAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<BusPulse.Services.Notifications.AlertMessage?>(null);
 }
 
 internal sealed class FakeTripPlanner : ITripPlannerService

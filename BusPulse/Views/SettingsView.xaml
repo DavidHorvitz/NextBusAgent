@@ -6,6 +6,9 @@
       <Border Background="White" BorderBrush="#DCE5E2" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,16">
         <StackPanel>
           <TextBlock Text="{DynamicResource NotificationSettings}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource LanguageLabel}" Foreground="#52615E" Margin="0,14,0,4" />
+          <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" DisplayMemberPath="Name" Width="160" HorizontalAlignment="Left" MinHeight="32"
+                    AutomationProperties.Name="{DynamicResource LanguageLabel}" />
           <CheckBox Content="{DynamicResource NotificationsEnabledLabel}" IsChecked="{Binding NotificationsEnabled, Mode=TwoWay}" Margin="0,14,0,0"
                     AutomationProperties.Name="{DynamicResource NotificationsEnabledLabel}" />
           <TextBlock Text="{DynamicResource LeadTimeLabel}" Foreground="#52615E" Margin="0,14,0,4" />
@@ -26,6 +29,8 @@
               </DataTemplate>
             </ComboBox.ItemTemplate>
           </ComboBox>
+          <Button Content="{DynamicResource SendTestNotification}" Command="{Binding SendTestNotificationCommand}" HorizontalAlignment="Left" Padding="12,6" Margin="0,16,0,0" />
+          <TextBlock Text="{Binding TestStatus}" Foreground="#52615E" Margin="0,6,0,0" />
         </StackPanel>
       </Border>
 

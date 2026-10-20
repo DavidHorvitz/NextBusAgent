@@ -45,6 +45,7 @@ public sealed partial class ShellViewModel : ObservableObject
         SettingsTab = settingsTab;
 
         _isMuted = settings.Config.NotificationsMuted;
+        settingsTab.LanguageSelected += async (_, code) => await ApplyLanguageAsync(code);
         settingsTab.NotificationsToggled += (_, enabled) =>
         {
             IsMuted = !enabled;
@@ -113,9 +114,16 @@ public sealed partial class ShellViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ToggleLanguageAsync()
+    private Task ToggleLanguageAsync() => ApplyLanguageAsync(_settings.Config.Language == "en" ? "he" : "en");
+
+    private async Task ApplyLanguageAsync(string language)
     {
-        var language = _settings.Config.Language == "en" ? "he" : "en";
+        if (language is not ("en" or "he"))
+        {
+            return;
+        }
+
+        SettingsTab.SyncLanguage(language);
         _settings.Config.Language = language;
         _localizer.SetLanguage(language);
         FlowDirection = DirectionFor(language);

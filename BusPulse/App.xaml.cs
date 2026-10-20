@@ -30,7 +30,11 @@ public partial class App : Application
             window.Activate();
             var themeService = _host.Services.GetRequiredService<Infrastructure.IThemeService>();
             themeService.Attach(window);
-            themeService.Apply(config.Theme);
+            themeService.Apply(LaunchOption(e.Args, "theme", ["system", "light", "dark"]) ?? config.Theme);
+            if (LaunchOption(e.Args, "tab", ["0", "1", "2", "3"]) is { } tab)
+            {
+                _host.Services.GetRequiredService<ViewModels.ShellViewModel>().SelectTabCommand.Execute(tab);
+            }
 
             _ = StartHostAsync(_host);
         }
@@ -43,6 +47,17 @@ public partial class App : Application
                 MessageBoxImage.Error);
             Shutdown(-1);
         }
+    }
+
+    /// <summary>
+    /// Reads a diagnostic launch flag such as <c>--theme=dark</c> or <c>--tab=2</c>. These affect only the current run and are
+    /// never saved; values outside <paramref name="allowed"/> are ignored.
+    /// </summary>
+    private static string? LaunchOption(string[] args, string name, string[] allowed)
+    {
+        var prefix = $"--{name}=";
+        var value = args.FirstOrDefault(arg => arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))?[prefix.Length..];
+        return value is not null && allowed.Contains(value, StringComparer.OrdinalIgnoreCase) ? value.ToLowerInvariant() : null;
     }
 
     /// <summary>Writes unhandled exceptions to %LOCALAPPDATA%\BusPulse\crash.log so a crash leaves a trace.</summary>

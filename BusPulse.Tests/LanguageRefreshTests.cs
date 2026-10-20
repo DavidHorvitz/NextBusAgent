@@ -73,6 +73,23 @@ public sealed class LanguageRefreshTests
     }
 
     [Fact]
+    public void Settings_ThemeNames_FollowTheLanguage()
+    {
+        var localizer = new LanguageAwareLocalizer();
+        var settings = new MemorySettings();
+        var vm = new SettingsViewModel(
+            settings, new SavedPlaceCollection(settings), localizer, [], new ShellAndSettingsTests.FakeSchedule(),
+            new FakeHistory(), new RecordingNotifier());
+        var dark = vm.Themes.Single(theme => theme.Code == "dark");
+        Assert.Equal("ThemeDark:en", dark.Name);
+
+        localizer.SetLanguage("he");
+
+        Assert.Equal("ThemeDark:he", dark.Name);
+        Assert.Equal("ThemeSystem:he", vm.Themes.Single(theme => theme.Code == "system").Name);
+    }
+
+    [Fact]
     public void Stops_EmptyMessage_FollowsTheLanguage()
     {
         var localizer = new LanguageAwareLocalizer();

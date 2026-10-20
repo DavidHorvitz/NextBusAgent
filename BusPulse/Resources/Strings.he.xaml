@@ -162,4 +162,14 @@
   <sys:String x:Key="StopPin" xmlns:sys="clr-namespace:System;assembly=mscorlib">הצמדת תחנה</sys:String>
   <sys:String x:Key="StopUnpin" xmlns:sys="clr-namespace:System;assembly=mscorlib">ביטול הצמדת תחנה</sys:String>
   <sys:String x:Key="FavoriteBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">מוצמדת</sys:String>
+  <sys:String x:Key="ThemeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">מראה</sys:String>
+  <sys:String x:Key="ThemeSystem" xmlns:sys="clr-namespace:System;assembly=mscorlib">כמו ב-Windows</sys:String>
+  <sys:String x:Key="ThemeLight" xmlns:sys="clr-namespace:System;assembly=mscorlib">בהיר</sys:String>
+  <sys:String x:Key="ThemeDark" xmlns:sys="clr-namespace:System;assembly=mscorlib">כהה</sys:String>
+  <sys:String x:Key="ClearFavorites" xmlns:sys="clr-namespace:System;assembly=mscorlib">נקה מועדפים</sys:String>
+  <sys:String x:Key="FavoritesCleared" xmlns:sys="clr-namespace:System;assembly=mscorlib">המועדפים נוקו.</sys:String>
+  <sys:String x:Key="MenuPlanRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">תכנן מסלול מכאן</sys:String>
+  <sys:String x:Key="MenuShowLines" xmlns:sys="clr-namespace:System;assembly=mscorlib">הצג קווים מכאן</sys:String>
+  <sys:String x:Key="MenuPinStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">הצמד תחנה</sys:String>
+  <sys:String x:Key="MenuUnpinStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">בטל הצמדת תחנה</sys:String>
 </ResourceDictionary>

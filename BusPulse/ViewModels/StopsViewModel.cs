@@ -185,6 +185,33 @@ public sealed partial class StopsViewModel : ObservableObject
 
     public ObservableCollection<StopItemViewModel> Stops { get; } = [];
 
+    /// <summary>Raised by the context menu: start a trip from this stop.</summary>
+    public event EventHandler<Stop>? PlanRouteFromRequested;
+
+    /// <summary>Raised by the context menu: list the lines at this stop.</summary>
+    public event EventHandler<Stop>? ShowLinesFromRequested;
+
+    /// <summary>Re-applies pinned stops after the favorites changed elsewhere (for example "clear favorites").</summary>
+    public void RefreshFavorites() => Reconcile(_lastNearby);
+
+    [RelayCommand]
+    private void PlanRouteFromStop(StopItemViewModel? item)
+    {
+        if (item is not null)
+        {
+            PlanRouteFromRequested?.Invoke(this, item.Stop);
+        }
+    }
+
+    [RelayCommand]
+    private void ShowLinesFromStop(StopItemViewModel? item)
+    {
+        if (item is not null)
+        {
+            ShowLinesFromRequested?.Invoke(this, item.Stop);
+        }
+    }
+
     public ObservableCollection<SavedPlace> Places => _places.Items;
 
     public string EmptyMessage => _localizer.Get("StopsEmpty");

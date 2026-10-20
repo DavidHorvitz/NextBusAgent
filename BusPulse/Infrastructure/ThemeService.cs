@@ -61,11 +61,18 @@ public sealed class WpfUiThemeService : IThemeService
         ApplicationAccentColorManager.Apply(accent, dark ? ApplicationTheme.Dark : ApplicationTheme.Light);
         var resources = Application.Current.Resources;
         resources["AccentBrush"] = new SolidColorBrush(accent);
+        resources["HeaderGradientBrush"] = Gradient(dark ? 0x072E2A : 0x0B4F47, dark ? 0x0E5249 : 0x137A6D);
         resources["LiveBadgeBrush"] = Brush(dark ? 0x1F4A44 : 0xD8F1EC);
         resources["ScheduledBadgeBrush"] = Brush(dark ? 0x4A3A14 : 0xFFF1D6);
         resources["WarningTextBrush"] = Brush(dark ? 0xFFC766 : 0x8A5A00);
         resources["ErrorTextBrush"] = Brush(dark ? 0xFF8A8A : 0xB01E1E);
     }
+
+    private static LinearGradientBrush Gradient(int from, int to) => new(
+        Color.FromRgb((byte)(from >> 16), (byte)(from >> 8), (byte)from),
+        Color.FromRgb((byte)(to >> 16), (byte)(to >> 8), (byte)to),
+        new System.Windows.Point(0, 0),
+        new System.Windows.Point(1, 1));
 
     private static SolidColorBrush Brush(int rgb) =>
         new(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));

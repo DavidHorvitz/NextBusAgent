@@ -116,6 +116,45 @@ public sealed partial class LinesViewModel : ObservableObject
 
     public LocationChoice MyLocation { get; }
 
+    /// <summary>Raised by the context menu on a stop row: start a trip from that stop.</summary>
+    public event EventHandler<Stop>? PlanRouteFromRequested;
+
+    /// <summary>Makes a stop the starting point (used by "show lines from here" in the Stops tab).</summary>
+    public void SetOrigin(Stop stop)
+    {
+        var choice = new LocationChoice(stop.Name, stop: stop);
+        Origins.Add(choice);
+        SelectedOrigin = choice;
+    }
+
+    /// <summary>Re-reads the pinned lines after they changed elsewhere.</summary>
+    public void ReloadFavorites()
+    {
+        FavoriteLines.Clear();
+        foreach (var line in _settings.Config.FavoriteLines)
+        {
+            FavoriteLines.Add(line);
+        }
+
+        IsFavoriteLine = FavoriteLines.Contains(LineName.Trim(), StringComparer.OrdinalIgnoreCase);
+    }
+
+    [RelayCommand]
+    private async Task PlanRouteFromLineStopAsync(LineStopRow? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        var stops = await _catalog.GetStopsAsync();
+        var stop = stops.FirstOrDefault(candidate => candidate.Code == row.Code);
+        if (stop is not null)
+        {
+            PlanRouteFromRequested?.Invoke(this, stop);
+        }
+    }
+
     public ObservableCollection<LocationChoice> Origins { get; } = [];
 
     public ObservableCollection<LineDirection> Directions { get; } = [];

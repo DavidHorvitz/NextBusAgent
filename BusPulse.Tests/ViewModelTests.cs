@@ -217,6 +217,95 @@ public sealed class ShellAndSettingsTests
     }
 
     [Fact]
+    public void Settings_Theme_DefaultsToSystem_AndAnUnknownStoredValueFallsBack()
+    {
+        Assert.Equal("system", new Fixture().SettingsTab.SelectedTheme.Code);
+        Assert.Equal(["system", "light", "dark"], new Fixture().SettingsTab.Themes.Select(t => t.Code).ToArray());
+        Assert.Equal("dark", new Fixture(c => c.Theme = "dark").SettingsTab.SelectedTheme.Code);
+    }
+
+    [Fact]
+    public void Settings_PickingATheme_PersistsItAndAppliesItThroughTheThemeService()
+    {
+        var f = new Fixture();
+
+        f.SettingsTab.SelectedTheme = f.SettingsTab.Themes.Single(t => t.Code == "dark");
+
+        Assert.Equal("dark", f.Settings.Config.Theme);
+        Assert.Equal(["dark"], f.Theme.Applied);
+        Assert.Equal(1, f.Settings.SaveCount);
+        f.Settings.Config.Validate();
+    }
+
+    [Fact]
+    public async Task Settings_ClearFavorites_EmptiesBothListsAndRefreshesTheTabs()
+    {
+        var f = new Fixture();
+        f.Settings.Config.FavoriteStopCodes = ["3490"];
+        f.Settings.Config.FavoriteLines = ["4", "9"];
+        f.Shell.Lines.SelectFavoriteLineCommand.Execute("4");
+        f.Shell.Lines.TogglePinLineCommand.Execute(null);
+        f.Shell.Lines.TogglePinLineCommand.Execute(null);
+
+        await f.SettingsTab.ClearFavoritesCommand.ExecuteAsync(null);
+
+        Assert.Empty(f.Settings.Config.FavoriteStopCodes);
+        Assert.Empty(f.Settings.Config.FavoriteLines);
+        Assert.Empty(f.Shell.Lines.FavoriteLines);
+        Assert.False(f.Shell.Lines.IsFavoriteLine);
+        Assert.Equal("FavoritesCleared", f.SettingsTab.FavoritesStatus);
+    }
+
+    [Fact]
+    public async Task Settings_ClearFavorites_WhenSaveFails_SaysSo()
+    {
+        var f = new Fixture();
+        f.Settings.SaveSucceeds = false;
+
+        await f.SettingsTab.ClearFavoritesCommand.ExecuteAsync(null);
+
+        Assert.Equal("SettingsSaveFailed", f.SettingsTab.FavoritesStatus);
+    }
+
+    [Fact]
+    public void ContextMenu_PlanRouteFromAStop_OpensThePlannerWithThatOrigin()
+    {
+        var f = new Fixture();
+        var stop = new BusPulse.Services.Stops.Stop("3490", "Origin stop", "City", 32.1, 34.8, Id: 1);
+        var item = new StopItemViewModel(new BusPulse.Services.Stops.NearbyStop(stop, 50), f.Localizer);
+
+        f.Shell.Stops.PlanRouteFromStopCommand.Execute(item);
+
+        Assert.Equal(1, f.Shell.SelectedTabIndex);
+        Assert.Equal("Origin stop", f.Shell.TripPlanner.SelectedOrigin.DisplayName);
+        Assert.Same(stop, f.Shell.TripPlanner.SelectedOrigin.Stop);
+    }
+
+    [Fact]
+    public void ContextMenu_ShowLinesFromAStop_OpensTheLinesTabWithThatOrigin()
+    {
+        var f = new Fixture();
+        var stop = new BusPulse.Services.Stops.Stop("3490", "Origin stop", "City", 32.1, 34.8, Id: 1);
+        var item = new StopItemViewModel(new BusPulse.Services.Stops.NearbyStop(stop, 50), f.Localizer);
+
+        f.Shell.Stops.ShowLinesFromStopCommand.Execute(item);
+
+        Assert.Equal(2, f.Shell.SelectedTabIndex);
+        Assert.Same(stop, f.Shell.Lines.SelectedOrigin.Stop);
+    }
+
+    [Fact]
+    public void ContextMenu_NullItem_DoesNothing()
+    {
+        var f = new Fixture();
+
+        f.Shell.Stops.PlanRouteFromStopCommand.Execute(null);
+        f.Shell.Stops.ShowLinesFromStopCommand.Execute(null);
+
+        Assert.Equal(0, f.Shell.SelectedTabIndex);
+    }
+
+    [Fact]
     public void Settings_ClearHistory_ClearsTheStoreAndConfirms()
     {
         var f = new Fixture();
@@ -325,6 +414,7 @@ public sealed class ShellAndSettingsTests
             Rail = new FakeProvider(ArrivalSource.Rail);
             Schedule = new FakeSchedule();
             Notifier = new RecordingNotifier();
+            Theme = new FakeTheme();
             SettingsTab = new SettingsViewModel(Settings, Places, Localizer, [Rail, Curlbus], Schedule, History, Notifier);
             Shell = new ShellViewModel(
                 Settings,
@@ -337,7 +427,8 @@ public sealed class ShellAndSettingsTests
                     new FakeReminder(), Notifier, new FixedClock(DateTimeOffset.UtcNow), new ImmediateDispatcher(),
                     NullLogger<TripPlannerViewModel>.Instance),
                 new LinesViewModel(Settings, Places, Localizer, new FakeCatalog(), new FakeLocation(), new LinesViewModelTests.FakeSchedule(), new FixedClock(DateTimeOffset.UtcNow), NullLogger<LinesViewModel>.Instance),
-                SettingsTab);
+                SettingsTab,
+                Theme);
         }
 
         public MemorySettings Settings { get; }
@@ -345,6 +436,7 @@ public sealed class ShellAndSettingsTests
         public SavedPlaceCollection Places { get; }
         public FakeHistory History { get; }
         public RecordingNotifier Notifier { get; }
+        public FakeTheme Theme { get; }
         public FakeProvider Curlbus { get; }
         public FakeProvider Rail { get; }
         public FakeSchedule Schedule { get; }

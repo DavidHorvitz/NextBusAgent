@@ -13,6 +13,15 @@ public sealed record ProviderStatusItem(string Name, string Status);
 
 public sealed record LanguageOption(string Code, string Name);
 
+/// <summary>A theme choice; the name is re-read when the language changes.</summary>
+public sealed partial class ThemeOption(string code, string name) : ObservableObject
+{
+    public string Code { get; } = code;
+
+    [ObservableProperty]
+    private string _name = name;
+}
+
 public sealed partial class SettingsViewModel : ObservableObject
 {
     /// <summary>Choices offered by the dropdowns; the config accepts any value in its valid range.</summary>
@@ -67,6 +76,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _testStatus = string.Empty;
 
     [ObservableProperty]
+    private ThemeOption _selectedTheme;
+
+    [ObservableProperty]
+    private string _favoritesStatus = string.Empty;
+
+    [ObservableProperty]
     private string _saveStatus = string.Empty;
 
     public SettingsViewModel(
@@ -104,12 +119,23 @@ public sealed partial class SettingsViewModel : ObservableObject
         _homePlace = places.Items.FirstOrDefault(place => place.Id == config.HomePlaceId);
         _workPlace = places.Items.FirstOrDefault(place => place.Id == config.WorkPlaceId);
         _selectedLanguage = Languages.First(option => option.Code == config.Language);
+        Themes = [new("system", localizer.Get("ThemeSystem")), new("light", localizer.Get("ThemeLight")), new("dark", localizer.Get("ThemeDark"))];
+        _selectedTheme = Themes.FirstOrDefault(option => option.Code == config.Theme) ?? Themes[0];
+        localizer.LanguageChanged += (_, _) =>
+        {
+            foreach (var theme in Themes)
+            {
+                theme.Name = localizer.Get("Theme" + char.ToUpperInvariant(theme.Code[0]) + theme.Code[1..]);
+            }
+        };
         _loading = false;
     }
 
     public ObservableCollection<SavedPlace> Places => _places.Items;
 
     public ObservableCollection<ProviderStatusItem> ProviderStatuses { get; } = [];
+
+    public IReadOnlyList<ThemeOption> Themes { get; }
 
     public IReadOnlyList<int> LeadOptions => LeadMinutesOptions;
 
@@ -123,6 +149,12 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     /// <summary>Raised when the user picks a language; the shell applies it to the UI and toasts.</summary>
     public event EventHandler<string>? LanguageSelected;
+
+    /// <summary>Raised when the user picks a theme ("system", "light" or "dark").</summary>
+    public event EventHandler<string>? ThemeSelected;
+
+    /// <summary>Raised after favorites were cleared so the stop and line lists can refresh.</summary>
+    public event EventHandler? FavoritesCleared;
 
     /// <summary>Applies a change made elsewhere (the tray menu) without echoing it back.</summary>
     public void SyncNotifications(bool enabled)
@@ -138,6 +170,27 @@ public sealed partial class SettingsViewModel : ObservableObject
         _loading = true;
         SelectedLanguage = Languages.FirstOrDefault(option => option.Code == code) ?? Languages[0];
         _loading = false;
+    }
+
+    partial void OnSelectedThemeChanged(ThemeOption value)
+    {
+        if (_loading || value is null)
+        {
+            return;
+        }
+
+        _settings.Config.Theme = value.Code;
+        ThemeSelected?.Invoke(this, value.Code);
+        _ = PersistAsync();
+    }
+
+    [RelayCommand]
+    private async Task ClearFavoritesAsync()
+    {
+        _settings.Config.FavoriteStopCodes = [];
+        _settings.Config.FavoriteLines = [];
+        FavoritesStatus = await _settings.SaveAsync() ? _localizer.Get("FavoritesCleared") : _localizer.Get("SettingsSaveFailed");
+        FavoritesCleared?.Invoke(this, EventArgs.Empty);
     }
 
     partial void OnSelectedLanguageChanged(LanguageOption value)

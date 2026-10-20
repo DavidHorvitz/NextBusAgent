@@ -5,7 +5,10 @@
     <StackPanel>
       <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,16">
         <StackPanel>
-          <TextBlock Text="{DynamicResource NotificationSettings}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource NotificationSettings}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" />
+          <TextBlock Text="{DynamicResource ThemeLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,14,0,4" />
+          <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" DisplayMemberPath="Name" Width="200" HorizontalAlignment="Left" MinHeight="32"
+                    AutomationProperties.Name="{DynamicResource ThemeLabel}" />
           <TextBlock Text="{DynamicResource LanguageLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,14,0,4" />
           <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" DisplayMemberPath="Name" Width="160" HorizontalAlignment="Left" MinHeight="32"
                     AutomationProperties.Name="{DynamicResource LanguageLabel}" />
@@ -37,7 +40,7 @@
 
       <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,16">
         <StackPanel>
-          <TextBlock Text="{DynamicResource SavedPlacesQuick}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource SavedPlacesQuick}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" />
           <TextBlock Text="{DynamicResource HomePlaceLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,14,0,4" />
           <StackPanel Orientation="Horizontal">
             <ComboBox ItemsSource="{Binding Places}" SelectedItem="{Binding HomePlace}" DisplayMemberPath="Name" MinWidth="200" MinHeight="32"
@@ -50,14 +53,16 @@
                       AutomationProperties.Name="{DynamicResource WorkPlaceLabel}" />
             <Button Content="{DynamicResource ClearPlace}" Command="{Binding ClearWorkCommand}" Margin="8,0,0,0" Padding="10,4" />
           </StackPanel>
-          <Button Content="{DynamicResource ClearHistory}" Command="{Binding ClearHistoryCommand}" HorizontalAlignment="Left" Padding="12,6" Margin="0,16,0,0" />
+          <Button Content="{DynamicResource ClearFavorites}" Command="{Binding ClearFavoritesCommand}" HorizontalAlignment="Left" Padding="12,6" Margin="0,16,0,0" />
+          <TextBlock Text="{Binding FavoritesStatus}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,6,0,0" />
+          <Button Content="{DynamicResource ClearHistory}" Command="{Binding ClearHistoryCommand}" HorizontalAlignment="Left" Padding="12,6" Margin="0,12,0,0" />
           <TextBlock Text="{Binding HistoryStatus}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,6,0,0" />
         </StackPanel>
       </Border>
 
       <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,16">
         <StackPanel>
-          <TextBlock Text="{DynamicResource ManagePlaces}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource ManagePlaces}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" />
           <TextBlock Text="{DynamicResource PlaceNameLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,14,0,4" />
           <TextBox Text="{Binding NewPlaceName, UpdateSourceTrigger=PropertyChanged}" MaxLength="64" MinHeight="32"
                    AutomationProperties.Name="{DynamicResource PlaceNameLabel}" />
@@ -81,7 +86,7 @@
 
       <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20">
         <StackPanel>
-          <TextBlock Text="{DynamicResource ProviderStatusTitle}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource ProviderStatusTitle}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" />
           <Button Content="{DynamicResource CheckConnection}" Command="{Binding CheckConnectionCommand}" HorizontalAlignment="Left" Padding="12,7" Margin="0,12,0,0" />
           <ItemsControl ItemsSource="{Binding ProviderStatuses}" Margin="0,12,0,0">
             <ItemsControl.ItemTemplate>

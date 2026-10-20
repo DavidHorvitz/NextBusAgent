@@ -169,3 +169,14 @@ internal sealed class LanguageAwareLocalizer : ILocalizer
         LanguageChanged?.Invoke(this, EventArgs.Empty);
     }
 }
+
+internal sealed class FakeTheme : IThemeService
+{
+    public List<string> Applied { get; } = [];
+
+    public void Apply(string theme) => Applied.Add(theme);
+
+    public void Attach(System.Windows.Window window)
+    {
+    }
+}

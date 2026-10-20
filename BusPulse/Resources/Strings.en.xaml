@@ -162,4 +162,14 @@
   <sys:String x:Key="StopPin" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pin stop</sys:String>
   <sys:String x:Key="StopUnpin" xmlns:sys="clr-namespace:System;assembly=mscorlib">Unpin stop</sys:String>
   <sys:String x:Key="FavoriteBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pinned</sys:String>
+  <sys:String x:Key="ThemeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Appearance</sys:String>
+  <sys:String x:Key="ThemeSystem" xmlns:sys="clr-namespace:System;assembly=mscorlib">Same as Windows</sys:String>
+  <sys:String x:Key="ThemeLight" xmlns:sys="clr-namespace:System;assembly=mscorlib">Light</sys:String>
+  <sys:String x:Key="ThemeDark" xmlns:sys="clr-namespace:System;assembly=mscorlib">Dark</sys:String>
+  <sys:String x:Key="ClearFavorites" xmlns:sys="clr-namespace:System;assembly=mscorlib">Clear favorites</sys:String>
+  <sys:String x:Key="FavoritesCleared" xmlns:sys="clr-namespace:System;assembly=mscorlib">Favorites cleared.</sys:String>
+  <sys:String x:Key="MenuPlanRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">Plan route from here</sys:String>
+  <sys:String x:Key="MenuShowLines" xmlns:sys="clr-namespace:System;assembly=mscorlib">Show lines from here</sys:String>
+  <sys:String x:Key="MenuPinStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pin stop</sys:String>
+  <sys:String x:Key="MenuUnpinStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">Unpin stop</sys:String>
 </ResourceDictionary>

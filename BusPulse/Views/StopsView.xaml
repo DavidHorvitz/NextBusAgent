@@ -46,17 +46,36 @@
         <ItemsControl ItemsSource="{Binding Stops}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Border BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+              <Border BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Padding="0,8"
+                      Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                <Border.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="{DynamicResource MenuPinStop}"
+                              Command="{Binding PlacementTarget.Tag.TogglePinStopCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    <MenuItem Header="{DynamicResource MenuPlanRoute}"
+                              Command="{Binding PlacementTarget.Tag.PlanRouteFromStopCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    <MenuItem Header="{DynamicResource MenuShowLines}"
+                              Command="{Binding PlacementTarget.Tag.ShowLinesFromStopCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                  </ContextMenu>
+                </Border.ContextMenu>
                 <StackPanel>
-                  <Button HorizontalAlignment="Right" Padding="8,2" Margin="0,0,0,4"
+                  <Button HorizontalAlignment="Right" Padding="6,0" Margin="0,0,0,2" Background="Transparent" BorderThickness="0" FontSize="18"
                           Command="{Binding DataContext.TogglePinStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                           CommandParameter="{Binding}">
                     <Button.Style>
                       <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                        <Setter Property="Content" Value="{DynamicResource StopPin}" />
+                        <Setter Property="Content" Value="☆" />
+                        <Setter Property="ToolTip" Value="{DynamicResource StopPin}" />
+                        <Setter Property="AutomationProperties.Name" Value="{DynamicResource StopPin}" />
                         <Style.Triggers>
                           <DataTrigger Binding="{Binding IsFavorite}" Value="True">
-                            <Setter Property="Content" Value="{DynamicResource StopUnpin}" />
+                            <Setter Property="Content" Value="★" />
+                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                            <Setter Property="ToolTip" Value="{DynamicResource StopUnpin}" />
+                            <Setter Property="AutomationProperties.Name" Value="{DynamicResource StopUnpin}" />
                           </DataTrigger>
                         </Style.Triggers>
                       </Style>
@@ -77,7 +96,9 @@
                         </StackPanel>
                         <TextBlock Text="{Binding Code}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
                       </StackPanel>
-                      <TextBlock Grid.Column="1" Text="{Binding DistanceText}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                      <Border Grid.Column="1" Background="{DynamicResource LiveBadgeBrush}" CornerRadius="12" Padding="12,4" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding DistanceText}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" />
+                      </Border>
                     </Grid>
                   </Button>
                   <StackPanel Margin="12,6,0,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">

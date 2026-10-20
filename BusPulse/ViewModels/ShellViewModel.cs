@@ -1,5 +1,6 @@
 using System.Windows;
 using BusPulse.Infrastructure;
+using BusPulse.Services.Stops;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -35,7 +36,8 @@ public sealed partial class ShellViewModel : ObservableObject
         StopsViewModel stops,
         TripPlannerViewModel tripPlanner,
         LinesViewModel lines,
-        SettingsViewModel settingsTab)
+        SettingsViewModel settingsTab,
+        IThemeService theme)
     {
         _settings = settings;
         _localizer = localizer;
@@ -46,6 +48,19 @@ public sealed partial class ShellViewModel : ObservableObject
 
         _isMuted = settings.Config.NotificationsMuted;
         settingsTab.LanguageSelected += async (_, code) => await ApplyLanguageAsync(code);
+        settingsTab.ThemeSelected += (_, code) => theme.Apply(code);
+        settingsTab.FavoritesCleared += (_, _) =>
+        {
+            Stops.RefreshFavorites();
+            Lines.ReloadFavorites();
+        };
+        stops.PlanRouteFromRequested += (_, stop) => PlanRouteFrom(stop);
+        lines.PlanRouteFromRequested += (_, stop) => PlanRouteFrom(stop);
+        stops.ShowLinesFromRequested += (_, stop) =>
+        {
+            Lines.SetOrigin(stop);
+            SelectedTabIndex = 2;
+        };
         settingsTab.NotificationsToggled += (_, enabled) =>
         {
             IsMuted = !enabled;
@@ -156,6 +171,12 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             SelectedTabIndex = index;
         }
+    }
+
+    private void PlanRouteFrom(Services.Stops.Stop stop)
+    {
+        TripPlanner.SetOrigin(stop);
+        SelectedTabIndex = 1;
     }
 
     /// <summary>Ctrl+F: opens the trip planner and puts the cursor in its destination search.</summary>

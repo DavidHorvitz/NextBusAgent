@@ -401,7 +401,7 @@ public sealed class ShellAndSettingsTests
         Assert.Equal("SettingsSaveFailed", f.SettingsTab.SaveStatus);
     }
 
-    private sealed class Fixture
+    internal sealed class Fixture
     {
         public Fixture(Action<AppConfig>? configure = null)
         {
@@ -415,7 +415,8 @@ public sealed class ShellAndSettingsTests
             Schedule = new FakeSchedule();
             Notifier = new RecordingNotifier();
             Theme = new FakeTheme();
-            SettingsTab = new SettingsViewModel(Settings, Places, Localizer, [Rail, Curlbus], Schedule, History, Notifier);
+            Calendar = new FakeCalendar();
+            SettingsTab = new SettingsViewModel(Settings, Places, Localizer, [Rail, Curlbus], Schedule, History, Notifier, Calendar);
             Shell = new ShellViewModel(
                 Settings,
                 Localizer,
@@ -436,6 +437,7 @@ public sealed class ShellAndSettingsTests
         public SavedPlaceCollection Places { get; }
         public FakeHistory History { get; }
         public RecordingNotifier Notifier { get; }
+        public FakeCalendar Calendar { get; }
         public FakeTheme Theme { get; }
         public FakeProvider Curlbus { get; }
         public FakeProvider Rail { get; }

@@ -61,7 +61,7 @@ public sealed class LanguageRefreshTests
         var settings = new MemorySettings();
         var vm = new SettingsViewModel(
             settings, new SavedPlaceCollection(settings), localizer, [], new ShellAndSettingsTests.FakeSchedule(),
-            new FakeHistory(), new RecordingNotifier());
+            new FakeHistory(), new RecordingNotifier(), new FakeCalendar());
         Assert.Equal("HomeName:en", vm.NewPlaceName);
 
         localizer.SetLanguage("he");
@@ -79,7 +79,7 @@ public sealed class LanguageRefreshTests
         var settings = new MemorySettings();
         var vm = new SettingsViewModel(
             settings, new SavedPlaceCollection(settings), localizer, [], new ShellAndSettingsTests.FakeSchedule(),
-            new FakeHistory(), new RecordingNotifier());
+            new FakeHistory(), new RecordingNotifier(), new FakeCalendar());
         var dark = vm.Themes.Single(theme => theme.Code == "dark");
         Assert.Equal("ThemeDark:en", dark.Name);
 
@@ -87,6 +87,21 @@ public sealed class LanguageRefreshTests
 
         Assert.Equal("ThemeDark:he", dark.Name);
         Assert.Equal("ThemeSystem:he", vm.Themes.Single(theme => theme.Code == "system").Name);
+    }
+
+    [Fact]
+    public void Settings_CalendarStatus_FollowsTheLanguage()
+    {
+        var localizer = new LanguageAwareLocalizer();
+        var settings = new MemorySettings();
+        var vm = new SettingsViewModel(
+            settings, new SavedPlaceCollection(settings), localizer, [], new ShellAndSettingsTests.FakeSchedule(),
+            new FakeHistory(), new RecordingNotifier(), new FakeCalendar { IsConfigured = false });
+        Assert.Equal("CalendarNotConfigured:en", vm.CalendarStatus);
+
+        localizer.SetLanguage("he");
+
+        Assert.Equal("CalendarNotConfigured:he", vm.CalendarStatus);
     }
 
     [Fact]

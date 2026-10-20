@@ -180,3 +180,30 @@ internal sealed class FakeTheme : IThemeService
     {
     }
 }
+
+internal sealed class FakeCalendar : BusPulse.Services.Calendar.ICalendarService
+{
+    public bool IsConfigured { get; set; } = true;
+    public bool IsConnected { get; set; }
+    public BusPulse.Services.Calendar.CalendarConnectResult Result { get; set; } = new(BusPulse.Services.Calendar.CalendarConnectStatus.Connected);
+    public int Disconnects { get; private set; }
+
+    public Task<BusPulse.Services.Calendar.CalendarConnectResult> ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        if (Result.Status == BusPulse.Services.Calendar.CalendarConnectStatus.Connected)
+        {
+            IsConnected = true;
+        }
+
+        return Task.FromResult(Result);
+    }
+
+    public Task<IReadOnlyList<BusPulse.Services.Calendar.CalendarEvent>> GetUpcomingAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<BusPulse.Services.Calendar.CalendarEvent>>([]);
+
+    public void Disconnect()
+    {
+        Disconnects++;
+        IsConnected = false;
+    }
+}

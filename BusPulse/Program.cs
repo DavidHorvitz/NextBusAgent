@@ -4,6 +4,7 @@ using System.Security.Authentication;
 using BusPulse.Configuration;
 using BusPulse.Infrastructure;
 using BusPulse.Services;
+using BusPulse.Services.Calendar;
 using BusPulse.Services.LiveData;
 using BusPulse.Services.Notifications;
 using BusPulse.Services.Location;
@@ -51,6 +52,9 @@ internal static class Program
                     AllowAutoRedirect = false
                 });
                 services.AddSingleton<IDispatcher, WpfDispatcher>();
+                services.AddSingleton<CalendarTokenStore>();
+                services.AddSingleton<ICalendarService, GoogleCalendarService>();
+                services.AddHttpClient("Google", client => client.Timeout = TimeSpan.FromSeconds(15));
                 services.AddSingleton<IThemeService, WpfUiThemeService>();
                 services.AddSingleton<ILocalizer, ResourceLocalizer>();
                 services.AddSingleton<ISettingsService, SettingsService>();

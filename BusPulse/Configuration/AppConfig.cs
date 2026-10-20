@@ -36,6 +36,11 @@ public sealed class AppConfig
     public string? ApiEndpoint { get; set; }
     public string? ApiKey { get; set; }
 
+    /// <summary>Google OAuth client for the read-only calendar link. Set with user-secrets, never committed.</summary>
+    public string? GoogleClientId { get; set; }
+
+    public string? GoogleClientSecret { get; set; }
+
     public void Validate()
     {
         if (Language is not ("en" or "he"))
@@ -91,6 +96,11 @@ public sealed class AppConfig
         if (PollingSeconds is < 15 or > 60 || LeadMinutes is < 0 or > 15 || BufferMinutes is < 0 or > 15)
         {
             throw new InvalidDataException("A timing setting is out of range.");
+        }
+
+        if (GoogleClientId?.Length > 200 || GoogleClientSecret?.Length > 200)
+        {
+            throw new InvalidDataException("The Google client settings are too long.");
         }
 
         if (Theme is not ("system" or "light" or "dark"))

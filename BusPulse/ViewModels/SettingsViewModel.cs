@@ -3,6 +3,7 @@ using System.IO;
 using BusPulse.Configuration;
 using BusPulse.Infrastructure;
 using BusPulse.Services;
+using BusPulse.Services.Calendar;
 using BusPulse.Services.LiveData;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -36,6 +37,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IScheduleProvider _schedule;
     private readonly IHistoryService _history;
     private readonly INotifier _notifier;
+    private readonly ICalendarService _calendar;
+    private string? _calendarStatusKey;
     private bool _loading = true;
     private string _defaultPlaceName = string.Empty;
 
@@ -82,6 +85,17 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _favoritesStatus = string.Empty;
 
     [ObservableProperty]
+    private bool _isCalendarConnected;
+
+    [ObservableProperty]
+    private bool _isConnectingCalendar;
+
+    [ObservableProperty]
+    private string _calendarStatus = string.Empty;
+
+    public bool IsCalendarConfigured => _calendar.IsConfigured;
+
+    [ObservableProperty]
     private string _saveStatus = string.Empty;
 
     public SettingsViewModel(
@@ -91,9 +105,12 @@ public sealed partial class SettingsViewModel : ObservableObject
         IEnumerable<ILiveArrivalsProvider> providers,
         IScheduleProvider schedule,
         IHistoryService history,
-        INotifier notifier)
+        INotifier notifier,
+        ICalendarService calendar)
     {
         _settings = settings;
+        _calendar = calendar;
+        _isCalendarConnected = calendar.IsConnected;
         _places = places;
         _localizer = localizer;
         _providers = providers.OrderBy(provider => provider.Source).ToArray();
@@ -128,6 +145,8 @@ public sealed partial class SettingsViewModel : ObservableObject
                 theme.Name = localizer.Get("Theme" + char.ToUpperInvariant(theme.Code[0]) + theme.Code[1..]);
             }
         };
+        SetCalendarStatus(calendar.IsConfigured ? (calendar.IsConnected ? "CalendarConnected" : "CalendarReady") : "CalendarNotConfigured");
+        localizer.LanguageChanged += (_, _) => { if (_calendarStatusKey is not null) CalendarStatus = localizer.Get(_calendarStatusKey); };
         _loading = false;
     }
 
@@ -182,6 +201,50 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.Config.Theme = value.Code;
         ThemeSelected?.Invoke(this, value.Code);
         _ = PersistAsync();
+    }
+
+    /// <summary>Opens Google's consent page in the browser and waits for the answer (or a three-minute timeout).</summary>
+    [RelayCommand]
+    private async Task ConnectCalendarAsync(CancellationToken cancellationToken)
+    {
+        if (!_calendar.IsConfigured)
+        {
+            SetCalendarStatus("CalendarNotConfigured");
+            return;
+        }
+
+        IsConnectingCalendar = true;
+        SetCalendarStatus("CalendarWaiting");
+        try
+        {
+            var result = await _calendar.ConnectAsync(cancellationToken);
+            IsCalendarConnected = result.Status == CalendarConnectStatus.Connected;
+            SetCalendarStatus(result.Status switch
+            {
+                CalendarConnectStatus.Connected => "CalendarConnected",
+                CalendarConnectStatus.NotConfigured => "CalendarNotConfigured",
+                CalendarConnectStatus.Cancelled => "CalendarCancelled",
+                _ => "CalendarFailed"
+            });
+        }
+        finally
+        {
+            IsConnectingCalendar = false;
+        }
+    }
+
+    private void SetCalendarStatus(string key)
+    {
+        _calendarStatusKey = key;
+        CalendarStatus = _localizer.Get(key);
+    }
+
+    [RelayCommand]
+    private void DisconnectCalendar()
+    {
+        _calendar.Disconnect();
+        IsCalendarConnected = false;
+        SetCalendarStatus("CalendarDisconnected");
     }
 
     [RelayCommand]

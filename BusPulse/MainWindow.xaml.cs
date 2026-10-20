@@ -22,7 +22,9 @@ public partial class MainWindow : Window
     private readonly OpenBusService _openBusService;
     private readonly ObservableCollection<SavedPlace> _savedPlaces;
     private readonly ToastNotificationService _toast;
-    private readonly System.Drawing.Icon _busIcon;
+    private readonly System.Drawing.Icon _activeIcon;
+    private readonly System.Drawing.Icon _mutedIcon;
+    private readonly System.Drawing.Icon _alertIcon;
     private readonly NotifyIcon _trayIcon;
     private readonly ToolStripMenuItem _muteMenuItem;
     private readonly ILogger<MainWindow> _logger;
@@ -64,23 +66,24 @@ public partial class MainWindow : Window
         RouteStatusText.Text = (string)FindResource("SelectRouteMessage");
         RefreshSelectedRouteText();
 
-        _busIcon = CreateBusIcon();
+        _activeIcon = LoadIcon("bus_active.ico");
+        _mutedIcon = LoadIcon("bus_muted.ico");
+        _alertIcon = LoadIcon("bus_alert.ico");
         _trayIcon = new NotifyIcon
         {
-            Icon = _busIcon,
-            Text = "BusPulse",
+            Icon = _config.NotificationsMuted ? _mutedIcon : _activeIcon,
+            Text = _config.NotificationsMuted ? "BusPulse - muted" : "BusPulse - monitoring",
             ContextMenuStrip = menu,
             Visible = true
         };
-        Icon = Imaging.CreateBitmapSourceFromHIcon(
-            _busIcon.Handle,
-            Int32Rect.Empty,
-            BitmapSizeOptions.FromEmptyOptions());
+        Icon = new BitmapImage(new Uri(Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", "bus_active.ico")));
         _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowWindow);
         Closed += (_, _) =>
         {
             _trayIcon.Dispose();
-            _busIcon.Dispose();
+            _activeIcon.Dispose();
+            _mutedIcon.Dispose();
+            _alertIcon.Dispose();
         };
     }
 
@@ -225,6 +228,11 @@ public partial class MainWindow : Window
     {
         MuteButton.Content = FindResource(_config.NotificationsMuted ? "UnmuteNotifications" : "MuteNotifications");
         _muteMenuItem.Text = _config.NotificationsMuted ? "Resume notifications" : "Quick mute";
+        if (_trayIcon is not null)
+        {
+            _trayIcon.Icon = _config.NotificationsMuted ? _mutedIcon : _activeIcon;
+            _trayIcon.Text = _config.NotificationsMuted ? "BusPulse - muted" : "BusPulse - monitoring";
+        }
     }
 
     private async Task SaveConfigAsync()
@@ -246,36 +254,6 @@ public partial class MainWindow : Window
         Activate();
     }
 
-    private static System.Drawing.Icon CreateBusIcon()
-    {
-        using var bitmap = new Bitmap(32, 32);
-        using (var graphics = Graphics.FromImage(bitmap))
-        using (var busBrush = new SolidBrush(Color.FromArgb(20, 125, 112)))
-        using (var windowBrush = new SolidBrush(Color.White))
-        using (var wheelBrush = new SolidBrush(Color.FromArgb(35, 50, 48)))
-        {
-            graphics.Clear(Color.Transparent);
-            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            graphics.FillRectangle(busBrush, 3, 6, 26, 19);
-            graphics.FillRectangle(windowBrush, 6, 9, 8, 7);
-            graphics.FillRectangle(windowBrush, 17, 9, 8, 7);
-            graphics.FillRectangle(windowBrush, 6, 18, 19, 2);
-            graphics.FillEllipse(wheelBrush, 6, 22, 7, 7);
-            graphics.FillEllipse(wheelBrush, 20, 22, 7, 7);
-        }
-
-        var handle = bitmap.GetHicon();
-        try
-        {
-            using var icon = System.Drawing.Icon.FromHandle(handle);
-            return (System.Drawing.Icon)icon.Clone();
-        }
-        finally
-        {
-            DestroyIcon(handle);
-        }
-    }
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool DestroyIcon(IntPtr handle);
+    private static System.Drawing.Icon LoadIcon(string fileName) =>
+        new(Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", fileName));
 }

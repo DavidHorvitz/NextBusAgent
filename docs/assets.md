@@ -16,4 +16,4 @@ Keep the silhouette consistent between states so users can identify the app quic
 
 ## Audio
 
-Provide a short `arrival.wav` (roughly 300-900 ms) with a soft, non-startling chime, no clipping, and no long silence. The UI must support mute independently of Windows volume, and audio must never play for every polling update. A separate delay sound should be optional and distinct. No audio files are included in this baseline.
+Provide a short `arrival.wav` (roughly 300-900 ms) with a soft, non-startling chime, no clipping, and no long silence. The UI must support mute independently of Windows volume, and audio must never play for every polling update. A separate delay sound should be optional and distinct.

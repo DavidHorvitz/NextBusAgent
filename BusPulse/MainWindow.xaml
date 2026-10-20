@@ -6,6 +6,7 @@
         Background="{DynamicResource SurfaceBrush}" WindowStartupLocation="CenterScreen"
         FlowDirection="{Binding FlowDirection}">
   <Window.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
     <KeyBinding Key="D1" Modifiers="Control" Command="{Binding SelectTabCommand}" CommandParameter="0" />
     <KeyBinding Key="D2" Modifiers="Control" Command="{Binding SelectTabCommand}" CommandParameter="1" />
     <KeyBinding Key="D3" Modifiers="Control" Command="{Binding SelectTabCommand}" CommandParameter="2" />

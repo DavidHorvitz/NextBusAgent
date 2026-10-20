@@ -5,6 +5,8 @@ using BusPulse.Configuration;
 using BusPulse.Infrastructure;
 using BusPulse.Services;
 using BusPulse.Services.LiveData;
+using BusPulse.Services.Location;
+using BusPulse.Services.Stops;
 using BusPulse.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,6 +29,8 @@ internal static class Program
                 services.AddSingleton<ILiveArrivalsProvider, RailProvider>();
                 services.AddSingleton<IScheduleProvider, StrideScheduleProvider>();
                 services.AddSingleton<ILiveDataAggregator, LiveDataAggregator>();
+                services.AddSingleton<ILocationService, WindowsLocationService>();
+                services.AddSingleton<IStopCatalog, StrideStopCatalog>();
                 services.AddHttpClient(CurlbusArrivalsProvider.ClientName, client =>
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);

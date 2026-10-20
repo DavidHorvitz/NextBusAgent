@@ -53,4 +53,22 @@
   <sys:String x:Key="ProviderStride" xmlns:sys="clr-namespace:System;assembly=mscorlib">Stride SIRI</sys:String>
   <sys:String x:Key="ProviderMot" xmlns:sys="clr-namespace:System;assembly=mscorlib">SIRI משרד התחבורה</sys:String>
   <sys:String x:Key="ProviderSchedule" xmlns:sys="clr-namespace:System;assembly=mscorlib">לוח זמנים (GTFS)</sys:String>
+  <sys:String x:Key="DistanceMeters" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} מ׳</sys:String>
+  <sys:String x:Key="EtaNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">עכשיו</sys:String>
+  <sys:String x:Key="EtaMinutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} דק׳</sys:String>
+  <sys:String x:Key="SourceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">מקור</sys:String>
+  <sys:String x:Key="UpdatedAgo" xmlns:sys="clr-namespace:System;assembly=mscorlib">עודכן לפני {0} שניות</sys:String>
+  <sys:String x:Key="LoadingStops" xmlns:sys="clr-namespace:System;assembly=mscorlib">טוען תחנות קרובות...</sys:String>
+  <sys:String x:Key="NoStopsNearby" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא נמצאו תחנות ברדיוס 3 ק״מ.</sys:String>
+  <sys:String x:Key="StopsLoadFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא ניתן לטעון תחנות. לחצו F5 לניסיון חוזר.</sys:String>
+  <sys:String x:Key="NoArrivals" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין הגעות ב-90 הדקות הקרובות.</sys:String>
+  <sys:String x:Key="NoLiveData" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין מידע חי לתחנה זו; מוצג לוח הזמנים.</sys:String>
+  <sys:String x:Key="PlaceNotFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">התחנה של המקום הזה לא נמצאה ברשימת התחנות של היום.</sys:String>
+  <sys:String x:Key="LocationFromPlace" xmlns:sys="clr-namespace:System;assembly=mscorlib">ליד: {0}</sys:String>
+  <sys:String x:Key="LocationAccuracy" xmlns:sys="clr-namespace:System;assembly=mscorlib">המיקום שלך (דיוק של כ-{0} מ׳)</sys:String>
+  <sys:String x:Key="LocationPermissionDenied" xmlns:sys="clr-namespace:System;assembly=mscorlib">המיקום כבוי. פתחו הגדרות Windows ‏&gt; פרטיות ואבטחה ‏&gt; מיקום, הפעילו גישה למיקום ואפשרו לאפליקציות שולחן עבודה, ואז לחצו F5.</sys:String>
+  <sys:String x:Key="LocationUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא ניתן לקבוע את המיקום שלך. ודאו שיש מקור מיקום זמין, או בחרו מקום שמור למעלה.</sys:String>
+  <sys:String x:Key="LocationOutsideCoverage" xmlns:sys="clr-namespace:System;assembly=mscorlib">המיקום שלך מחוץ לישראל, שם יש לאפליקציה מידע. בחרו מקום שמור למעלה.</sys:String>
+  <sys:String x:Key="UseMyLocation" xmlns:sys="clr-namespace:System;assembly=mscorlib">המיקום שלי</sys:String>
+  <sys:String x:Key="NearPlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">הצג תחנות ליד</sys:String>
 </ResourceDictionary>

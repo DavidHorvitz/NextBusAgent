@@ -15,6 +15,8 @@ public partial class MainWindow : Window
         _tray = tray;
         shell.HideRequested += (_, _) => Hide();
         tray.ShowRequested += (_, _) => ShowWindow();
+        IsVisibleChanged += (_, _) => shell.IsWindowActive = IsVisible && WindowState != WindowState.Minimized;
+        StateChanged += (_, _) => shell.IsWindowActive = IsVisible && WindowState != WindowState.Minimized;
         Closed += (_, _) => _tray.Dispose();
     }
 

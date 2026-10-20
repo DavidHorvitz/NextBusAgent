@@ -53,4 +53,22 @@
   <sys:String x:Key="ProviderStride" xmlns:sys="clr-namespace:System;assembly=mscorlib">Stride SIRI</sys:String>
   <sys:String x:Key="ProviderMot" xmlns:sys="clr-namespace:System;assembly=mscorlib">Ministry of Transport SIRI</sys:String>
   <sys:String x:Key="ProviderSchedule" xmlns:sys="clr-namespace:System;assembly=mscorlib">Schedule (GTFS)</sys:String>
+  <sys:String x:Key="DistanceMeters" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} m</sys:String>
+  <sys:String x:Key="EtaNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">Now</sys:String>
+  <sys:String x:Key="EtaMinutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} min</sys:String>
+  <sys:String x:Key="SourceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Source</sys:String>
+  <sys:String x:Key="UpdatedAgo" xmlns:sys="clr-namespace:System;assembly=mscorlib">updated {0}s ago</sys:String>
+  <sys:String x:Key="LoadingStops" xmlns:sys="clr-namespace:System;assembly=mscorlib">Loading nearby stops...</sys:String>
+  <sys:String x:Key="NoStopsNearby" xmlns:sys="clr-namespace:System;assembly=mscorlib">No stops found within 3 km.</sys:String>
+  <sys:String x:Key="StopsLoadFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Could not load stops. Press F5 to retry.</sys:String>
+  <sys:String x:Key="NoArrivals" xmlns:sys="clr-namespace:System;assembly=mscorlib">No arrivals in the next 90 minutes.</sys:String>
+  <sys:String x:Key="NoLiveData" xmlns:sys="clr-namespace:System;assembly=mscorlib">No live data for this stop; showing the schedule.</sys:String>
+  <sys:String x:Key="PlaceNotFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">That place's stop was not found in today's stop list.</sys:String>
+  <sys:String x:Key="LocationFromPlace" xmlns:sys="clr-namespace:System;assembly=mscorlib">Near: {0}</sys:String>
+  <sys:String x:Key="LocationAccuracy" xmlns:sys="clr-namespace:System;assembly=mscorlib">Your location (accuracy about {0} m)</sys:String>
+  <sys:String x:Key="LocationPermissionDenied" xmlns:sys="clr-namespace:System;assembly=mscorlib">Location is turned off. Open Windows Settings > Privacy &amp; security > Location, enable location access and allow desktop apps, then press F5.</sys:String>
+  <sys:String x:Key="LocationUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">Your location could not be determined. Check that a location source is available, or pick a saved place above.</sys:String>
+  <sys:String x:Key="LocationOutsideCoverage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Your location is outside Israel, where this app has data. Pick a saved place above.</sys:String>
+  <sys:String x:Key="UseMyLocation" xmlns:sys="clr-namespace:System;assembly=mscorlib">My location</sys:String>
+  <sys:String x:Key="NearPlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Show stops near</sys:String>
 </ResourceDictionary>

@@ -23,6 +23,9 @@ public sealed partial class ShellViewModel : ObservableObject
     private string _activeProfile;
 
     [ObservableProperty]
+    private bool _isWindowActive;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(LanguageButtonText))]
     private System.Windows.FlowDirection _flowDirection;
 
@@ -66,6 +69,23 @@ public sealed partial class ShellViewModel : ObservableObject
     public string LanguageButtonText => FlowDirection == System.Windows.FlowDirection.RightToLeft ? "English" : "עברית";
 
     partial void OnIsMutedChanged(bool value) => _settings.Config.NotificationsMuted = value;
+
+    partial void OnSelectedTabIndexChanged(int value) => UpdateActivity();
+
+    partial void OnIsWindowActiveChanged(bool value) => UpdateActivity();
+
+    // Live data is polled only while the stops tab is visible in a non-minimized window.
+    private void UpdateActivity() => Stops.SetActive(IsWindowActive && SelectedTabIndex == 0);
+
+    [RelayCommand]
+    private async Task RefreshAsync()
+    {
+        if (SelectedTabIndex == 0)
+        {
+            await Stops.LoadCommand.ExecuteAsync(null);
+            await Stops.RefreshExpandedAsync();
+        }
+    }
 
     [RelayCommand]
     private async Task ToggleMuteAsync()

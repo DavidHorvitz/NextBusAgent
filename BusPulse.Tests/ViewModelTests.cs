@@ -2,6 +2,7 @@ using BusPulse.Configuration;
 using BusPulse.Infrastructure;
 using BusPulse.Services.LiveData;
 using BusPulse.ViewModels;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace BusPulse.Tests;
@@ -202,7 +203,9 @@ public sealed class ViewModelTests
             Shell = new ShellViewModel(
                 Settings,
                 Localizer,
-                new StopsViewModel(Localizer),
+                new StopsViewModel(
+                    new FakeLocation(), new FakeCatalog(), Aggregator, places, Localizer, new FixedClock(Now),
+                    new ImmediateDispatcher(), NullLogger<StopsViewModel>.Instance),
                 TripPlanner,
                 new LinesViewModel(Localizer),
                 SettingsTab);

@@ -1,6 +1,6 @@
 # BusPulse Audit (Phase 0)
 
-Audit of the repository against `docs/BusPulse_prompt.md`, dated 2026-10-20. Build: `dotnet build` = 0 errors, 19 warnings (all CA2007 `ConfigureAwait`). Tests: `BusPulse.Tests` added (14 xUnit tests, all passing) covering the Curlbus provider.
+Audit of the repository against the requirements in [PLAN.md](PLAN.md), first pass dated 2026-10-20. This is the Phase 0 snapshot; current status lives in PLAN.md. Build: `dotnet build` = 0 errors, 19 warnings (all CA2007 `ConfigureAwait`). Tests: `BusPulse.Tests` added (14 xUnit tests, all passing) covering the Curlbus provider.
 
 The brief describes files that do not exist in this repo (`LiveBusService`, `user_history.json`, tests, CI/runner files). The code is the small baseline described in `README.md`, not a partially built app.
 

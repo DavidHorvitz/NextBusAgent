@@ -4,37 +4,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-Windows-only WPF app (`net8.0-windows`, single project `BusPulse/BusPulse.csproj`, no `.sln`). There is no test project or lint step yet; the plan in `docs/agent-execution-plan.md` calls for `BusPulse.Tests` (xUnit + WireMock.Net).
+Windows-only WPF app (`net8.0-windows10.0.19041.0`). Solution: `BusPulse.sln` with `BusPulse/` (app) and `BusPulse.Tests/` (xUnit).
 
 ```powershell
-dotnet build .\BusPulse\BusPulse.csproj -c Release
+dotnet build .\BusPulse.sln -c Release
+dotnet test .\BusPulse.sln --filter "Category!=Live"          # what CI runs
+dotnet test .\BusPulse.sln --filter "FullyQualifiedName~StopsViewModelTests"   # one class; use ~TestName for one test
+dotnet test .\BusPulse.sln --filter "Category=Live"            # manual probes against curlbus.app and Stride
 dotnet run --project .\BusPulse\BusPulse.csproj
-dotnet publish .\BusPulse\BusPulse.csproj -c Release -r win-x64 --self-contained false
+dotnet list .\BusPulse.sln package --vulnerable --include-transitive   # CI fails if this reports anything
 ```
 
-Regenerate binary assets (stdlib-only Python, run from repo root; the icon script takes ~25 s):
+Regenerate binary assets (stdlib-only Python, from the repo root; the icon script takes about 25 s):
 
 ```
 python -I tools/generate_icons.py   # -> BusPulse/Assets/Icons/*.ico
 python -I tools/generate_sounds.py  # -> BusPulse/Assets/Sounds/*.wav
 ```
 
-`.editorconfig` enforces CRLF line endings, 4-space indent (2 for xaml/json/md), and file-scoped namespaces.
+`.editorconfig` enforces CRLF, 4-space indent (2 for xaml/json/md) and file-scoped namespaces. WPF disables the `System.IO` implicit using, so add `using System.IO;` explicitly (also in the test project).
+
+## Plan and decisions
+
+`docs/PLAN.md` is the single source of truth for scope, decisions, per-phase status and next steps. Read it before starting work. Key decisions: OS-default TLS (the Stride host only speaks TLS 1.2); GitHub-hosted `windows-latest` CI, no self-hosted runner; Curlbus is the primary live source; the Israel Railways key scraped from rail.co.il is deliberately not used (`RailProvider` stays disabled until `RailApiKey` is configured); no IP-based geolocation. `docs/live-data-probe.md` records measured provider behavior, and `SECURITY.md` the data and hosts the app touches.
 
 ## Architecture
 
-- **Startup**: `App.OnStartup` loads the DPAPI-encrypted config, builds a Generic Host via `Program.BuildHost` (DI for `AppConfig`, `AppConfigStore`, `OpenBusService`, `ToastNotificationService`, `SoundService`, `MainWindow`, and the hosted `SchedulePollingService`), shows `MainWindow`, and starts the host in the background.
-- **Shared mutable config**: a single `AppConfig` instance is a DI singleton shared by `MainWindow`, `SchedulePollingService` and `SoundService`. The UI mutates it and persists via `AppConfigStore.SaveAsync`; the poller and sound service read it live (e.g. `NotificationsMuted`, selected places, `LineName`).
-- **Config storage**: `AppConfigStore` serializes the whole config as JSON and encrypts it with DPAPI `CurrentUser` plus fixed entropy to `%LOCALAPPDATA%\BusPulse\settings.dpapi`. JSON options reject unmapped members, `Validate()` runs on load and save, and legacy `StopCode` is migrated into saved places.
-- **Polling**: `SchedulePollingService` (a `BackgroundService`) polls `OpenBusService` for the selected start place and line. Interval tiers (5 min / 1 min / 20 s) are defined, but arrival-time estimates are not computed yet, so it always uses the 5-minute tier.
-- **OpenBus client**: `OpenBusService` uses the named `TransitApi` `HttpClient` (TLS 1.3 only, redirects disabled, 12 s timeout, configured in `Program`). Responses are capped at 1 MiB, parsed with strict `JsonDocument` options, and filtered by a provisional list of line-name field names. The live schema is unverified.
-- **Tray and UI** (`MainWindow.xaml.cs`): the WinForms `NotifyIcon` and context menu are created in code. Mute toggling swaps the tray icon and tooltip between `bus_active.ico` and `bus_muted.ico`; `bus_alert.ico` is loaded but not yet used. WPF and WinForms are both enabled, so type names often need `System.Windows` / `System.Drawing` disambiguation.
-- **Localization**: `Resources/Strings.{en,he}.xaml` are swapped at runtime by replacing `MergedDictionaries[0]`, so that slot must stay the strings dictionary. Hebrew sets `FlowDirection.RightToLeft`. Some tray menu text is hard-coded English.
-- **Assets**: `Assets/**` is copied to the output directory (`Content` items in the csproj) and loaded from `AppContext.BaseDirectory`, not embedded. `SoundService` plays `arrival.wav` / `delay.wav` only when not muted. Nothing calls it yet, because toast and arrival logic is unwired. Asset requirements are in `docs/assets.md`; the generator scripts are the editable source for the binaries.
-- **Toasts**: `ToastNotificationService` only builds toast XML. Delivery is not wired, and unpackaged delivery needs an AUMID and Start Menu shortcut registered at per-user install time.
-
-## Constraints from the project docs
-
-- Keep installation and data per-user with no elevation. Never put credentials in source or plaintext config.
-- Audio must never play per polling update, and mute must work independently of Windows volume. Color must never be the only state cue (tooltips carry state names).
-- .NET 8 support ends 2026-11-10; plan a runtime upgrade.
+- **Startup:** `App.OnStartup` loads the DPAPI-encrypted `AppConfig`, builds the Generic Host in `Program.BuildHost` (all DI registrations live there), resolves `MainWindow`, shows it, and starts the host in the background (hosts `SchedulePollingService`).
+- **MVVM:** `MainWindow` binds to `ShellViewModel`, which owns the child view models (`StopsViewModel`, `TripPlannerViewModel`, `LinesViewModel`, `SettingsViewModel`) shown in a tab control. Code-behind is wiring only. Cross-cutting seams: `IDispatcher` (the only UI-thread marshalling), `ILocalizer` (resource lookup and runtime language swap by replacing `MergedDictionaries[0]`, so that slot must stay the strings dictionary), `ISettingsService` (config plus persistence that returns false instead of throwing), `SavedPlaceCollection` (places shared by Settings, Trip planner and Stops), `TrayController` (notification-area icon driven by `ShellViewModel`).
+- **Activity gating:** `ShellViewModel` calls `StopsViewModel.SetActive(...)` only when the Stops tab is selected and the window is visible and not minimized; only then does the 1 s countdown ticker and the 25 s refresh of expanded stops run.
+- **Live data layer** (`Services/LiveData`): `ILiveArrivalsProvider` implementations (`CurlbusArrivalsProvider` with a per-stop cache, 1 req/s spacing and a circuit breaker; `RailProvider`, disabled) plus `IScheduleProvider` (`StrideScheduleProvider`, GTFS). `LiveDataAggregator` queries providers in `ArrivalSource` priority order, discards invalid, stale (over 5 minutes) or future data, picks the freshest provider per line, and fills lines without live data from the schedule marked `IsLive = false`. Every `Arrival` carries `Source`, `IsLive` and `ObservedAt`; nothing scheduled may be presented as live.
+- **Stops and location:** `StrideStopCatalog` downloads all stops for today (about 30k, paged because the API has no geo filter) and caches them in `%LOCALAPPDATA%\BusPulse\cache`; `Geo.FindNearby` computes distances locally. `WindowsLocationService` uses `Windows.Devices.Geolocation`, which is why the TFM includes the Windows 10 SDK version.
+- **External data is untrusted:** providers parse with strict `System.Text.Json` options, cap response size and string length, check coordinates against Israel and timestamps for plausibility. Keep new providers consistent with this, and record real responses as fixtures in `BusPulse.Tests/Fixtures` rather than inventing shapes.
+- **Config storage:** `AppConfigStore` serializes `AppConfig` and encrypts it with DPAPI `CurrentUser` plus fixed entropy to `%LOCALAPPDATA%\BusPulse\settings.dpapi`; unmapped JSON members are rejected and `Validate()` runs on load and save.
+- **Assets and sound:** `Assets/**` is copied to the output (`Content` items) and loaded from `AppContext.BaseDirectory`. `SoundService` plays only when not muted, but nothing calls it yet; toast delivery (`ToastNotificationService` only builds XML) is not wired.
+- **Tests:** view models are tested with fakes (`TestDoubles.cs` and per-file fakes) and a fixed `IClock`; providers over recorded fixtures. Live probes carry `[Trait("Category","Live")]` and are excluded from CI.

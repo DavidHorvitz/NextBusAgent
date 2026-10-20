@@ -45,6 +45,11 @@ public sealed partial class ShellViewModel : ObservableObject
         SettingsTab = settingsTab;
 
         _isMuted = settings.Config.NotificationsMuted;
+        settingsTab.NotificationsToggled += (_, enabled) =>
+        {
+            IsMuted = !enabled;
+            OnPropertyChanged(nameof(TrayMenuMuteText));
+        };
         _activeProfile = settings.Config.ActiveProfile;
         localizer.SetLanguage(settings.Config.Language);
         _flowDirection = DirectionFor(settings.Config.Language);
@@ -68,14 +73,22 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public string LanguageButtonText => FlowDirection == System.Windows.FlowDirection.RightToLeft ? "English" : "עברית";
 
-    partial void OnIsMutedChanged(bool value) => _settings.Config.NotificationsMuted = value;
+    partial void OnIsMutedChanged(bool value)
+    {
+        _settings.Config.NotificationsMuted = value;
+        SettingsTab.SyncNotifications(!value);
+    }
 
     partial void OnSelectedTabIndexChanged(int value) => UpdateActivity();
 
     partial void OnIsWindowActiveChanged(bool value) => UpdateActivity();
 
     // Live data is polled only while the stops tab is visible in a non-minimized window.
-    private void UpdateActivity() => Stops.SetActive(IsWindowActive && SelectedTabIndex == 0);
+    private void UpdateActivity()
+    {
+        Stops.SetActive(IsWindowActive && SelectedTabIndex == 0);
+        TripPlanner.SetActive(IsWindowActive && SelectedTabIndex == 1);
+    }
 
     [RelayCommand]
     private async Task RefreshAsync()
@@ -84,6 +97,10 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             await Stops.LoadCommand.ExecuteAsync(null);
             await Stops.RefreshExpandedAsync();
+        }
+        else if (SelectedTabIndex == 1)
+        {
+            await TripPlanner.RefreshAsync();
         }
     }
 

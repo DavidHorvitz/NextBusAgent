@@ -38,9 +38,8 @@ public sealed class DepartureReminderTests
 
         var sent = Assert.Single(f.Notifier.Sent);
         Assert.Equal(NotificationKind.Departure, sent.Kind);
-        Assert.Contains("4", sent.Title);
-        Assert.Contains("Origin stop", sent.Title);
-        Assert.Contains("Leave in 4 min", sent.Message);
+        Assert.Equal("Line 4 in 5 min", sent.Title);
+        Assert.Contains("Origin stop", sent.Message);
         Assert.DoesNotContain("Destination", sent.Title + sent.Message);
     }
 
@@ -59,7 +58,27 @@ public sealed class DepartureReminderTests
         Assert.True(delayed);
         Assert.False(again);
         Assert.Equal([NotificationKind.Departure, NotificationKind.Delay], f.Notifier.Sent.Select(s => s.Kind).ToArray());
-        Assert.Contains("Delayed by 4 min", f.Notifier.Sent[1].Message);
+        Assert.Contains("delayed by 4 min", f.Notifier.Sent[1].Title);
+    }
+
+    [Fact]
+    public void Watching_ShowsAnAlertAddedToast_NamingTheLineAndDestination()
+    {
+        var f = new Fixture();
+
+        f.Watch(Option(leaveInMinutes: 30));
+
+        var toast = Assert.Single(f.Notifier.All);
+        Assert.Equal(NotificationKind.Info, toast.Kind);
+        Assert.Equal("Alert added: Line 4 to Destination stop", toast.Title);
+        Assert.Contains("Origin stop", toast.Message);
+    }
+
+    [Fact]
+    public void LeadTimeOfZero_IsAllowed()
+    {
+        new AppConfig { LeadMinutes = 0 }.Validate();
+        Assert.Throws<InvalidDataException>(() => new AppConfig { LeadMinutes = 16 }.Validate());
     }
 
     [Fact]
@@ -171,7 +190,7 @@ public sealed class DepartureReminderTests
             Planner = new FakePlanner();
             Notifier = new RecordingNotifier();
             Reminder = new DepartureReminderService(
-                Planner, Notifier, new FixedClock(Now), new AppConfig { LeadMinutes = 5 }, NullLogger<DepartureReminderService>.Instance);
+                Planner, Notifier, new FixedClock(Now), new AppConfig { LeadMinutes = 5 }, new TemplateLocalizer(), NullLogger<DepartureReminderService>.Instance);
         }
 
         public FakePlanner Planner { get; }
@@ -199,9 +218,12 @@ public sealed class DepartureReminderTests
 
     private sealed class RecordingNotifier : INotifier
     {
-        public List<(string Title, string Message, NotificationKind Kind)> Sent { get; } = [];
+        public List<(string Title, string Message, NotificationKind Kind)> All { get; } = [];
 
-        public void Notify(string title, string message, NotificationKind kind) => Sent.Add((title, message, kind));
+        /// <summary>Departure and delay toasts; the one shown when an alert is added is tracked separately.</summary>
+        public List<(string Title, string Message, NotificationKind Kind)> Sent => All.Where(n => n.Kind != NotificationKind.Info).ToList();
+
+        public void Notify(string title, string message, NotificationKind kind) => All.Add((title, message, kind));
     }
 }
 

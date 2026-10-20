@@ -117,8 +117,8 @@ public sealed partial class StopsViewModel : ObservableObject
 {
     private const int MaxStops = 15;
     private const double MaxDistanceMeters = 3000;
-    private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(25);
 
+    private readonly ISettingsService _settings;
     private readonly ILocationService _location;
     private readonly IStopCatalog _catalog;
     private readonly ILiveDataAggregator _aggregator;
@@ -143,6 +143,7 @@ public sealed partial class StopsViewModel : ObservableObject
     private SavedPlace? _selectedAnchor;
 
     public StopsViewModel(
+        ISettingsService settings,
         ILocationService location,
         IStopCatalog catalog,
         ILiveDataAggregator aggregator,
@@ -152,6 +153,7 @@ public sealed partial class StopsViewModel : ObservableObject
         IDispatcher dispatcher,
         ILogger<StopsViewModel> logger)
     {
+        _settings = settings;
         _location = location;
         _catalog = catalog;
         _aggregator = aggregator;
@@ -389,7 +391,7 @@ public sealed partial class StopsViewModel : ObservableObject
             {
                 sinceRefresh += TimeSpan.FromSeconds(1);
                 _dispatcher.Post(Tick);
-                if (sinceRefresh >= RefreshInterval)
+                if (sinceRefresh >= TimeSpan.FromSeconds(Math.Clamp(_settings.Config.PollingSeconds, 15, 60)))
                 {
                     sinceRefresh = TimeSpan.Zero;
                     await RefreshExpandedAsync(cancellationToken);

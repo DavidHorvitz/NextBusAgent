@@ -1,7 +1,9 @@
+using BusPulse.Configuration;
 using BusPulse.Infrastructure;
 using BusPulse.Services;
 using BusPulse.Services.Location;
 using BusPulse.Services.Stops;
+using BusPulse.Services.Trips;
 
 namespace BusPulse.Tests;
 
@@ -33,4 +35,103 @@ internal sealed class FakeCatalog(params Stop[] stops) : IStopCatalog
 
     public Task<IReadOnlyList<Stop>> GetStopsAsync(CancellationToken cancellationToken = default) =>
         Throw is null ? Task.FromResult<IReadOnlyList<Stop>>(stops) : Task.FromException<IReadOnlyList<Stop>>(Throw);
+}
+
+internal sealed class MemorySettings : ISettingsService
+{
+    public AppConfig Config { get; } = new();
+    public int SaveCount { get; private set; }
+    public bool SaveSucceeds { get; set; } = true;
+
+    public Task<bool> SaveAsync()
+    {
+        SaveCount++;
+        return Task.FromResult(SaveSucceeds);
+    }
+}
+
+/// <summary>Returns the key for most lookups and a real template for keys whose format arguments tests assert on.</summary>
+internal sealed class TemplateLocalizer : ILocalizer
+{
+    private static readonly Dictionary<string, string> Templates = new()
+    {
+        ["DistanceMeters"] = "{0} m",
+        ["EtaMinutes"] = "{0}m",
+        ["EtaNow"] = "now",
+        ["UpdatedAgo"] = "{0}s ago",
+        ["LocationAccuracy"] = "accuracy {0}",
+        ["LocationFromPlace"] = "near {0}",
+        ["LeaveInMinutes"] = "leave in {0}m",
+        ["LeaveNow"] = "leave now",
+        ["BusAt"] = "bus {0}",
+        ["ArriveAt"] = "arrive {0}",
+        ["WalkTo"] = "{0} min walk to {1}",
+        ["ToastLineIn"] = "Line {0} in {1} min",
+        ["ToastLeaveBy"] = "Leave by {0} · {1}",
+        ["ToastDelayed"] = "Line {0} delayed by {1} min · now at {2}",
+        ["ToastAlertAdded"] = "Alert added: Line {0} to {1}"
+    };
+
+    public string Language { get; private set; } = "en";
+
+    public string Get(string key) => Templates.GetValueOrDefault(key, key);
+
+    public void SetLanguage(string language) => Language = language;
+}
+
+internal sealed class FakeHistory : IHistoryService
+{
+    public List<HistoryEntry> Entries { get; } = [];
+    public int ClearCalls { get; private set; }
+
+    public IReadOnlyList<HistoryEntry> Recent => Entries;
+
+    public void Record(string placeId, string name)
+    {
+        Entries.RemoveAll(entry => entry.PlaceId == placeId);
+        Entries.Insert(0, new HistoryEntry(placeId, name, DateTimeOffset.UtcNow));
+    }
+
+    public void Clear()
+    {
+        ClearCalls++;
+        Entries.Clear();
+    }
+}
+
+internal sealed class FakeReminder : IDepartureReminder
+{
+    public TripOption? Watched { get; private set; }
+    public TripRequest? Request { get; private set; }
+
+    public event EventHandler? Changed;
+
+    public void Watch(TripRequest request, TripOption option)
+    {
+        Request = request;
+        Watched = option;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void Cancel()
+    {
+        Watched = null;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public Task<bool> CheckAsync(CancellationToken cancellationToken = default) => Task.FromResult(false);
+}
+
+internal sealed class FakeTripPlanner : ITripPlannerService
+{
+    public TripPlan Plan { get; set; } = new(TripPlanStatus.NoOptions, []);
+    public TripRequest? LastRequest { get; private set; }
+    public int Calls { get; private set; }
+
+    public Task<TripPlan> PlanAsync(TripRequest request, CancellationToken cancellationToken = default)
+    {
+        Calls++;
+        LastRequest = request;
+        return Task.FromResult(Plan);
+    }
 }

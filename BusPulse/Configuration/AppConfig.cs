@@ -16,9 +16,9 @@ public sealed class AppConfig
     public string? WorkPlaceId { get; set; }
 
     /// <summary>Seconds between live refreshes while a view is visible (15-60).</summary>
-    public int PollingSeconds { get; set; } = 25;
+    public int PollingSeconds { get; set; } = 20;
 
-    /// <summary>Minutes before the leave-by time at which a departure reminder fires (1-60).</summary>
+    /// <summary>Minutes before the leave-by time at which a departure reminder fires (0-15).</summary>
     public int LeadMinutes { get; set; } = 5;
 
     /// <summary>Minutes to be at the stop before the bus is due (0-15).</summary>
@@ -88,7 +88,7 @@ public sealed class AppConfig
             throw new InvalidDataException("The work place does not exist.");
         }
 
-        if (PollingSeconds is < 15 or > 60 || LeadMinutes is < 1 or > 60 || BufferMinutes is < 0 or > 15)
+        if (PollingSeconds is < 15 or > 60 || LeadMinutes is < 0 or > 15 || BufferMinutes is < 0 or > 15)
         {
             throw new InvalidDataException("A timing setting is out of range.");
         }

@@ -7,7 +7,8 @@ namespace BusPulse.Services;
 public enum NotificationKind
 {
     Departure,
-    Delay
+    Delay,
+    Info
 }
 
 public interface INotifier
@@ -46,13 +47,14 @@ public sealed class ToastNotificationService(AppConfig config, SoundService soun
                 .AddText(title)
                 .AddText(message)
                 .Show();
-            if (kind == NotificationKind.Delay)
+            switch (kind)
             {
-                sound.PlayDelay();
-            }
-            else
-            {
-                sound.PlayArrival();
+                case NotificationKind.Delay:
+                    sound.PlayDelay();
+                    break;
+                case NotificationKind.Departure:
+                    sound.PlayArrival();
+                    break;
             }
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)

@@ -71,4 +71,47 @@
   <sys:String x:Key="LocationOutsideCoverage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Your location is outside Israel, where this app has data. Pick a saved place above.</sys:String>
   <sys:String x:Key="UseMyLocation" xmlns:sys="clr-namespace:System;assembly=mscorlib">My location</sys:String>
   <sys:String x:Key="NearPlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Show stops near</sys:String>
+  <sys:String x:Key="MyLocation" xmlns:sys="clr-namespace:System;assembly=mscorlib">My current location</sys:String>
+  <sys:String x:Key="SwapRoutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">Swap origin and destination</sys:String>
+  <sys:String x:Key="GoHome" xmlns:sys="clr-namespace:System;assembly=mscorlib">Home</sys:String>
+  <sys:String x:Key="GoWork" xmlns:sys="clr-namespace:System;assembly=mscorlib">Work</sys:String>
+  <sys:String x:Key="DestinationSearch" xmlns:sys="clr-namespace:System;assembly=mscorlib">Search destination</sys:String>
+  <sys:String x:Key="ModeNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">Now</sys:String>
+  <sys:String x:Key="ModeDepartAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">Depart at</sys:String>
+  <sys:String x:Key="ModeArriveBy" xmlns:sys="clr-namespace:System;assembly=mscorlib">Arrive by</sys:String>
+  <sys:String x:Key="PreferredLineLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Preferred line (optional)</sys:String>
+  <sys:String x:Key="PlanTrip" xmlns:sys="clr-namespace:System;assembly=mscorlib">Find trips</sys:String>
+  <sys:String x:Key="PlanHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pick a destination to see direct trips from your current location.</sys:String>
+  <sys:String x:Key="SetDestinationFirst" xmlns:sys="clr-namespace:System;assembly=mscorlib">Choose a destination first.</sys:String>
+  <sys:String x:Key="SameOriginDestination" xmlns:sys="clr-namespace:System;assembly=mscorlib">Origin and destination are the same.</sys:String>
+  <sys:String x:Key="Planning" xmlns:sys="clr-namespace:System;assembly=mscorlib">Planning...</sys:String>
+  <sys:String x:Key="PlanFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Could not plan the trip. Press Find trips to retry.</sys:String>
+  <sys:String x:Key="PlanNoStopsNearOrigin" xmlns:sys="clr-namespace:System;assembly=mscorlib">No stops within walking distance of the origin.</sys:String>
+  <sys:String x:Key="PlanNoStopsNearDestination" xmlns:sys="clr-namespace:System;assembly=mscorlib">No stops within walking distance of the destination.</sys:String>
+  <sys:String x:Key="PlanNoOptions" xmlns:sys="clr-namespace:System;assembly=mscorlib">No direct trips found. Try another time or remove the preferred line.</sys:String>
+  <sys:String x:Key="LeaveNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">Leave now</sys:String>
+  <sys:String x:Key="LeaveInMinutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">Leave in {0} min</sys:String>
+  <sys:String x:Key="WalkTo" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} min walk to {1}</sys:String>
+  <sys:String x:Key="BusAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">Bus {0}</sys:String>
+  <sys:String x:Key="ArriveAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">Arrive {0}</sys:String>
+  <sys:String x:Key="RemindMe" xmlns:sys="clr-namespace:System;assembly=mscorlib">Remind me</sys:String>
+  <sys:String x:Key="TimePickerLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Time</sys:String>
+  <sys:String x:Key="NotificationsEnabledLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Notifications</sys:String>
+  <sys:String x:Key="LeadTimeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Remind me before leaving</sys:String>
+  <sys:String x:Key="PollingLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Refresh every</sys:String>
+  <sys:String x:Key="MinutesUnit" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} min</sys:String>
+  <sys:String x:Key="SecondsUnit" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} s</sys:String>
+  <sys:String x:Key="HomePlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Home</sys:String>
+  <sys:String x:Key="WorkPlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Work</sys:String>
+  <sys:String x:Key="ClearPlace" xmlns:sys="clr-namespace:System;assembly=mscorlib">Clear</sys:String>
+  <sys:String x:Key="ClearHistory" xmlns:sys="clr-namespace:System;assembly=mscorlib">Clear history</sys:String>
+  <sys:String x:Key="HistoryCleared" xmlns:sys="clr-namespace:System;assembly=mscorlib">History cleared.</sys:String>
+  <sys:String x:Key="NotificationSettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">Notifications and refresh</sys:String>
+  <sys:String x:Key="SavedPlacesQuick" xmlns:sys="clr-namespace:System;assembly=mscorlib">Home and work</sys:String>
+  <sys:String x:Key="ToastLineIn" xmlns:sys="clr-namespace:System;assembly=mscorlib">Line {0} in {1} min</sys:String>
+  <sys:String x:Key="ToastLeaveBy" xmlns:sys="clr-namespace:System;assembly=mscorlib">Leave by {0} · {1}</sys:String>
+  <sys:String x:Key="ToastDelayed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Line {0} delayed by {1} min · now at {2}</sys:String>
+  <sys:String x:Key="ToastAlertAdded" xmlns:sys="clr-namespace:System;assembly=mscorlib">Alert added: Line {0} to {1}</sys:String>
+  <sys:String x:Key="ToastFavoriteAdded" xmlns:sys="clr-namespace:System;assembly=mscorlib">Added to favorites: Line {0}</sys:String>
+  <sys:String x:Key="ToastAlertRemoved" xmlns:sys="clr-namespace:System;assembly=mscorlib">Alert removed: Line {0}</sys:String>
 </ResourceDictionary>

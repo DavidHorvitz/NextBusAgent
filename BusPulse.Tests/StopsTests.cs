@@ -323,7 +323,7 @@ public sealed class StopsViewModelTests
             var settings = new MemorySettings();
             Places = new SavedPlaceCollection(settings);
             Stops = new StopsViewModel(
-                Location, Catalog, Aggregator, Places, new TemplateLocalizer(), Clock, new ImmediateDispatcher(),
+                settings, Location, Catalog, Aggregator, Places, new TemplateLocalizer(), Clock, new ImmediateDispatcher(),
                 NullLogger<StopsViewModel>.Instance);
         }
 
@@ -333,32 +333,6 @@ public sealed class StopsViewModelTests
         public CountingAggregator Aggregator { get; }
         public SavedPlaceCollection Places { get; }
         public StopsViewModel Stops { get; }
-    }
-
-    private sealed class MemorySettings : ISettingsService
-    {
-        public AppConfig Config { get; } = new();
-
-        public Task<bool> SaveAsync() => Task.FromResult(true);
-    }
-
-    private sealed class TemplateLocalizer : ILocalizer
-    {
-        private static readonly Dictionary<string, string> Templates = new()
-        {
-            ["DistanceMeters"] = "{0} m",
-            ["EtaMinutes"] = "{0}m",
-            ["EtaNow"] = "now",
-            ["UpdatedAgo"] = "{0}s ago",
-            ["LocationAccuracy"] = "accuracy {0}",
-            ["LocationFromPlace"] = "near {0}"
-        };
-
-        public string Get(string key) => Templates.GetValueOrDefault(key, key);
-
-        public void SetLanguage(string language)
-        {
-        }
     }
 
     private sealed class CountingAggregator : ILiveDataAggregator

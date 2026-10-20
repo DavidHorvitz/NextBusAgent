@@ -1,5 +1,6 @@
 using System.Globalization;
 using BusPulse.Configuration;
+using BusPulse.Infrastructure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -24,6 +25,7 @@ public sealed class DepartureReminderService(
     INotifier notifier,
     IClock clock,
     AppConfig config,
+    ILocalizer localizer,
     ILogger<DepartureReminderService> logger) : IDepartureReminder
 {
     private static readonly TimeSpan DelayThreshold = TimeSpan.FromMinutes(3);
@@ -48,6 +50,10 @@ public sealed class DepartureReminderService(
             _notifiedBusDeparture = option.BusDeparture;
         }
 
+        notifier.Notify(
+            string.Format(CultureInfo.CurrentCulture, localizer.Get("ToastAlertAdded"), option.Line, option.ToEndpoint ?? option.DestinationStop.Name),
+            string.Format(CultureInfo.CurrentCulture, localizer.Get("ToastLeaveBy"), option.LeaveBy.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture), option.OriginStop.Name),
+            NotificationKind.Info);
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -62,6 +68,7 @@ public sealed class DepartureReminderService(
 
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
 
     public async Task<bool> CheckAsync(CancellationToken cancellationToken = default)
     {
@@ -106,13 +113,14 @@ public sealed class DepartureReminderService(
 
         var notified = false;
         var minutesToLeave = (int)Math.Ceiling((current.LeaveBy - now).TotalMinutes);
-        if (!_leaveNotified && minutesToLeave <= Math.Clamp(config.LeadMinutes, 1, 60))
+        if (!_leaveNotified && minutesToLeave <= Math.Clamp(config.LeadMinutes, 0, 15))
         {
             _leaveNotified = true;
             _notifiedBusDeparture = current.BusDeparture;
+            var busInMinutes = Math.Max(0, (int)Math.Ceiling((current.BusDeparture - now).TotalMinutes));
             notifier.Notify(
-                $"{current.Line} · {current.OriginStop.Name}",
-                string.Format(CultureInfo.CurrentCulture, "Leave in {0} min · bus at {1:HH:mm}", Math.Max(0, minutesToLeave), current.BusDeparture.ToLocalTime()),
+                string.Format(CultureInfo.CurrentCulture, localizer.Get("ToastLineIn"), current.Line, busInMinutes),
+                string.Format(CultureInfo.CurrentCulture, localizer.Get("ToastLeaveBy"), current.LeaveBy.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture), current.OriginStop.Name),
                 NotificationKind.Departure);
             notified = true;
         }
@@ -121,8 +129,8 @@ public sealed class DepartureReminderService(
             var delay = (int)Math.Round((current.BusDeparture - _notifiedBusDeparture).TotalMinutes);
             _notifiedBusDeparture = current.BusDeparture;
             notifier.Notify(
-                $"{current.Line} · {current.OriginStop.Name}",
-                string.Format(CultureInfo.CurrentCulture, "Delayed by {0} min · now at {1:HH:mm}", delay, current.BusDeparture.ToLocalTime()),
+                string.Format(CultureInfo.CurrentCulture, localizer.Get("ToastDelayed"), current.Line, delay, current.BusDeparture.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture)),
+                current.OriginStop.Name,
                 NotificationKind.Delay);
             notified = true;
         }

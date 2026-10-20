@@ -22,6 +22,17 @@ public static class Geo
         return 2 * EarthRadiusMeters * Math.Asin(Math.Min(1, Math.Sqrt(a)));
     }
 
+    /// <summary>Initial compass bearing from the first point to the second: 0 is north, 90 is east.</summary>
+    public static double BearingDegrees(double lat1, double lon1, double lat2, double lon2)
+    {
+        var phi1 = ToRadians(lat1);
+        var phi2 = ToRadians(lat2);
+        var dLon = ToRadians(lon2 - lon1);
+        var y = Math.Sin(dLon) * Math.Cos(phi2);
+        var x = Math.Cos(phi1) * Math.Sin(phi2) - Math.Sin(phi1) * Math.Cos(phi2) * Math.Cos(dLon);
+        return (Math.Atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+
     public static IReadOnlyList<NearbyStop> FindNearby(
         IEnumerable<Stop> stops,
         double latitude,

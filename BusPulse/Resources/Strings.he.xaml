@@ -71,4 +71,47 @@
   <sys:String x:Key="LocationOutsideCoverage" xmlns:sys="clr-namespace:System;assembly=mscorlib">המיקום שלך מחוץ לישראל, שם יש לאפליקציה מידע. בחרו מקום שמור למעלה.</sys:String>
   <sys:String x:Key="UseMyLocation" xmlns:sys="clr-namespace:System;assembly=mscorlib">המיקום שלי</sys:String>
   <sys:String x:Key="NearPlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">הצג תחנות ליד</sys:String>
+  <sys:String x:Key="MyLocation" xmlns:sys="clr-namespace:System;assembly=mscorlib">המיקום הנוכחי שלי</sys:String>
+  <sys:String x:Key="SwapRoutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">החלפת מוצא ויעד</sys:String>
+  <sys:String x:Key="GoHome" xmlns:sys="clr-namespace:System;assembly=mscorlib">בית</sys:String>
+  <sys:String x:Key="GoWork" xmlns:sys="clr-namespace:System;assembly=mscorlib">עבודה</sys:String>
+  <sys:String x:Key="DestinationSearch" xmlns:sys="clr-namespace:System;assembly=mscorlib">חיפוש יעד</sys:String>
+  <sys:String x:Key="ModeNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">עכשיו</sys:String>
+  <sys:String x:Key="ModeDepartAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">יציאה ב-</sys:String>
+  <sys:String x:Key="ModeArriveBy" xmlns:sys="clr-namespace:System;assembly=mscorlib">הגעה עד</sys:String>
+  <sys:String x:Key="PreferredLineLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">קו מועדף (אופציונלי)</sys:String>
+  <sys:String x:Key="PlanTrip" xmlns:sys="clr-namespace:System;assembly=mscorlib">חיפוש נסיעות</sys:String>
+  <sys:String x:Key="PlanHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">בחרו יעד כדי לראות נסיעות ישירות מהמיקום הנוכחי שלכם.</sys:String>
+  <sys:String x:Key="SetDestinationFirst" xmlns:sys="clr-namespace:System;assembly=mscorlib">בחרו קודם יעד.</sys:String>
+  <sys:String x:Key="SameOriginDestination" xmlns:sys="clr-namespace:System;assembly=mscorlib">המוצא והיעד זהים.</sys:String>
+  <sys:String x:Key="Planning" xmlns:sys="clr-namespace:System;assembly=mscorlib">מתכנן...</sys:String>
+  <sys:String x:Key="PlanFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא ניתן לתכנן את הנסיעה. לחצו על חיפוש נסיעות לניסיון חוזר.</sys:String>
+  <sys:String x:Key="PlanNoStopsNearOrigin" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין תחנות במרחק הליכה מהמוצא.</sys:String>
+  <sys:String x:Key="PlanNoStopsNearDestination" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין תחנות במרחק הליכה מהיעד.</sys:String>
+  <sys:String x:Key="PlanNoOptions" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא נמצאו נסיעות ישירות. נסו שעה אחרת או הסירו את הקו המועדף.</sys:String>
+  <sys:String x:Key="LeaveNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">צאו עכשיו</sys:String>
+  <sys:String x:Key="LeaveInMinutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">צאו בעוד {0} דק׳</sys:String>
+  <sys:String x:Key="WalkTo" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} דק׳ הליכה אל {1}</sys:String>
+  <sys:String x:Key="BusAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">אוטובוס {0}</sys:String>
+  <sys:String x:Key="ArriveAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">הגעה {0}</sys:String>
+  <sys:String x:Key="RemindMe" xmlns:sys="clr-namespace:System;assembly=mscorlib">הזכר לי</sys:String>
+  <sys:String x:Key="TimePickerLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">שעה</sys:String>
+  <sys:String x:Key="NotificationsEnabledLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">התראות</sys:String>
+  <sys:String x:Key="LeadTimeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">תזכורת לפני יציאה</sys:String>
+  <sys:String x:Key="PollingLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">רענון כל</sys:String>
+  <sys:String x:Key="MinutesUnit" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} דק׳</sys:String>
+  <sys:String x:Key="SecondsUnit" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} שנ׳</sys:String>
+  <sys:String x:Key="HomePlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">בית</sys:String>
+  <sys:String x:Key="WorkPlaceLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">עבודה</sys:String>
+  <sys:String x:Key="ClearPlace" xmlns:sys="clr-namespace:System;assembly=mscorlib">נקה</sys:String>
+  <sys:String x:Key="ClearHistory" xmlns:sys="clr-namespace:System;assembly=mscorlib">נקה היסטוריה</sys:String>
+  <sys:String x:Key="HistoryCleared" xmlns:sys="clr-namespace:System;assembly=mscorlib">ההיסטוריה נוקתה.</sys:String>
+  <sys:String x:Key="NotificationSettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">התראות ורענון</sys:String>
+  <sys:String x:Key="SavedPlacesQuick" xmlns:sys="clr-namespace:System;assembly=mscorlib">בית ועבודה</sys:String>
+  <sys:String x:Key="ToastLineIn" xmlns:sys="clr-namespace:System;assembly=mscorlib">קו {0} בעוד {1} דק׳</sys:String>
+  <sys:String x:Key="ToastLeaveBy" xmlns:sys="clr-namespace:System;assembly=mscorlib">צאו עד {0} · {1}</sys:String>
+  <sys:String x:Key="ToastDelayed" xmlns:sys="clr-namespace:System;assembly=mscorlib">קו {0} מתעכב ב-{1} דק׳ · כעת ב-{2}</sys:String>
+  <sys:String x:Key="ToastAlertAdded" xmlns:sys="clr-namespace:System;assembly=mscorlib">התראה נוספה: קו {0} אל {1}</sys:String>
+  <sys:String x:Key="ToastFavoriteAdded" xmlns:sys="clr-namespace:System;assembly=mscorlib">נוסף למועדפים: קו {0}</sys:String>
+  <sys:String x:Key="ToastAlertRemoved" xmlns:sys="clr-namespace:System;assembly=mscorlib">ההתראה הוסרה: קו {0}</sys:String>
 </ResourceDictionary>

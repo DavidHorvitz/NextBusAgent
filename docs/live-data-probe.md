@@ -25,3 +25,16 @@ The `israel-rail-api` package authenticates with a subscription key that its sou
 
 - Curlbus is unofficial and has no SLA; the provider caches 25 s, spaces requests by 1 s, and opens a circuit for 3 minutes after 3 failures.
 - Only one stop was probed live. Coverage and behavior for stops with no service were not measured.
+
+## Curlbus route alternatives (checked 2026-10-20)
+
+The Curlbus README documents `/<operator>/<route_number>/<alternative>`. In practice:
+
+| URL | HTTP | Result |
+| --- | --- | --- |
+| `/dan/4` | 200 | Lists six route alternatives with names |
+| `/dan/4/0`, `/dan/4/1`, `/dan/4/2` | 500 | Server error, body "Server got itself in trouble" |
+| `/dan/4/Lehi` | 500 | Server error |
+| `/egged/4` | 200 | Returns data for line 4 of Egged |
+
+So alternative-level data is unavailable upstream. The Lines tab must use the Stride schedule for line stops, and live vehicle positions need a different source.

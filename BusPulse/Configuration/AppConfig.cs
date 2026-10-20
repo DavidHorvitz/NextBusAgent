@@ -12,6 +12,22 @@ public sealed class AppConfig
     public string? StartPlaceId { get; set; }
     public string? DestinationPlaceId { get; set; }
     public string? LineName { get; set; }
+    public string? HomePlaceId { get; set; }
+    public string? WorkPlaceId { get; set; }
+
+    /// <summary>Seconds between live refreshes while a view is visible (15-60).</summary>
+    public int PollingSeconds { get; set; } = 25;
+
+    /// <summary>Minutes before the leave-by time at which a departure reminder fires (1-60).</summary>
+    public int LeadMinutes { get; set; } = 5;
+
+    /// <summary>Minutes to be at the stop before the bus is due (0-15).</summary>
+    public int BufferMinutes { get; set; } = 1;
+
+    /// <summary>"system", "light" or "dark".</summary>
+    public string Theme { get; set; } = "system";
+    public List<string> FavoriteStopCodes { get; set; } = [];
+    public List<string> FavoriteLines { get; set; } = [];
 
     [JsonPropertyName("StopCode")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -60,6 +76,33 @@ public sealed class AppConfig
         if (LineName?.Length > 64)
         {
             throw new InvalidDataException("The line name is too long.");
+        }
+
+        if (HomePlaceId is not null && !SavedPlaces.Any(place => place.Id == HomePlaceId))
+        {
+            throw new InvalidDataException("The home place does not exist.");
+        }
+
+        if (WorkPlaceId is not null && !SavedPlaces.Any(place => place.Id == WorkPlaceId))
+        {
+            throw new InvalidDataException("The work place does not exist.");
+        }
+
+        if (PollingSeconds is < 15 or > 60 || LeadMinutes is < 1 or > 60 || BufferMinutes is < 0 or > 15)
+        {
+            throw new InvalidDataException("A timing setting is out of range.");
+        }
+
+        if (Theme is not ("system" or "light" or "dark"))
+        {
+            throw new InvalidDataException("Theme must be 'system', 'light' or 'dark'.");
+        }
+
+        if (FavoriteStopCodes is null || FavoriteStopCodes.Count > 50 ||
+            FavoriteLines is null || FavoriteLines.Count > 50 ||
+            FavoriteStopCodes.Concat(FavoriteLines).Any(item => string.IsNullOrWhiteSpace(item) || item.Length > 32))
+        {
+            throw new InvalidDataException("The favorites list is invalid.");
         }
     }
 }

@@ -88,10 +88,13 @@ public sealed class StrideStopCatalog(
                 continue;
             }
 
+            var id = row.TryGetProperty("id", out var idProperty) && idProperty.ValueKind == JsonValueKind.Number && idProperty.TryGetInt64(out var idValue)
+                ? idValue
+                : 0;
             var city = row.TryGetProperty("city", out var cityProperty) && cityProperty.ValueKind == JsonValueKind.String
                 ? Truncate(cityProperty.GetString())
                 : null;
-            stops.Add(new Stop(codeValue.ToString(CultureInfo.InvariantCulture), Truncate(name.GetString())!, city, latitude, longitude));
+            stops.Add(new Stop(codeValue.ToString(CultureInfo.InvariantCulture), Truncate(name.GetString())!, city, latitude, longitude, id));
         }
 
         return stops;
@@ -107,7 +110,8 @@ public sealed class StrideStopCatalog(
             }
 
             var stops = ParseStops(File.ReadAllBytes(path));
-            return stops.Count > 0 ? stops : null;
+            // Caches written before stop ids were stored are discarded and re-downloaded.
+            return stops.Count > 0 && stops.All(stop => stop.Id > 0) ? stops : null;
         }
         catch (Exception exception) when (exception is IOException or JsonException or UnauthorizedAccessException)
         {
@@ -163,6 +167,7 @@ public sealed class StrideStopCatalog(
             Directory.CreateDirectory(_cacheDirectory);
             var rows = stops.Select(stop => new
             {
+                id = stop.Id,
                 code = long.Parse(stop.Code, CultureInfo.InvariantCulture),
                 name = stop.Name,
                 city = stop.City,

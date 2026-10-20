@@ -1,6 +1,7 @@
 namespace BusPulse.Services.Stops;
 
-public sealed record Stop(string Code, string Name, string? City, double Latitude, double Longitude);
+/// <summary><see cref="Id"/> is the Stride GTFS stop id (needed for ride queries); 0 when unknown.</summary>
+public sealed record Stop(string Code, string Name, string? City, double Latitude, double Longitude, long Id = 0);
 
 public sealed record NearbyStop(Stop Stop, double DistanceMeters);
 

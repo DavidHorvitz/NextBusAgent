@@ -6,7 +6,7 @@ namespace BusPulse.Services;
 
 public sealed class OpenBusService(IHttpClientFactory httpClientFactory)
 {
-    private const string ApiBaseAddress = "https://openbus-stride-api.hasadna.org.il/";
+    private const string ApiBaseAddress = "https://open-bus-stride-api.hasadna.org.il/";
     private const int MaxResponseBytes = 1_048_576;
     private static readonly string[] LinePropertyNames =
     [

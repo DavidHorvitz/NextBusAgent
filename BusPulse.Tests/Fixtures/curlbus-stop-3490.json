@@ -1,0 +1,197 @@
+{
+  "errors": null,
+  "timestamp": "2026-10-20T19:26:27+03:00",
+  "visits": {
+    "3490": [
+      {
+        "producer": "SIRI",
+        "timestamp": "2026-10-20 19:25:00+03:00",
+        "stop_code": "3490",
+        "line_id": "28387",
+        "route_id": "28387",
+        "direction_id": "1",
+        "line_name": "4",
+        "operator_id": "5",
+        "destination_id": "26469",
+        "vehicle_ref": "17802903",
+        "eta": "2026-10-20 19:36:00+03:00",
+        "trip_id": "56010199_201026",
+        "status": null,
+        "departed": "2026-10-20 19:30:00+03:00",
+        "location": {
+          "lat": "32.104347",
+          "lon": "34.826786"
+        },
+        "static_info": {
+          "route": {
+            "destination": {
+              "code": "26469",
+              "name": {
+                "AR": "كهيلوت يعكوڤ/رابي يوسف تسڤي ريمون",
+                "EN": "Kehilot Ya'akov/Rabbi Yosef Tsvi Rimon",
+                "HE": "קהילות יעקב/רבי יוסף צבי רימון"
+              },
+              "address": {
+                "street": "קהילות יעקב 72",
+                "city": "Bnei Brak",
+                "platform": "",
+                "floor": "",
+                "city_multilingual": {
+                  "HE": "בני ברק",
+                  "EN": "Bnei Brak"
+                }
+              },
+              "location": {
+                "lat": 32.07124,
+                "lon": 34.838308
+              }
+            },
+            "agency": {
+              "name": {
+                "HE": "דן",
+                "EN": "Dan"
+              },
+              "url": "http://www.dan.co.il"
+            },
+            "headsign": {
+              "AR": "كهيلوت يعكوڤ",
+              "EN": "Kehilot Ya'akov",
+              "HE": "קהילות יעקב"
+            }
+          }
+        }
+      },
+      {
+        "producer": "SIRI",
+        "timestamp": "2026-10-20 14:02:05+03:00",
+        "stop_code": "3490",
+        "line_id": "2246",
+        "route_id": "2246",
+        "direction_id": "1",
+        "line_name": "3",
+        "operator_id": "5",
+        "destination_id": "26469",
+        "vehicle_ref": "17804603",
+        "eta": "2026-10-20 19:42:00+03:00",
+        "trip_id": "58106911_201026",
+        "status": null,
+        "departed": "2026-10-20 19:35:00+03:00",
+        "location": null,
+        "static_info": {
+          "route": {
+            "destination": {
+              "code": "26469",
+              "name": {
+                "AR": "كهيلوت يعكوڤ/رابي يوسف تسڤي ريمون",
+                "EN": "Kehilot Ya'akov/Rabbi Yosef Tsvi Rimon",
+                "HE": "קהילות יעקב/רבי יוסף צבי רימון"
+              },
+              "address": {
+                "street": "קהילות יעקב 72",
+                "city": "Bnei Brak",
+                "platform": "",
+                "floor": "",
+                "city_multilingual": {
+                  "HE": "בני ברק",
+                  "EN": "Bnei Brak"
+                }
+              },
+              "location": {
+                "lat": 32.07124,
+                "lon": 34.838308
+              }
+            },
+            "agency": {
+              "name": {
+                "HE": "דן",
+                "EN": "Dan"
+              },
+              "url": "http://www.dan.co.il"
+            },
+            "headsign": {
+              "AR": "كهيلوت يعكوڤ",
+              "EN": "Kehilot Ya'akov",
+              "HE": "קהילות יעקב"
+            }
+          }
+        }
+      },
+      {
+        "producer": "SIRI",
+        "timestamp": "2026-10-20 06:58:08+03:00",
+        "stop_code": "3490",
+        "line_id": "28385",
+        "route_id": "28385",
+        "direction_id": "1",
+        "line_name": "9",
+        "operator_id": "5",
+        "destination_id": "26469",
+        "vehicle_ref": "17805903",
+        "eta": "2026-10-20 19:45:00+03:00",
+        "trip_id": "586039297_201026",
+        "status": null,
+        "departed": "2026-10-20 19:35:00+03:00",
+        "location": null,
+        "static_info": {
+          "route": {
+            "destination": {
+              "code": "26469",
+              "name": {
+                "AR": "كهيلوت يعكوڤ/رابي يوسف تسڤي ريمون",
+                "EN": "Kehilot Ya'akov/Rabbi Yosef Tsvi Rimon",
+                "HE": "קהילות יעקב/רבי יוסף צבי רימון"
+              },
+              "address": {
+                "street": "קהילות יעקב 72",
+                "city": "Bnei Brak",
+                "platform": "",
+                "floor": "",
+                "city_multilingual": {
+                  "HE": "בני ברק",
+                  "EN": "Bnei Brak"
+                }
+              },
+              "location": {
+                "lat": 32.07124,
+                "lon": 34.838308
+              }
+            },
+            "agency": {
+              "name": {
+                "HE": "דן",
+                "EN": "Dan"
+              },
+              "url": "http://www.dan.co.il"
+            },
+            "headsign": {
+              "AR": "كهيلوت يعكوڤ",
+              "EN": "Kehilot Ya'akov",
+              "HE": "קהילות יעקב"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "stop_info": {
+    "name": {
+      "AR": "محطة شرطة/أييليت هشاحر",
+      "EN": "Police Station/Ayelet HaShahar",
+      "HE": "תחנת שיטור/איילת השחר"
+    },
+    "address": {
+      "street": "",
+      "city": "Bnei Brak",
+      "platform": "",
+      "floor": "",
+      "city_multilingual": {
+        "HE": "בני ברק",
+        "EN": "Bnei Brak"
+      }
+    },
+    "location": {
+      "lat": 32.104812,
+      "lon": 34.846465
+    }
+  }
+}

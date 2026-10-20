@@ -3,6 +3,7 @@ using System.Net.Security;
 using System.Security.Authentication;
 using BusPulse.Configuration;
 using BusPulse.Services;
+using BusPulse.Services.LiveData;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -19,6 +20,19 @@ internal static class Program
                 services.AddSingleton(configStore);
                 services.AddSingleton<OpenBusService>();
                 services.AddSingleton<ToastNotificationService>();
+                services.AddSingleton<SoundService>();
+                services.AddSingleton<IClock, SystemClock>();
+                services.AddSingleton<ILiveArrivalsProvider, CurlbusArrivalsProvider>();
+                services.AddSingleton<ILiveArrivalsProvider, RailProvider>();
+                services.AddHttpClient(CurlbusArrivalsProvider.ClientName, client =>
+                {
+                    client.Timeout = TimeSpan.FromSeconds(10);
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+                        "BusPulse/0.1 (+https://github.com/DavidHorvitz/NextBusAgent)");
+                }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false
+                });
                 services.AddSingleton<MainWindow>();
                 services.AddHttpClient("TransitApi", client =>
                 {
@@ -29,7 +43,7 @@ internal static class Program
                     AllowAutoRedirect = false,
                     SslOptions = new SslClientAuthenticationOptions
                     {
-                        EnabledSslProtocols = SslProtocols.Tls13
+                        EnabledSslProtocols = SslProtocols.None
                     }
                 });
                 services.AddHostedService<SchedulePollingService>();

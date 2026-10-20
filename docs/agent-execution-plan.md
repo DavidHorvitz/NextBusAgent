@@ -6,7 +6,7 @@ The workstreams are isolated by ownership. Each agent opens a feature branch and
 
 **Owns:** `BusPulse.Core`, transit provider adapters, schedule and walking-time calculation.
 
-**Tasks:** Integrate the OpenBus endpoint `https://openbus-stride-api.hasadna.org.il/siri_rides/list` using `stop_code` and `limit=5`; verify its live response schema and canonical line-name fields; replace provisional field-name matching with a provider-specific model; calculate departure reminders from arrival time, walking duration, and configurable safety buffer; implement ETA-aware polling and inactive service windows; add retry/backoff, cancellation, and stale-data handling.
+**Tasks:** Integrate the OpenBus endpoint `https://open-bus-stride-api.hasadna.org.il/siri_rides/list` using `stop_code` and `limit=5`; verify its live response schema and canonical line-name fields; replace provisional field-name matching with a provider-specific model; calculate departure reminders from arrival time, walking duration, and configurable safety buffer; implement ETA-aware polling and inactive service windows; add retry/backoff, cancellation, and stale-data handling.
 
 **Handoff:** Provider-neutral arrival contract, provider documentation/version, polling policy, and configuration fields. Never log raw tokens or full location data.
 

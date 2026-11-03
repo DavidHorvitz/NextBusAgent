@@ -195,6 +195,93 @@ public sealed class TripPlannerServiceTests
     }
 
     [Fact]
+    public async Task ArriveBy_SearchesTheHoursBeforeTheTarget_NotFromNow()
+    {
+        var f = new Fixture();
+        var target = Now.AddHours(8);
+        f.Schedule.Departures[1] = [Departure(10, 15, 2), Departure(11, (8 * 60) - 40, 2)];
+        f.Schedule.DestinationRows = [Row(10, 2, 30, 5), Row(11, 2, (8 * 60) - 20, 5)];
+
+        var plan = await f.Planner.PlanAsync(Request(TripTimeMode.ArriveBy, target));
+
+        Assert.All(f.Schedule.DepartureWindows, window => Assert.True(window.From >= target - TimeSpan.FromHours(3)));
+        Assert.Equal([11L], plan.Options.Select(option => option.RideId).ToArray());
+    }
+
+    [Fact]
+    public async Task Departures_AreFetchedOnlyForTheSearchWindow()
+    {
+        var f = new Fixture();
+        f.Schedule.Departures[1] = [Departure(10, 10, 2)];
+        f.Schedule.DestinationRows = [Row(10, 2, 25, 5)];
+
+        await f.Planner.PlanAsync(Request());
+
+        Assert.All(f.Schedule.DepartureWindows, window => Assert.Equal(TimeSpan.FromMinutes(90), window.To - window.From));
+    }
+
+    [Fact]
+    public async Task BusyOrigin_EveryCandidateRideIsChecked_InBatchesOf80()
+    {
+        // Stop A has 120 rides in the wrong direction; stop A2 nearby has the one ride that reaches the destination.
+        var stopA2 = new Stop("101", "Other side", "City", 32.1003, 34.8000, Id: 4);
+        var f = new Fixture(StopA, StopB, stopA2);
+        f.Schedule.Departures[1] = Enumerable.Range(1, 120).Select(i => Departure(i, 5 + (i % 60), 2)).ToArray();
+        f.Schedule.Departures[4] = [new RideStop(500, 4, 3, Now.AddMinutes(12), "9", "Dan", "A<->B-City-1")];
+        f.Schedule.DestinationRows = [Row(500, 2, 30, 8)];
+
+        var plan = await f.Planner.PlanAsync(Request());
+
+        Assert.Equal([500L], plan.Options.Select(option => option.RideId).ToArray());
+        Assert.All(f.Schedule.RideIdBatchSizes, size => Assert.InRange(size, 1, 80));
+        Assert.Equal(121, f.Schedule.RideIdBatchSizes.Sum());
+    }
+
+    [Fact]
+    public async Task WatchedRide_PastItsScheduledTimeButLiveLater_IsStillReturnedWithTheLiveTime()
+    {
+        var f = new Fixture();
+        // Scheduled 5 minutes ago, but the live feed says it is 7 minutes away.
+        f.Schedule.Departures[1] = [Departure(10, -5, 2, line: "4")];
+        f.Schedule.DestinationRows = [Row(10, 2, 10, 5)];
+        f.Aggregator.Arrivals["100"] = [new Arrival("100", "4", "Dan", "X", Now.AddMinutes(7), IsLive: true, ArrivalSource.Curlbus, Now)];
+
+        var unwatched = await f.Planner.PlanAsync(Request());
+        var watched = await f.Planner.PlanAsync(Request() with { WatchRideId = 10 });
+
+        Assert.Empty(unwatched.Options);
+        var option = Assert.Single(watched.Options);
+        Assert.True(option.IsLive);
+        Assert.Equal(Now.AddMinutes(7), option.BusDeparture);
+    }
+
+    [Fact]
+    public async Task WatchedRide_GetsLiveDataEvenForDepartAtRequests()
+    {
+        var f = new Fixture();
+        f.Schedule.Departures[1] = [Departure(10, 40, 2, line: "4")];
+        f.Schedule.DestinationRows = [Row(10, 2, 55, 5)];
+        f.Aggregator.Arrivals["100"] = [new Arrival("100", "4", "Dan", "X", Now.AddMinutes(44), IsLive: true, ArrivalSource.Curlbus, Now)];
+
+        var plan = await f.Planner.PlanAsync(Request(TripTimeMode.DepartAt, Now.AddMinutes(30)) with { WatchRideId = 10 });
+
+        Assert.True(Assert.Single(plan.Options).IsLive);
+    }
+
+    [Fact]
+    public async Task WatchedRide_IsKeptEvenBeyondTheTopEightOptions()
+    {
+        var f = new Fixture();
+        f.Schedule.Departures[1] = Enumerable.Range(1, 12).Select(i => Departure(i, 5 + i, 2)).ToArray();
+        f.Schedule.DestinationRows = Enumerable.Range(1, 12).Select(i => Row(i, 2, 20 + i, 5)).ToArray();
+
+        var plan = await f.Planner.PlanAsync(Request() with { WatchRideId = 12 });
+
+        Assert.Contains(plan.Options, option => option.RideId == 12);
+        Assert.Equal(9, plan.Options.Count);
+    }
+
+    [Fact]
     public void Walking_Estimate_UsesDetourFactorAndSpeed()
     {
         Assert.Equal(TimeSpan.FromSeconds(400), Walking.Estimate(400));
@@ -248,12 +335,12 @@ public sealed class TripPlannerServiceTests
 
     private sealed class Fixture
     {
-        public Fixture(Stop? origin = null, Stop? destination = null)
+        public Fixture(Stop? origin = null, Stop? destination = null, params Stop[] extra)
         {
             Schedule = new FakeRideSchedule();
             Aggregator = new FakeAggregator();
             Planner = new TripPlannerService(
-                new FakeCatalog(origin ?? StopA, destination ?? StopB),
+                new FakeCatalog([origin ?? StopA, destination ?? StopB, .. extra]),
                 Schedule,
                 Aggregator,
                 new FixedClock(Now),
@@ -265,13 +352,20 @@ public sealed class TripPlannerServiceTests
         public TripPlannerService Planner { get; }
     }
 
+    /// <summary>Behaves like the Stride source: honours the time window and rejects more than 80 ride ids per query.</summary>
     private sealed class FakeRideSchedule : IRideScheduleSource
     {
         public Dictionary<long, IReadOnlyList<RideStop>> Departures { get; } = new();
         public IReadOnlyList<RideStop> DestinationRows { get; set; } = [];
+        public List<(DateTimeOffset From, DateTimeOffset To)> DepartureWindows { get; } = [];
+        public List<int> RideIdBatchSizes { get; } = [];
 
-        public Task<IReadOnlyList<RideStop>> GetStopDeparturesAsync(long stopId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Departures.GetValueOrDefault(stopId) ?? []);
+        public Task<IReadOnlyList<RideStop>> GetStopDeparturesAsync(long stopId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default)
+        {
+            DepartureWindows.Add((from, to));
+            return Task.FromResult<IReadOnlyList<RideStop>>(
+                (Departures.GetValueOrDefault(stopId) ?? []).Where(row => row.Time >= from && row.Time <= to).ToArray());
+        }
 
         public Task<IReadOnlyList<RideStop>> GetRideStopsAsync(long rideId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<RideStop>>(RideStops.Where(row => row.RideId == rideId).ToArray());
@@ -283,8 +377,16 @@ public sealed class TripPlannerServiceTests
             IReadOnlyCollection<long> stopIds,
             DateTimeOffset from,
             DateTimeOffset to,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<RideStop>>(DestinationRows.Where(row => rideIds.Contains(row.RideId) && stopIds.Contains(row.StopId)).ToArray());
+            CancellationToken cancellationToken = default)
+        {
+            RideIdBatchSizes.Add(rideIds.Count);
+            if (rideIds.Count > 80)
+            {
+                throw new InvalidOperationException("The Stride source only accepts 80 ride ids per query.");
+            }
+
+            return Task.FromResult<IReadOnlyList<RideStop>>(DestinationRows.Where(row => rideIds.Contains(row.RideId) && stopIds.Contains(row.StopId)).ToArray());
+        }
     }
 
     private sealed class FakeAggregator : ILiveDataAggregator

@@ -40,6 +40,9 @@ public sealed class DepartureReminderService(
 
     public TripOption? Watched { get; private set; }
 
+    /// <summary>Longest a re-plan may hold up the alerts (tests shorten it).</summary>
+    public TimeSpan RefreshTimeout { get; set; } = TimeSpan.FromSeconds(8);
+
     public event EventHandler? Changed;
 
     public void Watch(TripRequest request, TripOption option)
@@ -152,7 +155,22 @@ public sealed class DepartureReminderService(
     private async Task RefreshAsync(TripRequest request, TripOption watched, DateTimeOffset now, CancellationToken cancellationToken)
     {
         _lastPlanAt = now;
-        var plan = await planner.PlanAsync(request, cancellationToken);
+        TripPlan plan;
+        using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+        {
+            // Alerts must not wait for a slow network: past this, keep the last known times and try next interval.
+            timeout.CancelAfter(RefreshTimeout);
+            try
+            {
+                plan = await planner.PlanAsync(request with { WatchRideId = watched.RideId }, timeout.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                logger.LogWarning("Re-planning the watched trip timed out; using the last known times.");
+                return;
+            }
+        }
+
         var current = plan.Options.FirstOrDefault(option => option.RideId == watched.RideId);
         var next = plan.Options
             .Where(option => option.RideId != watched.RideId && option.BusDeparture > now)

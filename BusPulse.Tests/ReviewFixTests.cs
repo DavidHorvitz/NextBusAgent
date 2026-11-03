@@ -147,6 +147,54 @@ public sealed class ReviewFixTests
     }
 
     [Fact]
+    public async Task Reminder_ASlowReplan_DoesNotHoldUpTheAlert()
+    {
+        var clock = new FixedClock(Now);
+        var reminder = new DepartureReminderService(
+            new HangingPlanner(), new RecordingNotifier(), new RecordingPresenter(), clock,
+            new AppConfig { LeadMinutes = 5, PollingSeconds = 15 }, new TemplateLocalizer(), NullLogger<DepartureReminderService>.Instance)
+        {
+            RefreshTimeout = TimeSpan.FromMilliseconds(100)
+        };
+        reminder.Watch(new TripRequest(32.1, 34.8, 32.11, 34.8), SmartAlertEngineTests.Option(4));
+        clock.UtcNow = Now.AddSeconds(20);
+
+        var started = DateTimeOffset.UtcNow;
+        var message = await reminder.TickAsync();
+
+        Assert.True(DateTimeOffset.UtcNow - started < TimeSpan.FromSeconds(5));
+        Assert.NotNull(message);
+        Assert.NotNull(reminder.Watched);
+    }
+
+    [Fact]
+    public async Task Reminder_ReplansTheWatchedRideSpecifically()
+    {
+        var planner = new FakeTripPlanner();
+        var clock = new FixedClock(Now);
+        var reminder = new DepartureReminderService(
+            planner, new RecordingNotifier(), new RecordingPresenter(), clock,
+            new AppConfig { LeadMinutes = 5, PollingSeconds = 15 }, new TemplateLocalizer(), NullLogger<DepartureReminderService>.Instance);
+        var option = SmartAlertEngineTests.Option(20) with { RideId = 77 };
+        planner.Plan = new TripPlan(TripPlanStatus.Ok, [option]);
+        reminder.Watch(new TripRequest(32.1, 34.8, 32.11, 34.8), option);
+        clock.UtcNow = Now.AddSeconds(20);
+
+        await reminder.TickAsync();
+
+        Assert.Equal(77, planner.LastRequest!.WatchRideId);
+    }
+
+    private sealed class HangingPlanner : ITripPlannerService
+    {
+        public async Task<TripPlan> PlanAsync(TripRequest request, CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return new TripPlan(TripPlanStatus.NoOptions, []);
+        }
+    }
+
+    [Fact]
     public async Task Curlbus_ConcurrentRequestsForOneStop_MakeASingleHttpCall()
     {
         var handler = new SlowHandler(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "curlbus-stop-3490.json"), Encoding.UTF8));

@@ -48,7 +48,7 @@ public sealed class StrideRideScheduleSource(IHttpClientFactory httpClientFactor
 {
     private const string BaseAddress = "https://open-bus-stride-api.hasadna.org.il/";
     private const int MaxResponseBytes = 1_048_576;
-    private const int MaxRows = 200;
+    private const int MaxRows = 500;
     private const int MaxIds = 80;
     private const int MaxStringLength = 160;
 
@@ -86,7 +86,7 @@ public sealed class StrideRideScheduleSource(IHttpClientFactory httpClientFactor
 
         var rides = string.Join(',', rideIds.Take(MaxIds));
         var stops = string.Join(',', stopIds.Take(MaxIds));
-        var uri = $"{BaseAddress}gtfs_ride_stops/list?gtfs_ride_ids={rides}&gtfs_stop_ids={stops}&{Window(from, to)}&limit={MaxRows}";
+        var uri = $"{BaseAddress}gtfs_ride_stops/list?gtfs_ride_ids={rides}&gtfs_stop_ids={stops}&{Window(from, to)}&order_by=arrival_time%20asc&limit={MaxRows}";
         return Parse(await GetBytesAsync(uri, cancellationToken));
     }
 

@@ -27,7 +27,8 @@ public sealed record TripRequest(
     TripTimeMode Mode = TripTimeMode.Now,
     DateTimeOffset? TargetTime = null,
     string? PreferredLine = null,
-    int BufferMinutes = 1);
+    int BufferMinutes = 1,
+    long? WatchRideId = null);
 
 public sealed record TripOption(
     long RideId,
@@ -85,6 +86,15 @@ public sealed class TripPlannerService(
     private static readonly TimeSpan RideLookAhead = TimeSpan.FromHours(3);
     private static readonly TimeSpan LiveMatchTolerance = TimeSpan.FromMinutes(15);
 
+    /// <summary>Longest ride considered for arrive-by; departures earlier than target minus this cannot matter.</summary>
+    private static readonly TimeSpan MaxRideDuration = TimeSpan.FromHours(3);
+
+    /// <summary>How far back to look for a watched ride whose scheduled departure has passed but which may still be coming.</summary>
+    private static readonly TimeSpan WatchLookBehind = TimeSpan.FromMinutes(30);
+
+    /// <summary>Ride ids per destination query (the source rejects longer lists).</summary>
+    private const int RideIdBatch = 80;
+
     public async Task<TripPlan> PlanAsync(TripRequest request, CancellationToken cancellationToken = default)
     {
         var now = clock.UtcNow;
@@ -105,15 +115,19 @@ public sealed class TripPlannerService(
         var leaveEarliest = request.Mode == TripTimeMode.DepartAt && target is not null && target > now ? target.Value : now;
         var (from, to) = request.Mode switch
         {
-            TripTimeMode.ArriveBy when target is not null => (now, target.Value),
+            TripTimeMode.ArriveBy when target is not null => (Max(now, target.Value - MaxRideDuration), target.Value),
             _ => (leaveEarliest, leaveEarliest + SearchWindow)
         };
+
+        // A watched ride is kept even after its scheduled departure: it may be late and still catchable.
+        var watchRide = request.WatchRideId;
+        var departuresFrom = watchRide is null ? from : from - WatchLookBehind;
 
         var buffer = TimeSpan.FromMinutes(Math.Clamp(request.BufferMinutes, 0, 15));
         var candidates = new List<(RideStop Departure, NearbyStop Origin)>();
         foreach (var origin in originStops)
         {
-            var departures = await schedule.GetStopDeparturesAsync(origin.Stop.Id, from, to + RideLookAhead, cancellationToken);
+            var departures = await schedule.GetStopDeparturesAsync(origin.Stop.Id, departuresFrom, to, cancellationToken);
             candidates.AddRange(departures
                 .Where(departure => string.IsNullOrWhiteSpace(request.PreferredLine) ||
                     string.Equals(departure.Line, request.PreferredLine.Trim(), StringComparison.OrdinalIgnoreCase))
@@ -127,8 +141,13 @@ public sealed class TripPlannerService(
 
         var rideIds = candidates.Select(c => c.Departure.RideId).Distinct().ToArray();
         var destinationStopIds = destinationStops.Select(d => d.Stop.Id).ToArray();
-        var destinationRows = await schedule.GetRideStopsAtAsync(rideIds, destinationStopIds, from, to + RideLookAhead, cancellationToken);
-        var live = request.Mode == TripTimeMode.Now
+        var destinationRows = new List<RideStop>();
+        foreach (var batch in rideIds.Chunk(RideIdBatch))
+        {
+            destinationRows.AddRange(await schedule.GetRideStopsAtAsync(batch, destinationStopIds, departuresFrom, to + RideLookAhead, cancellationToken));
+        }
+
+        var live = request.Mode == TripTimeMode.Now || watchRide is not null
             ? await LoadLiveAsync(originStops, cancellationToken)
             : new Dictionary<string, List<Arrival>>();
 
@@ -156,12 +175,18 @@ public sealed class TripPlannerService(
             var leaveBy = busDeparture - walkToStop - buffer;
             var arriveAt = busArrival + walkFromStop;
 
-            if (leaveBy < leaveEarliest - TimeSpan.FromSeconds(30))
+            var isWatched = departure.RideId == watchRide;
+            if (!isWatched && leaveBy < leaveEarliest - TimeSpan.FromSeconds(30))
             {
                 continue;
             }
 
-            if (request.Mode == TripTimeMode.ArriveBy && target is not null && arriveAt > target)
+            if (!isWatched && departure.Time < from)
+            {
+                continue;
+            }
+
+            if (!isWatched && request.Mode == TripTimeMode.ArriveBy && target is not null && arriveAt > target)
             {
                 continue;
             }
@@ -194,10 +219,18 @@ public sealed class TripPlannerService(
         var ordered = request.Mode == TripTimeMode.ArriveBy
             ? best.OrderByDescending(option => option.LeaveBy)
             : best.OrderBy(option => option.ArriveAt);
-        var result = ordered.Take(MaxOptions).ToArray();
-        logger.LogDebug("Planned {Count} direct options from {Candidates} candidate departures.", result.Length, candidates.Count);
-        return new TripPlan(result.Length == 0 ? TripPlanStatus.NoOptions : TripPlanStatus.Ok, result);
+        var result = ordered.Take(MaxOptions).ToList();
+        if (watchRide is not null && result.All(option => option.RideId != watchRide) &&
+            best.FirstOrDefault(option => option.RideId == watchRide) is { } watched)
+        {
+            result.Add(watched);
+        }
+
+        logger.LogDebug("Planned {Count} direct options from {Candidates} candidate departures.", result.Count, candidates.Count);
+        return new TripPlan(result.Count == 0 ? TripPlanStatus.NoOptions : TripPlanStatus.Ok, result);
     }
+
+    private static DateTimeOffset Max(DateTimeOffset a, DateTimeOffset b) => a > b ? a : b;
 
     private async Task<Dictionary<string, List<Arrival>>> LoadLiveAsync(IReadOnlyList<NearbyStop> originStops, CancellationToken cancellationToken)
     {

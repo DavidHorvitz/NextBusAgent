@@ -81,6 +81,8 @@
   <sys:String x:Key="ModeArriveBy" xmlns:sys="clr-namespace:System;assembly=mscorlib">הגעה עד</sys:String>
   <sys:String x:Key="PreferredLineLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">קו מועדף (אופציונלי)</sys:String>
   <sys:String x:Key="PlanTrip" xmlns:sys="clr-namespace:System;assembly=mscorlib">חיפוש נסיעות</sys:String>
+  <sys:String x:Key="CalendarSuggestionsTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">מהיומן שלכם</sys:String>
+  <sys:String x:Key="CalendarSuggestionUse" xmlns:sys="clr-namespace:System;assembly=mscorlib">תכנון הנסיעה</sys:String>
   <sys:String x:Key="PlanHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">בחרו יעד כדי לראות נסיעות ישירות מהמיקום הנוכחי שלכם.</sys:String>
   <sys:String x:Key="SetDestinationFirst" xmlns:sys="clr-namespace:System;assembly=mscorlib">בחרו קודם יעד.</sys:String>
   <sys:String x:Key="SameOriginDestination" xmlns:sys="clr-namespace:System;assembly=mscorlib">המוצא והיעד זהים.</sys:String>

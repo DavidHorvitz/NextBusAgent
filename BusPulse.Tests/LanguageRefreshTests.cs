@@ -126,7 +126,7 @@ public sealed class LanguageRefreshTests
         var vm = new TripPlannerViewModel(
             settings, new SavedPlaceCollection(settings), localizer, new FakeTripPlanner(), new FakeCatalog(), new FakeLocation(),
             new FakeHistory(), new FakeReminder(), new RecordingNotifier(), new FixedClock(Now), new ImmediateDispatcher(),
-            NullLogger<TripPlannerViewModel>.Instance);
+            NullLogger<TripPlannerViewModel>.Instance, new FakeCalendar());
         return (vm, localizer);
     }
 

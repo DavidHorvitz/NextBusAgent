@@ -81,6 +81,8 @@
   <sys:String x:Key="ModeArriveBy" xmlns:sys="clr-namespace:System;assembly=mscorlib">Arrive by</sys:String>
   <sys:String x:Key="PreferredLineLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Preferred line (optional)</sys:String>
   <sys:String x:Key="PlanTrip" xmlns:sys="clr-namespace:System;assembly=mscorlib">Find trips</sys:String>
+  <sys:String x:Key="CalendarSuggestionsTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">From your calendar</sys:String>
+  <sys:String x:Key="CalendarSuggestionUse" xmlns:sys="clr-namespace:System;assembly=mscorlib">Plan this trip</sys:String>
   <sys:String x:Key="PlanHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pick a destination to see direct trips from your current location.</sys:String>
   <sys:String x:Key="SetDestinationFirst" xmlns:sys="clr-namespace:System;assembly=mscorlib">Choose a destination first.</sys:String>
   <sys:String x:Key="SameOriginDestination" xmlns:sys="clr-namespace:System;assembly=mscorlib">Origin and destination are the same.</sys:String>

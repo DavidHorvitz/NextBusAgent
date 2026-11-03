@@ -11,6 +11,34 @@
   </UserControl.Resources>
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel>
+      <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,12"
+              Visibility="{Binding CalendarSuggestions.Count, Converter={StaticResource CountToVisibility}}">
+        <StackPanel>
+          <TextBlock Text="{DynamicResource CalendarSuggestionsTitle}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" Margin="0,0,0,8" />
+          <ItemsControl ItemsSource="{Binding CalendarSuggestions}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,4">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Text="{Binding StartText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,0,8,0" />
+                      <TextBlock Text="{Binding PlaceName}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="{DynamicResource CalendarSuggestionUse}" Padding="12,5" Margin="12,0,0,0" VerticalAlignment="Center"
+                          Command="{Binding DataContext.UseCalendarSuggestionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          CommandParameter="{Binding}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
       <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,12">
         <StackPanel>
           <Grid>

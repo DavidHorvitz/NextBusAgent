@@ -5,6 +5,7 @@ using System.Net.Http;
 using BusPulse.Configuration;
 using BusPulse.Infrastructure;
 using BusPulse.Services;
+using BusPulse.Services.Calendar;
 using BusPulse.Services.Location;
 using BusPulse.Services.Stops;
 using BusPulse.Services.Trips;
@@ -32,6 +33,19 @@ public sealed partial class LocationChoice : ObservableObject
     public Stop? Stop { get; }
 
     public bool IsMyLocation => Place is null && Stop is null;
+}
+
+/// <summary>A calendar event that matched a saved place, ready to show as a one-click trip.</summary>
+public sealed class CalendarSuggestionItem(CalendarSuggestion suggestion)
+{
+    public CalendarSuggestion Suggestion { get; } = suggestion;
+
+    public string Title => Suggestion.Event.Title;
+
+    public string PlaceName => Suggestion.Place.Name;
+
+    public string StartText => TimeZoneInfo.ConvertTime(Suggestion.Event.Start, TripTime.IsraelZone)
+        .ToString("HH:mm", CultureInfo.InvariantCulture);
 }
 
 public sealed partial class TripOptionViewModel : ObservableObject
@@ -138,6 +152,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     private readonly IHistoryService _history;
     private readonly IDepartureReminder _reminder;
     private readonly INotifier _notifier;
+    private readonly ICalendarService _calendar;
     private DateTimeOffset _lastPromptAt = DateTimeOffset.MinValue;
     private readonly IClock _clock;
     private readonly IDispatcher _dispatcher;
@@ -183,8 +198,10 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         INotifier notifier,
         IClock clock,
         IDispatcher dispatcher,
-        ILogger<TripPlannerViewModel> logger)
+        ILogger<TripPlannerViewModel> logger,
+        ICalendarService calendar)
     {
+        _calendar = calendar;
         _settings = settings;
         _places = places;
         _localizer = localizer;
@@ -220,6 +237,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     public ObservableCollection<LocationChoice> Suggestions { get; } = [];
 
     public ObservableCollection<TripOptionViewModel> Options { get; } = [];
+
+    public ObservableCollection<CalendarSuggestionItem> CalendarSuggestions { get; } = [];
 
     /// <summary>Delay before suggestions are recomputed after typing; zero in tests.</summary>
     public TimeSpan DebounceDelay { get; set; } = TimeSpan.FromMilliseconds(250);
@@ -314,6 +333,58 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
         _tickerCts = new CancellationTokenSource();
         _ = RunTickerAsync(_tickerCts.Token);
+        _ = LoadCalendarSuggestionsAsync(_tickerCts.Token);
+    }
+
+    /// <summary>Refreshes trip suggestions from the connected calendar; any failure just leaves the list empty.</summary>
+    public async Task LoadCalendarSuggestionsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            if (!_calendar.IsConnected)
+            {
+                CalendarSuggestions.Clear();
+                return;
+            }
+
+            var now = _clock.UtcNow;
+            var events = await _calendar.GetUpcomingAsync(now, ct);
+            var suggestions = CalendarTripSuggester.Suggest(events, _places.Items, now);
+            CalendarSuggestions.Clear();
+            foreach (var suggestion in suggestions)
+            {
+                CalendarSuggestions.Add(new CalendarSuggestionItem(suggestion));
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException or InvalidOperationException or System.Security.Cryptography.CryptographicException)
+        {
+            _logger.LogWarning(exception, "Loading calendar suggestions failed.");
+            CalendarSuggestions.Clear();
+        }
+    }
+
+    [RelayCommand]
+    private async Task UseCalendarSuggestionAsync(CalendarSuggestionItem? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        var choice = Choices.FirstOrDefault(c => c.Place?.Id == item.Suggestion.Place.Id);
+        if (choice is null)
+        {
+            return;
+        }
+
+        SetDestination(choice);
+        SelectedModeIndex = 2;
+        var local = TimeZoneInfo.ConvertTime(item.Suggestion.Event.Start, TripTime.IsraelZone);
+        TargetTime = local.TimeOfDay;
+        await PlanCommand.ExecuteAsync(null);
     }
 
     public void SetDestination(LocationChoice choice)

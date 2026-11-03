@@ -426,7 +426,7 @@ public sealed class ShellAndSettingsTests
                 new TripPlannerViewModel(
                     Settings, Places, Localizer, new FakeTripPlanner(), new FakeCatalog(), new FakeLocation(), History,
                     new FakeReminder(), Notifier, new FixedClock(DateTimeOffset.UtcNow), new ImmediateDispatcher(),
-                    NullLogger<TripPlannerViewModel>.Instance),
+                    NullLogger<TripPlannerViewModel>.Instance, new FakeCalendar()),
                 new LinesViewModel(Settings, Places, Localizer, new FakeCatalog(), new FakeLocation(), new LinesViewModelTests.FakeSchedule(), new FixedClock(DateTimeOffset.UtcNow), NullLogger<LinesViewModel>.Instance),
                 SettingsTab,
                 Theme);
@@ -821,7 +821,7 @@ public sealed class TripPlannerViewModelTests
             Notifier = new RecordingNotifier();
             Vm = new TripPlannerViewModel(
                 Settings, Places, new TemplateLocalizer(), Planner, new FakeCatalog(HomeStop, WorkStop), Location, History,
-                Reminder, Notifier, Clock, new ImmediateDispatcher(), NullLogger<TripPlannerViewModel>.Instance)
+                Reminder, Notifier, Clock, new ImmediateDispatcher(), NullLogger<TripPlannerViewModel>.Instance, new FakeCalendar())
             {
                 DebounceDelay = TimeSpan.Zero
             };

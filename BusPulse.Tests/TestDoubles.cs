@@ -198,8 +198,17 @@ internal sealed class FakeCalendar : BusPulse.Services.Calendar.ICalendarService
         return Task.FromResult(Result);
     }
 
-    public Task<IReadOnlyList<BusPulse.Services.Calendar.CalendarEvent>> GetUpcomingAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<BusPulse.Services.Calendar.CalendarEvent>>([]);
+    public List<BusPulse.Services.Calendar.CalendarEvent> Events { get; set; } = [];
+    public Exception? Throw { get; set; }
+    public int UpcomingCalls { get; private set; }
+
+    public Task<IReadOnlyList<BusPulse.Services.Calendar.CalendarEvent>> GetUpcomingAsync(DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        UpcomingCalls++;
+        return Throw is null
+            ? Task.FromResult<IReadOnlyList<BusPulse.Services.Calendar.CalendarEvent>>(Events)
+            : Task.FromException<IReadOnlyList<BusPulse.Services.Calendar.CalendarEvent>>(Throw);
+    }
 
     public void Disconnect()
     {

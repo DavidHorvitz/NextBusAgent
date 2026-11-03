@@ -681,7 +681,8 @@ public sealed class TripPlannerViewModelTests
         f.Vm.DestinationQuery = "wor";
         await f.Vm.UpdateSuggestionsAsync();
 
-        Assert.Equal(["Work annex", "Work"], f.Vm.Suggestions.Select(choice => choice.DisplayName).ToArray());
+        // Saved places (most recent first), then stops whose name matches.
+        Assert.Equal(["Work annex", "Work", "Work stop, City"], f.Vm.Suggestions.Select(choice => choice.DisplayName).ToArray());
 
         f.Vm.ChooseSuggestionCommand.Execute(f.Vm.Suggestions[0]);
 

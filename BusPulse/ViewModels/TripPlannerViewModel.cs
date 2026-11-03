@@ -407,6 +407,12 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     public void SetDestination(LocationChoice choice)
     {
+        // A stop picked from the search is not one of the saved choices; add it so the destination box can show it.
+        if (!Choices.Contains(choice))
+        {
+            Choices.Add(choice);
+        }
+
         SelectedDestination = choice;
         DestinationQuery = string.Empty;
         Suggestions.Clear();
@@ -495,7 +501,42 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         Suggestions.Clear();
     }
 
-    /// <summary>Filters as you type (debounced): recent destinations first, then matching saved places.</summary>
+    private const int MaxSuggestions = 10;
+
+    private Task UpdateSuggestionsNowAsync()
+    {
+        var delay = DebounceDelay;
+        DebounceDelay = TimeSpan.Zero;
+        try
+        {
+            return UpdateSuggestionsAsync();
+        }
+        finally
+        {
+            DebounceDelay = delay;
+        }
+    }
+
+    /// <summary>Stops whose name contains the text, names that start with it first; one entry per name and city.</summary>
+    private IEnumerable<Stop> FindStopsByName(string query, int count)
+    {
+        if (count <= 0 || query.Length < 2 || _catalog.Loaded is not { } stops)
+        {
+            return [];
+        }
+
+        return stops
+            .Where(stop => stop.Name.Contains(query, StringComparison.CurrentCultureIgnoreCase))
+            .GroupBy(stop => (stop.Name, stop.City))
+            .Select(group => group.First())
+            .OrderBy(stop => stop.Name.StartsWith(query, StringComparison.CurrentCultureIgnoreCase) ? 0 : 1)
+            .ThenBy(stop => stop.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Take(count);
+    }
+
+    private static string StopLabel(Stop stop) => string.IsNullOrWhiteSpace(stop.City) ? stop.Name : $"{stop.Name}, {stop.City}";
+
+    /// <summary>Filters as you type (debounced): recent destinations first, then matching saved places, then stops by name.</summary>
     public async Task UpdateSuggestionsAsync()
     {
         _suggestCts?.Cancel();
@@ -520,10 +561,17 @@ public sealed partial class TripPlannerViewModel : ObservableObject
                     choice.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase))
                 .OrderBy(choice => recentIds.IndexOf(choice.Place!.Id) is var index && index < 0 ? int.MaxValue : index)
                 .ThenBy(choice => choice.DisplayName, StringComparer.CurrentCultureIgnoreCase)
-                .Take(6);
+                .Take(6)
+                .ToList();
             foreach (var match in matches)
             {
                 Suggestions.Add(match);
+            }
+
+            // Any stop by name (for example "אסף הרופא"), searched in the local stop list: nothing is sent anywhere.
+            foreach (var stop in FindStopsByName(query, MaxSuggestions - matches.Count))
+            {
+                Suggestions.Add(new LocationChoice(StopLabel(stop), stop: stop));
             }
         }
         catch (OperationCanceledException)
@@ -534,6 +582,20 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     [RelayCommand]
     private async Task PlanAsync(CancellationToken cancellationToken)
     {
+        // Typed a name and pressed "Find trips" without picking from the list: take the best match.
+        if (SelectedDestination is null && DestinationQuery.Trim().Length > 0)
+        {
+            if (Suggestions.Count == 0)
+            {
+                await UpdateSuggestionsNowAsync();
+            }
+
+            if (Suggestions.FirstOrDefault() is { } best)
+            {
+                SetDestination(best);
+            }
+        }
+
         if (SelectedDestination is null)
         {
             StatusText = _localizer.Get("SetDestinationFirst");

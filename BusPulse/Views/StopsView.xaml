@@ -62,45 +62,51 @@
                   </ContextMenu>
                 </Border.ContextMenu>
                 <StackPanel>
-                  <Button HorizontalAlignment="Right" Padding="6,0" Margin="0,0,0,2" Background="Transparent" BorderThickness="0" FontSize="18"
-                          Command="{Binding DataContext.TogglePinStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                          CommandParameter="{Binding}">
-                    <Button.Style>
-                      <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                        <Setter Property="Content" Value="☆" />
-                        <Setter Property="ToolTip" Value="{DynamicResource StopPin}" />
-                        <Setter Property="AutomationProperties.Name" Value="{DynamicResource StopPin}" />
-                        <Style.Triggers>
-                          <DataTrigger Binding="{Binding IsFavorite}" Value="True">
-                            <Setter Property="Content" Value="★" />
-                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
-                            <Setter Property="ToolTip" Value="{DynamicResource StopUnpin}" />
-                            <Setter Property="AutomationProperties.Name" Value="{DynamicResource StopUnpin}" />
-                          </DataTrigger>
-                        </Style.Triggers>
-                      </Style>
-                    </Button.Style>
-                  </Button>
-                  <Button Command="{Binding DataContext.ToggleStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                          CommandParameter="{Binding}" Style="{StaticResource RowButton}"
-                          AutomationProperties.Name="{Binding Name}">
-                    <Grid>
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                      </Grid.ColumnDefinitions>
-                      <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                          <TextBlock Text="★ " Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibility}}" />
-                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button Command="{Binding DataContext.ToggleStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CommandParameter="{Binding}" Style="{StaticResource RowButton}"
+                            AutomationProperties.Name="{Binding Name}">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                          <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="★ " Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                          <TextBlock Text="{Binding Code}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
                         </StackPanel>
-                        <TextBlock Text="{Binding Code}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
-                      </StackPanel>
-                      <Border Grid.Column="1" Background="{DynamicResource LiveBadgeBrush}" CornerRadius="12" Padding="12,4" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding DistanceText}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" />
-                      </Border>
-                    </Grid>
-                  </Button>
+                        <Border Grid.Column="1" Background="{DynamicResource LiveBadgeBrush}" CornerRadius="12" Padding="12,4" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding DistanceText}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" />
+                        </Border>
+                      </Grid>
+                    </Button>
+                    <Button Grid.Column="1" VerticalAlignment="Center" Padding="8,2" Margin="6,0,0,0" Background="Transparent" BorderThickness="0" FontSize="18"
+                            Command="{Binding DataContext.TogglePinStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CommandParameter="{Binding}">
+                      <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                          <Setter Property="Content" Value="☆" />
+                          <Setter Property="ToolTip" Value="{DynamicResource StopPin}" />
+                          <Setter Property="AutomationProperties.Name" Value="{DynamicResource StopPin}" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                              <Setter Property="Content" Value="★" />
+                              <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                              <Setter Property="ToolTip" Value="{DynamicResource StopUnpin}" />
+                              <Setter Property="AutomationProperties.Name" Value="{DynamicResource StopUnpin}" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Button.Style>
+                    </Button>
+                  </Grid>
                   <StackPanel Margin="12,6,0,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
                     <TextBlock Text="{Binding ArrivalsStatus}" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding Arrivals}">

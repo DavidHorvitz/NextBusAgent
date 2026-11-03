@@ -1,6 +1,6 @@
 # BusPulse Plan
 
-Single source of truth for scope, decisions, status and next steps. It merges the original agent brief, the follow-up brief and the four-workstream execution plan. Status is as of 2026-11-03 (`dotnet build`: 0 errors; 255 unit tests and 3 live probes pass). Supporting documents: [audit.md](audit.md) (requirement-by-requirement audit), [live-data-probe.md](live-data-probe.md) (measured provider behavior), [assets.md](assets.md) (icon and audio specs), [UML.md](UML.md) (class and sequence diagrams), [../SECURITY.md](../SECURITY.md).
+Single source of truth for scope, decisions, status and next steps. It merges the original agent brief, the follow-up brief and the four-workstream execution plan. Status is as of 2026-11-03 (`dotnet build`: 0 errors; 255 unit tests and 3 live probes pass). Supporting documents: [audit.md](audit.md) (requirement-by-requirement audit), [live-data-probe.md](live-data-probe.md) (measured provider behavior), [assets.md](assets.md) (icon and audio specs), [UML.md](UML.md) (class and sequence diagrams), [planner-upgrade-prework.md](planner-upgrade-prework.md) (decisions needed before the planner gets dates, origin search, saved places and address search; written in Hebrew), [../SECURITY.md](../SECURITY.md).
 
 ## 1. Product
 
@@ -17,6 +17,7 @@ Non-negotiables: **secure**, **interactive**, **real live data**. Nothing schedu
 - **Location:** Windows Location API only. No IP-based fallback (it would send the user's IP to a third party). The user can anchor the search on a saved place instead.
 - **Installers:** local installers such as `docs/Claude Setup.exe` are git-ignored.
 - **Ministry of Transport SIRI-SM:** implement behind configuration only, disabled by default. Access needs an approved application and a static-IP whitelist, so it realistically needs a small proxy server.
+- **Audience:** personal use only (one user, one machine), as stated by the maintainer on 2026-11-03. It keeps quota, cost, key-distribution and consent questions small (see [planner-upgrade-prework.md](planner-upgrade-prework.md)); it does not relax the rules for untrusted external data and secrets.
 
 ## 3. Working rules
 
@@ -118,6 +119,8 @@ Each workstream is a branch and a reviewed pull request; shared contracts are ag
 Integration order: confirm schemas against reachable endpoints (done), replace provisional parsing with typed contracts (done for Curlbus and Stride), wire UI workflows to the contracts, security review of provider, config, toast registration and installer paths, then the full QA matrix and resource measurements before a signed release.
 
 ## 6. Next steps (in order)
+
+Planner upgrade (dates, origin search, saved places, address search): prepared, waiting for the decisions in [planner-upgrade-prework.md](planner-upgrade-prework.md). The Stride API holds no timetable for future dates (checked 2026-11-03), so "tomorrow" needs another schedule source.
 
 1. On-screen checks of toasts, the full-screen popup, the tray tooltip and context menus; then push and run the workflow on GitHub (gitleaks, vulnerable-package check).
 2. Real Google Calendar connection test (needs the OAuth client).

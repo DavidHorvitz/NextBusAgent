@@ -47,6 +47,7 @@ public sealed class DepartureReminderService(
     public TimeSpan RefreshWait { get; set; } = TimeSpan.FromSeconds(3);
 
     private Task? _refresh;
+    private CancellationTokenSource? _watchCts;
 
     public event EventHandler? Changed;
 
@@ -54,6 +55,9 @@ public sealed class DepartureReminderService(
     {
         lock (_gate)
         {
+            // A re-plan for the previous ride must not block the new ride's refresh.
+            StopRefreshLocked();
+            _watchCts = new CancellationTokenSource();
             _request = request;
             Watched = option;
             _next = null;
@@ -73,6 +77,7 @@ public sealed class DepartureReminderService(
     {
         lock (_gate)
         {
+            StopRefreshLocked();
             _request = null;
             Watched = null;
             _next = null;
@@ -83,14 +88,38 @@ public sealed class DepartureReminderService(
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    private void StopRefreshLocked()
+    {
+        var previous = _watchCts;
+        _watchCts = null;
+        _refresh = null;
+        if (previous is null)
+        {
+            return;
+        }
+
+        try
+        {
+            previous.Cancel();
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            logger.LogDebug(exception, "Stopping the previous re-plan failed.");
+        }
+
+        previous.Dispose();
+    }
+
     public async Task<AlertMessage?> TickAsync(CancellationToken cancellationToken = default)
     {
         TripRequest? request;
         TripOption? watched;
+        CancellationToken watchToken;
         lock (_gate)
         {
             request = _request;
             watched = Watched;
+            watchToken = _watchCts?.Token ?? new CancellationToken(true);
         }
 
         if (request is null || watched is null)
@@ -99,16 +128,24 @@ public sealed class DepartureReminderService(
         }
 
         var now = clock.UtcNow;
-        if (now - _lastPlanAt >= TimeSpan.FromSeconds(Math.Clamp(config.PollingSeconds, 15, 60)) &&
-            _refresh is null or { IsCompleted: true })
+        Task? pending;
+        lock (_gate)
         {
-            _lastPlanAt = now;
-            _refresh = RefreshAsync(request, watched, now, cancellationToken);
+            // Only start a re-plan for the ride still being watched.
+            if (Watched?.RideId == watched.RideId &&
+                now - _lastPlanAt >= TimeSpan.FromSeconds(Math.Clamp(config.PollingSeconds, 15, 60)) &&
+                _refresh is null or { IsCompleted: true })
+            {
+                _lastPlanAt = now;
+                _refresh = RefreshAsync(request, watched, now, watchToken, cancellationToken);
+            }
+
+            pending = _refresh;
         }
 
         // Use fresh times when they arrive quickly; otherwise alert from the last known times and let the
         // re-plan finish in the background (Stride can take tens of seconds).
-        if (_refresh is { IsCompleted: false } pending)
+        if (pending is { IsCompleted: false })
         {
             await Task.WhenAny(pending, Task.Delay(RefreshWait, cancellationToken));
         }
@@ -168,10 +205,10 @@ public sealed class DepartureReminderService(
     }
 
     /// <summary>Runs unobserved in the background, so it handles every failure itself.</summary>
-    private async Task RefreshAsync(TripRequest request, TripOption watched, DateTimeOffset now, CancellationToken cancellationToken)
+    private async Task RefreshAsync(TripRequest request, TripOption watched, DateTimeOffset now, CancellationToken watchToken, CancellationToken cancellationToken)
     {
         TripPlan plan;
-        using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+        using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, watchToken))
         {
             timeout.CancelAfter(RefreshTimeout);
             try

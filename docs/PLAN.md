@@ -1,6 +1,6 @@
 # BusPulse Plan
 
-Single source of truth for scope, decisions, status and next steps. It merges the original agent brief, the follow-up brief and the four-workstream execution plan. Status is as of 2026-10-20 (`dotnet build`: 0 errors; 74 unit tests and 2 live probes pass). Supporting documents: [audit.md](audit.md) (requirement-by-requirement audit), [live-data-probe.md](live-data-probe.md) (measured provider behavior), [assets.md](assets.md) (icon and audio specs), [UML.md](UML.md) (class and sequence diagrams), [../SECURITY.md](../SECURITY.md).
+Single source of truth for scope, decisions, status and next steps. It merges the original agent brief, the follow-up brief and the four-workstream execution plan. Status is as of 2026-11-03 (`dotnet build`: 0 errors; 255 unit tests and 3 live probes pass). Supporting documents: [audit.md](audit.md) (requirement-by-requirement audit), [live-data-probe.md](live-data-probe.md) (measured provider behavior), [assets.md](assets.md) (icon and audio specs), [UML.md](UML.md) (class and sequence diagrams), [../SECURITY.md](../SECURITY.md).
 
 ## 1. Product
 
@@ -34,7 +34,7 @@ Legend: Done, Partial, Open.
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| Views and ViewModels: Shell, Stops, TripPlanner, Lines, Settings | Done | CommunityToolkit.Mvvm; `MainWindow.xaml.cs` is wiring only. Lines is an empty state |
+| Views and ViewModels: Shell, Stops, TripPlanner, Lines, Settings | Done | CommunityToolkit.Mvvm; `MainWindow.xaml.cs` is wiring only. Lines tab lists ordered stops; `ThemeService` and WPF-UI `FluentWindow` added |
 | Generic Host DI, configuration, logging, `IHttpClientFactory` | Done | `Program.cs` |
 | Interfaces: `ILocationService`, `IStopCatalog` (planned name `IStaticGtfsService`), `ILiveArrivalsProvider`, `ILiveDataAggregator`, `ISettingsService`, `IClock`, `IDispatcher`, `ILocalizer`, `IScheduleProvider` | Done | |
 | `ITrainProvider`, `ITripPlannerService`, `IDisruptionService`, `IHistoryService` | Open | `RailProvider` implements `ILiveArrivalsProvider` for now |
@@ -81,17 +81,19 @@ General rules for every tab: in-place updates without flicker, ETAs counting dow
 | **Stops tab:** loads on entry, sorted by distance, name/code/distance only, expands to arrivals with "live"/"scheduled" badge, source and freshness tooltip, countdown in place, stale data greyed after 2 minutes | Done | |
 | Location accuracy shown, saved-place override, how-to message when permission is off | Done | |
 | Address search, "approximate location" label | Open | IP fallback intentionally excluded |
-| Debounced search, favorites | Done | Context menu still open |
-| **Trip planner:** origin/destination/line check against the aggregator | Partial | Open: "my location" default and swap button, Home/Work quick buttons, history suggestions, time selector (now / depart at / arrive by) with wheel picker, regional filtering with operator and endpoints, direction arrow, time-to-leave with optional toast |
+| Debounced search, favorites | Done | Context menu added; not checked on screen |
+| **Trip planner:** origin/destination/line check against the aggregator | Done (direct trips only) | Current location as origin, swap, Home/Work, history, destination search by saved place or any stop name (local), now / depart at / arrive by with wheel picker, regional filtering, direction arrow, time-to-leave and alerts, calendar suggestions card. No transfers |
 | **Lines tab:** line and direction picker, ordered stops | Done | Schedule only; live vehicles are not available from any connected source |
-| **Settings:** places, provider status | Partial | Open: Home/Work, polling interval, notification lead time, theme, favorites, clear history |
-| Tray tooltip with next favorite departure; optional always-on-top mini window | Open | Tray icon states (active/muted/alert) and mute are done |
+| **Settings:** places, provider status | Done | Home/Work, refresh interval, lead time, theme picker (system/light/dark), clear history and favorites, Google Calendar connect |
+| Tray tooltip with next departure; optional always-on-top mini window | Partial | Tray icon states, mute and tooltip done (tooltip not checked on screen); mini window open. Window close hides to the tray |
+| Google Calendar read-only connection and trip suggestions | Done | Needs an OAuth client from the maintainer; never run against Google |
+| Code review of `ed3e254..314215b` | Done | Findings fixed; see STATUS.md |
 
 ### Phase 5: Design
 
 Target Windows 11 Fluent with WPF-UI: Mica, NavigationView, right-side navigation in RTL, cards on a 4/8 px grid with 12 px radius, embedded Heebo or Rubik, all colors as light/dark tokens in `Theme.xaml` with one accent, status colors (green live, amber stale/scheduled, red disruption) always paired with an icon or text, operator-colored line pills, skeleton/empty/error/offline states for every view, 150-250 ms motion that respects "reduce animations", full RTL correctness, keyboard navigation, `AutomationProperties` names and contrast in both themes, plus screenshots of each tab in light and dark.
 
-Status: Open, apart from basic RTL switching and automation names on some inputs. The current UI is plain WPF.
+Status: Partial. WPF-UI 4.3.0 `FluentWindow` with Mica, brand header, theme-aware cards and a system/light/dark theme picker are done and were checked on screen in both themes. Open: embedded Hebrew font, skeleton states, motion, full RTL and contrast review.
 
 ### Phase 6: CI, build and tests
 
@@ -100,8 +102,8 @@ Status: Open, apart from basic RTL switching and automation names on some inputs
 | GitHub Actions on `windows-latest`: restore, build, unit tests excluding `Category=Live`, vulnerable-package check, gitleaks | Done (workflow committed; first GitHub run pending) |
 | Provider tests from recorded fixtures (valid, malformed, stale, invalid-date) | Done for Curlbus and Stride schedule/stops |
 | Aggregator priority, freshness and fallback tests | Done |
-| ViewModel tests with mocked services and a fake `IClock` | Done for Shell, TripPlanner, Settings, Stops |
-| Trip planning, time-to-leave, regional filtering tests | Open (features not built) |
+| ViewModel tests with mocked services and a fake `IClock` | Done for Shell, TripPlanner, Settings, Stops, Lines |
+| Trip planning, time-to-leave, regional filtering tests | Done |
 | Live probes in `[Trait("Category","Live")]`, run manually | Done |
 
 ## 5. Workstreams (ownership and acceptance)
@@ -117,14 +119,13 @@ Integration order: confirm schemas against reachable endpoints (done), replace p
 
 ## 6. Next steps (in order)
 
-1. Run the new workflow on GitHub and fix anything the hosted runner surfaces (gitleaks, vulnerable-package check).
-2. Trip planner: time-to-leave (live ETA minus walking time), regional filtering, direction display, time selector, Home/Work, swap; toast notification before departure. Tests first.
-3. Lines tab with ordered stops and vehicle positions from Curlbus line endpoints.
-4. Settings: Home/Work, polling interval, notification lead time, theme, clear history; add the history store with a size cap.
-5. Replace the single connection probe with retry plus exponential backoff, adopt `Microsoft.Extensions.Http.Resilience`, and pause polling when the machine is idle or locked.
-6. Official data access (maintainer action): apply for Ministry of Transport SIRI access, which also gives an official live bus source to replace Curlbus, and optionally contact Israel Railways about developer access. Then implement the rail client and the general-updates disruptions provider; add `StrideSiriProvider` (only when the newest snapshot is under 5 minutes old) and the config-only `MotSiriProvider` with `docs/live-data.md`.
-7. Design pass (Phase 5): WPF-UI, `Theme.xaml` tokens, Hebrew font, states, motion, accessibility, screenshots.
-8. Packaging: per-user installer, AUMID and Start Menu shortcut for toasts, signing, .NET 8 end-of-support (2026-11-10) upgrade plan.
+1. On-screen checks of toasts, the full-screen popup, the tray tooltip and context menus; then push and run the workflow on GitHub (gitleaks, vulnerable-package check).
+2. Real Google Calendar connection test (needs the OAuth client).
+3. Transfers in the planner (only direct trips today).
+4. Replace the single connection probe with retry plus exponential backoff, adopt `Microsoft.Extensions.Http.Resilience`, and pause polling when the machine is idle or locked.
+5. Official data access (maintainer action): apply for Ministry of Transport SIRI access, which also gives an official live bus source to replace Curlbus, and optionally contact Israel Railways. Then implement the rail client, the disruptions provider, `StrideSiriProvider` and the config-only `MotSiriProvider` with `docs/live-data.md`.
+6. Design polish (Phase 5): Hebrew font, states, motion, accessibility.
+7. Packaging: per-user installer, AUMID and Start Menu shortcut for toasts, signing, .NET 8 end-of-support (2026-11-10) upgrade plan.
 
 ## 7. Definition of done
 

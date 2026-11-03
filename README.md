@@ -6,16 +6,17 @@
 
 BusPulse is a Windows desktop and system-tray monitor for Israeli public transport. It shows nearby stops with live or scheduled arrivals, is designed for per-user installation, and aims to give route-aware departure reminders with walk-time buffers.
 
-> Work in progress, not a release. The Stops tab works end to end; trip planning, lines, notifications, the design pass and the installer are still open. See [docs/PLAN.md](docs/PLAN.md) for scope, decisions and status.
+> Work in progress, not a release. Stops, trip planning (direct trips only), lines, settings, alerts and the Fluent design pass are built; toast and popup appearance have not been checked on screen, and the installer is still open. See [docs/PLAN.md](docs/PLAN.md) for scope, decisions and status.
 
 ## Current State
 
-- WPF app with MVVM (CommunityToolkit.Mvvm) and four tabs: Stops, Trip planner, Lines, Settings. It lives in the notification area with active, muted and alert icon states; double-click opens it and the tray menu offers mute, profiles, settings and exit.
+- WPF app with MVVM (CommunityToolkit.Mvvm) and four tabs: Stops, Trip planner (direct trips only), Lines, Settings. Closing the window hides it to the tray. It lives in the notification area with active, muted and alert icon states; double-click opens it and the tray menu offers mute, profiles, settings and exit.
 - **Stops tab:** uses the Windows Location API (or a saved place) to list the nearest stops with distances, expands a stop to its next arrivals marked "live" or "scheduled", shows the source and freshness in a tooltip, and counts down in place.
 - **Live data:** Curlbus is the primary live source. Stride GTFS provides the schedule fallback and the stop catalog (cached daily under `%LOCALAPPDATA%\BusPulse\cache`). An aggregator picks the freshest valid data per line and rejects stale or impossible values. The Israel Railways provider is disabled until an official key is configured. The public Stride SIRI feed is stale and is not used. Measured results are in [docs/live-data-probe.md](docs/live-data-probe.md).
 - English/Hebrew resource dictionaries switch at runtime; Hebrew applies right-to-left flow direction.
 - Settings (including saved places) are serialized as JSON and encrypted with Windows DPAPI `CurrentUser` under `%LOCALAPPDATA%\BusPulse`.
-- A toast XML builder helper and a mute-aware sound service exist, but notification delivery is not wired yet; unpackaged desktop delivery requires the app identity and Start Menu shortcut registration described in the plan.
+- Alerts are wired to toasts, a full-screen popup and mute-aware sounds, but their on-screen delivery is unverified; unpackaged desktop toasts also need the app identity and Start Menu shortcut registration described in the plan.
+- An optional read-only Google Calendar connection suggests trips from events whose location matches a saved place (needs your own OAuth client; see [SECURITY.md](SECURITY.md)).
 
 ## Architecture
 

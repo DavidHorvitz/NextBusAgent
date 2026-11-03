@@ -223,10 +223,10 @@ public sealed class TripPlannerServiceTests
     [Fact]
     public async Task BusyOrigin_EveryCandidateRideIsChecked_InBatchesOf80()
     {
-        // Stop A has 120 rides in the wrong direction; stop A2 nearby has the one ride that reaches the destination.
+        // Stop A has 95 rides in the wrong direction; stop A2 nearby has the one ride that reaches the destination.
         var stopA2 = new Stop("101", "Other side", "City", 32.1003, 34.8000, Id: 4);
         var f = new Fixture(StopA, StopB, stopA2);
-        f.Schedule.Departures[1] = Enumerable.Range(1, 120).Select(i => Departure(i, 5 + (i % 60), 2)).ToArray();
+        f.Schedule.Departures[1] = Enumerable.Range(1, 95).Select(i => Departure(i, 5 + (i % 60), 2)).ToArray();
         f.Schedule.Departures[4] = [new RideStop(500, 4, 3, Now.AddMinutes(12), "9", "Dan", "A<->B-City-1")];
         f.Schedule.DestinationRows = [Row(500, 2, 30, 8)];
 
@@ -234,7 +234,8 @@ public sealed class TripPlannerServiceTests
 
         Assert.Equal([500L], plan.Options.Select(option => option.RideId).ToArray());
         Assert.All(f.Schedule.RideIdBatchSizes, size => Assert.InRange(size, 1, 80));
-        Assert.Equal(121, f.Schedule.RideIdBatchSizes.Sum());
+        Assert.Equal(96, f.Schedule.RideIdBatchSizes.Sum());
+        Assert.True(f.Schedule.RideIdBatchSizes.Count >= 2);
     }
 
     [Fact]
@@ -352,19 +353,26 @@ public sealed class TripPlannerServiceTests
         public TripPlannerService Planner { get; }
     }
 
-    /// <summary>Behaves like the Stride source: honours the time window and rejects more than 80 ride ids per query.</summary>
-    private sealed class FakeRideSchedule : IRideScheduleSource
+    /// <summary>
+    /// Behaves like the Stride source: honours the time window, returns at most 100 departures in the requested order,
+    /// and rejects more than 80 ride ids per query.
+    /// </summary>
+    internal sealed class FakeRideSchedule : IRideScheduleSource
     {
         public Dictionary<long, IReadOnlyList<RideStop>> Departures { get; } = new();
         public IReadOnlyList<RideStop> DestinationRows { get; set; } = [];
         public List<(DateTimeOffset From, DateTimeOffset To)> DepartureWindows { get; } = [];
+        public List<long> DepartureStopIds { get; } = [];
         public List<int> RideIdBatchSizes { get; } = [];
 
-        public Task<IReadOnlyList<RideStop>> GetStopDeparturesAsync(long stopId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<RideStop>> GetStopDeparturesAsync(
+            long stopId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default, bool latestFirst = false)
         {
             DepartureWindows.Add((from, to));
-            return Task.FromResult<IReadOnlyList<RideStop>>(
-                (Departures.GetValueOrDefault(stopId) ?? []).Where(row => row.Time >= from && row.Time <= to).ToArray());
+            DepartureStopIds.Add(stopId);
+            var inWindow = (Departures.GetValueOrDefault(stopId) ?? []).Where(row => row.Time >= from && row.Time <= to);
+            var ordered = latestFirst ? inWindow.OrderByDescending(row => row.Time) : inWindow.OrderBy(row => row.Time);
+            return Task.FromResult<IReadOnlyList<RideStop>>(ordered.Take(100).ToArray());
         }
 
         public Task<IReadOnlyList<RideStop>> GetRideStopsAsync(long rideId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default) =>
@@ -389,7 +397,7 @@ public sealed class TripPlannerServiceTests
         }
     }
 
-    private sealed class FakeAggregator : ILiveDataAggregator
+    internal sealed class FakeAggregator : ILiveDataAggregator
     {
         public Dictionary<string, Arrival[]> Arrivals { get; } = new();
         public int Calls { get; private set; }

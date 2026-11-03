@@ -238,7 +238,8 @@ public sealed class CurlbusArrivalsProvider(
             eta,
             IsLive: true,
             ArrivalSource.Curlbus,
-            observedAt);
+            observedAt,
+            TryGetString(visit, "trip_id", out var tripId) ? tripId : null);
         return true;
     }
 

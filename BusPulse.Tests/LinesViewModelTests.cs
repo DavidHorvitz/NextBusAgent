@@ -188,7 +188,8 @@ public sealed class LinesViewModelTests
         public int StopDepartureCalls { get; private set; }
         public long? LastStopId { get; private set; }
 
-        public Task<IReadOnlyList<RideStop>> GetStopDeparturesAsync(long stopId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<RideStop>> GetStopDeparturesAsync(
+            long stopId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default, bool latestFirst = false)
         {
             StopDepartureCalls++;
             LastStopId = stopId;

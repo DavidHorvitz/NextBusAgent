@@ -17,7 +17,8 @@ public sealed record Arrival(
     DateTimeOffset Eta,
     bool IsLive,
     ArrivalSource Source,
-    DateTimeOffset ObservedAt);
+    DateTimeOffset ObservedAt,
+    string? TripRef = null);
 
 public enum ProviderStatus
 {

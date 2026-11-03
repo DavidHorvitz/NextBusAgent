@@ -152,11 +152,17 @@ public sealed partial class StrideScheduleProvider(
             return cached;
         }
 
-        // The stop list already holds the id; this saves one slow Stride round trip per stop.
+        // The stop list already holds the id; this saves one slow Stride round trip per stop. Its ids may be from an
+        // earlier day, so the catalog confirms or replaces them for today.
         if (catalog?.Loaded?.FirstOrDefault(stop => stop.Code == stopCode && stop.Id > 0) is { } known)
         {
-            _stopIds[cacheKey] = known.Id;
-            return known.Id;
+            var current = (await catalog.WithCurrentIdsAsync([known], cancellationToken)).FirstOrDefault()?.Id;
+            if (current is not null)
+            {
+                _stopIds[cacheKey] = current.Value;
+            }
+
+            return current;
         }
 
         var uri = $"{BaseAddress}gtfs_stops/list?code={stopCode}&date_from={date}&date_to={date}&limit=2";

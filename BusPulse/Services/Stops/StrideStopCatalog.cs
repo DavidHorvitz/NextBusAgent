@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
@@ -12,6 +13,13 @@ public interface IStopCatalog
 
     /// <summary>The list already in memory, without waiting for a download; null before the first load.</summary>
     IReadOnlyList<Stop>? Loaded { get; }
+
+    /// <summary>
+    /// The same stops with today's Stride ids. Stride stop ids change from day to day, so a list served from an earlier
+    /// day's cache carries ids that match no ride today; stops with no service today are left out.
+    /// </summary>
+    Task<IReadOnlyList<Stop>> WithCurrentIdsAsync(IReadOnlyList<Stop> stops, CancellationToken cancellationToken = default) =>
+        Task.FromResult(stops);
 }
 
 /// <summary>
@@ -32,6 +40,7 @@ public sealed class StrideStopCatalog(
     private const int MaxPages = 12;
     private const int MaxPageBytes = 1_048_576;
     private const int MaxNameLength = 128;
+    private const int MaxIdLookupBytes = 65_536;
 
     private readonly string _cacheDirectory = cacheDirectory ?? Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BusPulse", "cache");
@@ -42,7 +51,58 @@ public sealed class StrideStopCatalog(
     private DateTimeOffset _retryAfter = DateTimeOffset.MinValue;
     private static readonly TimeSpan RetryInterval = TimeSpan.FromMinutes(10);
 
+    private readonly ConcurrentDictionary<string, long?> _currentIds = new();
+
     public IReadOnlyList<Stop>? Loaded => _loaded;
+
+    public async Task<IReadOnlyList<Stop>> WithCurrentIdsAsync(IReadOnlyList<Stop> stops, CancellationToken cancellationToken = default)
+    {
+        var date = IsraelDate(clock.UtcNow);
+        if (_loadedDate == date && _loaded is not null)
+        {
+            return stops;
+        }
+
+        // Each lookup can take many seconds, so the stops are resolved together.
+        var ids = await Task.WhenAll(stops.Select(stop => CurrentIdAsync(stop.Code, date, cancellationToken)));
+        return stops
+            .Zip(ids, (stop, id) => id is null ? null : stop with { Id = id.Value })
+            .OfType<Stop>()
+            .ToArray();
+    }
+
+    private async Task<long?> CurrentIdAsync(string code, string date, CancellationToken cancellationToken)
+    {
+        var key = $"{code}:{date}";
+        if (_currentIds.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        if (string.IsNullOrWhiteSpace(code) || code.Length > 12 || !code.All(char.IsAsciiDigit))
+        {
+            return null;
+        }
+
+        var client = httpClientFactory.CreateClient("TransitApi");
+        var uri = new Uri($"{BaseAddress}gtfs_stops/list?code={code}&date_from={date}&date_to={date}&limit=2", UriKind.Absolute);
+        using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentLength is > MaxIdLookupBytes)
+        {
+            throw new JsonException("Stride stop lookup exceeds the size limit.");
+        }
+
+        var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        if (bytes.Length > MaxIdLookupBytes)
+        {
+            throw new JsonException("Stride stop lookup exceeds the size limit.");
+        }
+
+        var id = ParseStops(bytes).FirstOrDefault(stop => stop.Code == code && stop.Id > 0)?.Id;
+        _currentIds[key] = id;
+        return id;
+    }
 
     /// <summary>
     /// Today's list when it is cached. Otherwise the most recent earlier cache (stops rarely move) is returned at once and

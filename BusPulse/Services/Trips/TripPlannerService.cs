@@ -99,13 +99,17 @@ public sealed class TripPlannerService(
     {
         var now = clock.UtcNow;
         var stops = await catalog.GetStopsAsync(cancellationToken);
-        var originStops = Geo.FindNearby(stops.Where(stop => stop.Id > 0), request.OriginLatitude, request.OriginLongitude, OriginStopCount, MaxWalkMeters);
+        var originStops = await WithCurrentIdsAsync(
+            Geo.FindNearby(stops.Where(stop => stop.Id > 0), request.OriginLatitude, request.OriginLongitude, OriginStopCount, MaxWalkMeters),
+            cancellationToken);
         if (originStops.Count == 0)
         {
             return new TripPlan(TripPlanStatus.NoStopsNearOrigin, []);
         }
 
-        var destinationStops = Geo.FindNearby(stops.Where(stop => stop.Id > 0), request.DestinationLatitude, request.DestinationLongitude, DestinationStopCount, MaxWalkMeters);
+        var destinationStops = await WithCurrentIdsAsync(
+            Geo.FindNearby(stops.Where(stop => stop.Id > 0), request.DestinationLatitude, request.DestinationLongitude, DestinationStopCount, MaxWalkMeters),
+            cancellationToken);
         if (destinationStops.Count == 0)
         {
             return new TripPlan(TripPlanStatus.NoStopsNearDestination, []);
@@ -125,9 +129,11 @@ public sealed class TripPlannerService(
 
         var buffer = TimeSpan.FromMinutes(Math.Clamp(request.BufferMinutes, 0, 15));
         var candidates = new List<(RideStop Departure, NearbyStop Origin)>();
-        // Each Stride query can take many seconds, so the origin stops are fetched together.
+        // Each Stride query can take many seconds, so the origin stops are fetched together. A query returns a limited
+        // number of rows, so arrive-by asks for the latest departures first: those are the ones closest to the target.
+        var latestFirst = request.Mode == TripTimeMode.ArriveBy && target is not null;
         var perStop = await Task.WhenAll(originStops.Select(async origin =>
-            (Origin: origin, Departures: await schedule.GetStopDeparturesAsync(origin.Stop.Id, departuresFrom, to, cancellationToken))));
+            (Origin: origin, Departures: await schedule.GetStopDeparturesAsync(origin.Stop.Id, departuresFrom, to, cancellationToken, latestFirst))));
         foreach (var (origin, departures) in perStop)
         {
             candidates.AddRange(departures
@@ -234,6 +240,15 @@ public sealed class TripPlannerService(
 
     private static DateTimeOffset Max(DateTimeOffset a, DateTimeOffset b) => a > b ? a : b;
 
+    private async Task<IReadOnlyList<NearbyStop>> WithCurrentIdsAsync(IReadOnlyList<NearbyStop> nearby, CancellationToken cancellationToken)
+    {
+        var current = await catalog.WithCurrentIdsAsync(nearby.Select(n => n.Stop).ToArray(), cancellationToken);
+        return nearby
+            .Select(n => current.FirstOrDefault(stop => stop.Code == n.Stop.Code) is { } stop ? n with { Stop = stop } : null)
+            .OfType<NearbyStop>()
+            .ToArray();
+    }
+
     private async Task<Dictionary<string, List<Arrival>>> LoadLiveAsync(IReadOnlyList<NearbyStop> originStops, CancellationToken cancellationToken)
     {
         var live = new Dictionary<string, List<Arrival>>();
@@ -246,7 +261,11 @@ public sealed class TripPlannerService(
         return live;
     }
 
-    /// <summary>Pairs a scheduled departure with the live arrival of the same line closest in time, using each live arrival once.</summary>
+    /// <summary>
+    /// Pairs a scheduled departure with its live arrival, using each live arrival once. When both sides name their trip
+    /// (Stride journey ref, Curlbus trip id) only the same trip matches: a ride that has already left must not take the
+    /// next bus's ETA. Otherwise the live arrival of the same line closest in time is used.
+    /// </summary>
     private static Arrival? MatchLive(Dictionary<string, List<Arrival>> live, string stopCode, RideStop departure)
     {
         if (!live.TryGetValue(stopCode, out var arrivals))
@@ -254,7 +273,12 @@ public sealed class TripPlannerService(
             return null;
         }
 
-        var match = arrivals
+        var hasRef = !string.IsNullOrEmpty(departure.JourneyRef);
+        var match = hasRef
+            ? arrivals.FirstOrDefault(arrival => string.Equals(arrival.TripRef, departure.JourneyRef, StringComparison.Ordinal))
+            : null;
+        match ??= arrivals
+            .Where(arrival => !hasRef || string.IsNullOrEmpty(arrival.TripRef))
             .Where(arrival => string.Equals(arrival.LineName, departure.Line, StringComparison.OrdinalIgnoreCase))
             .Select(arrival => (Arrival: arrival, Gap: (arrival.Eta - departure.Time).Duration()))
             .Where(candidate => candidate.Gap <= LiveMatchTolerance)

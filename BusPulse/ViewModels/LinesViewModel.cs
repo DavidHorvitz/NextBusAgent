@@ -218,8 +218,17 @@ public sealed partial class LinesViewModel : ObservableObject
                 return;
             }
 
+            // The stop may come from an earlier day's list, whose Stride id matches no ride today.
+            if ((await _catalog.WithCurrentIdsAsync([stop], cancellationToken)).FirstOrDefault() is not { } current)
+            {
+                Directions.Clear();
+                Stops.Clear();
+                StatusText = _localizer.Get("LinesNoService");
+                return;
+            }
+
             var now = _clock.UtcNow;
-            var departures = await _schedule.GetStopDeparturesAsync(stop.Id, now, now + SearchWindow, cancellationToken);
+            var departures = await _schedule.GetStopDeparturesAsync(current.Id, now, now + SearchWindow, cancellationToken);
             var directions = departures
                 .Where(row => string.Equals(row.Line, line, StringComparison.OrdinalIgnoreCase))
                 .GroupBy(row => row.RideId)

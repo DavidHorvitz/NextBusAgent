@@ -16,16 +16,21 @@ public sealed record RideStop(
     string? Agency,
     string? RouteLongName,
     string? StopName = null,
-    string? StopCode = null);
+    string? StopCode = null,
+    string? JourneyRef = null);
 
 public interface IRideScheduleSource
 {
-    /// <summary>Scheduled stops of any ride at one stop within a time window.</summary>
+    /// <summary>
+    /// Scheduled stops of any ride at one stop within a time window. Only a limited number of rows come back, earliest
+    /// first, or latest first when <paramref name="latestFirst"/> is set.
+    /// </summary>
     Task<IReadOnlyList<RideStop>> GetStopDeparturesAsync(
         long stopId,
         DateTimeOffset from,
         DateTimeOffset to,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool latestFirst = false);
 
     /// <summary>Every stop of one ride in calling order, within a time window around the ride.</summary>
     Task<IReadOnlyList<RideStop>> GetRideStopsAsync(
@@ -56,9 +61,11 @@ public sealed class StrideRideScheduleSource(IHttpClientFactory httpClientFactor
         long stopId,
         DateTimeOffset from,
         DateTimeOffset to,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool latestFirst = false)
     {
-        var uri = $"{BaseAddress}gtfs_ride_stops/list?gtfs_stop_ids={stopId}&{Window(from, to)}&order_by=arrival_time%20asc&limit=100";
+        var order = latestFirst ? "desc" : "asc";
+        var uri = $"{BaseAddress}gtfs_ride_stops/list?gtfs_stop_ids={stopId}&{Window(from, to)}&order_by=arrival_time%20{order}&limit=100";
         return Parse(await GetBytesAsync(uri, cancellationToken));
     }
 
@@ -127,7 +134,8 @@ public sealed class StrideRideScheduleSource(IHttpClientFactory httpClientFactor
                 GetString(row, "gtfs_route__agency_name"),
                 GetString(row, "gtfs_route__route_long_name"),
                 GetString(row, "gtfs_stop__name"),
-                GetNumberText(row, "gtfs_stop__code")));
+                GetNumberText(row, "gtfs_stop__code"),
+                GetString(row, "gtfs_ride__journey_ref")));
         }
 
         return rows;

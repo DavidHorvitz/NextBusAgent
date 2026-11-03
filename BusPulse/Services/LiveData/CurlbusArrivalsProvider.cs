@@ -33,7 +33,7 @@ public sealed class CurlbusArrivalsProvider(
     private readonly ConcurrentDictionary<string, (DateTimeOffset FetchedAt, ProviderResult Result)> _cache = new();
     private readonly SemaphoreSlim _requestGate = new(1, 1);
     private DateTimeOffset _lastRequestAt = DateTimeOffset.MinValue;
-    private int _consecutiveFailures;
+    private readonly HashSet<string> _failingStops = [];
     private DateTimeOffset _circuitOpenUntil = DateTimeOffset.MinValue;
 
     public ArrivalSource Source => ArrivalSource.Curlbus;
@@ -81,12 +81,14 @@ public sealed class CurlbusArrivalsProvider(
             var result = await FetchAsync(stopCode, cancellationToken);
             if (result.Status is ProviderStatus.Ok or ProviderStatus.NoData)
             {
-                _consecutiveFailures = 0;
+                _failingStops.Clear();
                 _cache[stopCode] = (clock.UtcNow, result);
             }
             else
             {
-                RegisterFailure();
+                // Remember the failure for this stop so it is not retried every second, and count it towards the breaker.
+                _cache[stopCode] = (clock.UtcNow, result);
+                RegisterFailure(stopCode);
             }
 
             return result;
@@ -192,12 +194,17 @@ public sealed class CurlbusArrivalsProvider(
         return buffer.ToArray();
     }
 
-    private void RegisterFailure()
+    /// <summary>
+    /// The breaker opens only when several different stops fail in a row: one stop that the server cannot answer
+    /// (it returns 500 for some stop codes) must not pause live data for every other stop.
+    /// </summary>
+    private void RegisterFailure(string stopCode)
     {
-        if (++_consecutiveFailures >= FailuresBeforeCircuitOpens)
+        _failingStops.Add(stopCode);
+        if (_failingStops.Count >= FailuresBeforeCircuitOpens)
         {
             _circuitOpenUntil = clock.UtcNow + CircuitOpenDuration;
-            _consecutiveFailures = 0;
+            _failingStops.Clear();
             logger.LogWarning("Curlbus circuit opened for {Minutes} minutes.", CircuitOpenDuration.TotalMinutes);
         }
     }

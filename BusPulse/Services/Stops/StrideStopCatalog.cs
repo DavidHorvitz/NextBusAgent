@@ -9,6 +9,9 @@ namespace BusPulse.Services.Stops;
 public interface IStopCatalog
 {
     Task<IReadOnlyList<Stop>> GetStopsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The list already in memory, without waiting for a download; null before the first load.</summary>
+    IReadOnlyList<Stop>? Loaded { get; }
 }
 
 /// <summary>
@@ -22,6 +25,9 @@ public sealed class StrideStopCatalog(
     string? cacheDirectory = null) : IStopCatalog
 {
     private const string BaseAddress = "https://open-bus-stride-api.hasadna.org.il/";
+    /// <summary>A long-timeout client: a single 5,000-stop page can take close to a minute when Stride is slow.</summary>
+    public const string BulkClientName = "StrideBulk";
+
     private const int PageSize = 5000;
     private const int MaxPages = 12;
     private const int MaxPageBytes = 1_048_576;
@@ -31,8 +37,18 @@ public sealed class StrideStopCatalog(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BusPulse", "cache");
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IReadOnlyList<Stop>? _loaded;
+    private Task? _refresh;
     private string? _loadedDate;
+    private DateTimeOffset _retryAfter = DateTimeOffset.MinValue;
+    private static readonly TimeSpan RetryInterval = TimeSpan.FromMinutes(10);
 
+    public IReadOnlyList<Stop>? Loaded => _loaded;
+
+    /// <summary>
+    /// Today's list when it is cached. Otherwise the most recent earlier cache (stops rarely move) is returned at once and
+    /// today's list downloads in the background, because Stride can take minutes to serve all pages. Only the very first run,
+    /// with no cache at all, waits for the download.
+    /// </summary>
     public async Task<IReadOnlyList<Stop>> GetStopsAsync(CancellationToken cancellationToken = default)
     {
         var date = IsraelDate(clock.UtcNow);
@@ -45,7 +61,27 @@ public sealed class StrideStopCatalog(
             }
 
             var cachePath = Path.Combine(_cacheDirectory, $"stops-{date}.json");
-            var stops = TryReadCache(cachePath) ?? await DownloadAsync(date, cachePath, cancellationToken);
+            if (TryReadCache(cachePath) is { } todays)
+            {
+                _loaded = todays;
+                _loadedDate = date;
+                return todays;
+            }
+
+            var fallback = _loaded ?? TryReadLatestCache(date);
+            if (fallback is not null)
+            {
+                _loaded = fallback;
+                StartBackgroundRefresh(date, cachePath);
+                return fallback;
+            }
+
+            var stops = await DownloadAsync(date, cachePath, cancellationToken);
+            if (stops.Count == 0)
+            {
+                throw new InvalidDataException("Stride returned no stops for today.");
+            }
+
             _loaded = stops;
             _loadedDate = date;
             return stops;
@@ -53,6 +89,71 @@ public sealed class StrideStopCatalog(
         finally
         {
             _gate.Release();
+        }
+    }
+
+    /// <summary>Completes when the current background refresh (if any) has finished; used by tests and diagnostics.</summary>
+    public Task WhenRefreshedAsync() => _refresh ?? Task.CompletedTask;
+
+    private void StartBackgroundRefresh(string date, string cachePath)
+    {
+        if (_refresh is { IsCompleted: false } || clock.UtcNow < _retryAfter)
+        {
+            return;
+        }
+
+        _refresh = Task.Run(async () =>
+        {
+            try
+            {
+                var stops = await DownloadAsync(date, cachePath, CancellationToken.None);
+                if (stops.Count == 0)
+                {
+                    throw new InvalidDataException("Stride returned no stops for today.");
+                }
+
+                await _gate.WaitAsync();
+                try
+                {
+                    _loaded = stops;
+                    _loadedDate = date;
+                }
+                finally
+                {
+                    _gate.Release();
+                }
+            }
+            catch (Exception exception) when (exception is HttpRequestException or IOException or JsonException or InvalidDataException or OperationCanceledException)
+            {
+                logger.LogWarning(exception, "Background refresh of the stop list for {Date} failed; keeping the previous list.", date);
+                _retryAfter = clock.UtcNow + RetryInterval;
+            }
+        });
+    }
+
+    /// <summary>The newest cache file from the last 30 days, if any.</summary>
+    private IReadOnlyList<Stop>? TryReadLatestCache(string today)
+    {
+        try
+        {
+            if (!Directory.Exists(_cacheDirectory) ||
+                !DateTime.TryParseExact(today, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var todayDate))
+            {
+                return null;
+            }
+
+            var newest = Directory.EnumerateFiles(_cacheDirectory, "stops-*.json")
+                .Select(path => (Path: path, Name: Path.GetFileNameWithoutExtension(path)["stops-".Length..]))
+                .Select(file => (file.Path, Ok: DateTime.TryParseExact(file.Name, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day), Day: day))
+                .Where(file => file.Ok && file.Day <= todayDate && file.Day >= todayDate.AddDays(-30))
+                .OrderByDescending(file => file.Day)
+                .FirstOrDefault();
+            return newest.Path is null ? null : TryReadCache(newest.Path);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(exception, "Could not look for an earlier stop cache.");
+            return null;
         }
     }
 
@@ -122,7 +223,7 @@ public sealed class StrideStopCatalog(
 
     private async Task<IReadOnlyList<Stop>> DownloadAsync(string date, string cachePath, CancellationToken cancellationToken)
     {
-        var client = httpClientFactory.CreateClient("TransitApi");
+        var client = httpClientFactory.CreateClient(BulkClientName);
         var byCode = new Dictionary<string, Stop>();
         for (var page = 0; page < MaxPages; page++)
         {
@@ -155,7 +256,10 @@ public sealed class StrideStopCatalog(
         }
 
         var all = byCode.Values.ToArray();
-        TryWriteCache(cachePath, all);
+        if (all.Length > 0)
+        {
+            TryWriteCache(cachePath, all);
+        }
         logger.LogInformation("Downloaded {Count} stops for {Date}.", all.Length, date);
         return all;
     }

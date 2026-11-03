@@ -22,6 +22,11 @@ public sealed class WpfUiThemeService : IThemeService
     private static readonly Color DarkAccent = Color.FromRgb(0x3F, 0xC8, 0xB4);
 
     private Window? _window;
+
+    public WpfUiThemeService()
+    {
+        ApplicationThemeManager.Changed += (theme, _) => ApplyBrushes(theme == ApplicationTheme.Dark);
+    }
     private string _theme = "system";
 
     public void Attach(Window window)
@@ -56,7 +61,15 @@ public sealed class WpfUiThemeService : IThemeService
                 break;
         }
 
-        var dark = ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark;
+        ApplyBrushes(ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark);
+    }
+
+    /// <summary>
+    /// The app's own brushes (accent, badges, warnings, header) for the current theme. Also runs when Windows switches theme
+    /// while "system" is selected, because WPF-UI then changes only its own resources.
+    /// </summary>
+    private static void ApplyBrushes(bool dark)
+    {
         var accent = dark ? DarkAccent : LightAccent;
         ApplicationAccentColorManager.Apply(accent, dark ? ApplicationTheme.Dark : ApplicationTheme.Light);
         var resources = Application.Current.Resources;

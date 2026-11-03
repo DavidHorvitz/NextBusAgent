@@ -154,7 +154,7 @@ public sealed class ReviewFixTests
             new HangingPlanner(), new RecordingNotifier(), new RecordingPresenter(), clock,
             new AppConfig { LeadMinutes = 5, PollingSeconds = 15 }, new TemplateLocalizer(), NullLogger<DepartureReminderService>.Instance)
         {
-            RefreshTimeout = TimeSpan.FromMilliseconds(100)
+            RefreshWait = TimeSpan.FromMilliseconds(100)
         };
         reminder.Watch(new TripRequest(32.1, 34.8, 32.11, 34.8), SmartAlertEngineTests.Option(4));
         clock.UtcNow = Now.AddSeconds(20);
@@ -191,6 +191,109 @@ public sealed class ReviewFixTests
         {
             await Task.Delay(Timeout.Infinite, cancellationToken);
             return new TripPlan(TripPlanStatus.NoOptions, []);
+        }
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError, "oops")]
+    [InlineData(HttpStatusCode.OK, "[]")]
+    public async Task StopCatalog_AfterMidnight_KeepsYesterdaysListWhenTodayCannotBeLoaded(HttpStatusCode status, string body)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "bp-catalog-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var handler = new SwitchHandler(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "stride-stops-sample.json")));
+            var clock = new FixedClock(DateTimeOffset.Parse("2026-10-20T20:00:00+00:00"));
+            var catalog = new StrideStopCatalog(new Factory(handler), clock, NullLogger<StrideStopCatalog>.Instance, directory);
+            Assert.Equal(5, (await catalog.GetStopsAsync()).Count);
+
+            clock.UtcNow = DateTimeOffset.Parse("2026-10-21T00:30:00+03:00");
+            handler.Status = status;
+            handler.Body = body;
+            var callsBefore = handler.Calls;
+
+            var stops = await catalog.GetStopsAsync();
+            await catalog.WhenRefreshedAsync();
+            var again = await catalog.GetStopsAsync();
+            await catalog.WhenRefreshedAsync();
+
+            Assert.Equal(5, stops.Count);
+            Assert.Same(stops, again);
+            // One background attempt; the failure is not retried on every call.
+            Assert.Equal(callsBefore + 1, handler.Calls);
+            Assert.False(File.Exists(Path.Combine(directory, "stops-2026-10-21.json")));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task StopCatalog_OnANewDay_ServesTheLatestCacheAtOnceAndRefreshesInTheBackground()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "bp-catalog-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var fixture = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "stride-stops-sample.json"));
+            var clock = new FixedClock(DateTimeOffset.Parse("2026-10-20T12:00:00+00:00"));
+            await new StrideStopCatalog(new Factory(new SwitchHandler(fixture)), clock, NullLogger<StrideStopCatalog>.Instance, directory).GetStopsAsync();
+
+            // A fresh start two weeks later: today's file is missing, the network is slow but works.
+            clock.UtcNow = DateTimeOffset.Parse("2026-11-03T12:00:00+00:00");
+            var handler = new SwitchHandler(fixture);
+            var catalog = new StrideStopCatalog(new Factory(handler), clock, NullLogger<StrideStopCatalog>.Instance, directory);
+
+            var stops = await catalog.GetStopsAsync();
+            await catalog.WhenRefreshedAsync();
+
+            Assert.Equal(5, stops.Count);
+            Assert.Equal(1, handler.Calls);
+            Assert.True(File.Exists(Path.Combine(directory, "stops-2026-11-03.json")));
+            Assert.False(File.Exists(Path.Combine(directory, "stops-2026-10-20.json")));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task StopCatalog_WithNothingLoadedYet_StillReportsTheFailure()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "bp-catalog-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var handler = new SwitchHandler("oops") { Status = HttpStatusCode.InternalServerError };
+            var catalog = new StrideStopCatalog(new Factory(handler), new FixedClock(Now), NullLogger<StrideStopCatalog>.Instance, directory);
+
+            await Assert.ThrowsAsync<HttpRequestException>(() => catalog.GetStopsAsync());
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    private sealed class SwitchHandler(string body) : HttpMessageHandler
+    {
+        public HttpStatusCode Status { get; set; } = HttpStatusCode.OK;
+        public string Body { get; set; } = body;
+        public int Calls { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Calls++;
+            return Task.FromResult(new HttpResponseMessage(Status) { Content = new StringContent(Body, Encoding.UTF8, "application/json") });
         }
     }
 

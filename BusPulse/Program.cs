@@ -66,9 +66,15 @@ internal static class Program
                 services.AddSingleton<ShellViewModel>();
                 services.AddSingleton<TrayController>();
                 services.AddSingleton<MainWindow>();
+                // Stride answers small queries in 10-25 s on slow days; 12 s made every request fail.
+                services.AddHttpClient(StrideStopCatalog.BulkClientName, client =>
+                {
+                    client.Timeout = TimeSpan.FromSeconds(120);
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("BusPulseApp/1.0");
+                }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
                 services.AddHttpClient("TransitApi", client =>
                 {
-                    client.Timeout = TimeSpan.FromSeconds(12);
+                    client.Timeout = TimeSpan.FromSeconds(45);
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("BusPulseApp/1.0");
                 }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
                 {

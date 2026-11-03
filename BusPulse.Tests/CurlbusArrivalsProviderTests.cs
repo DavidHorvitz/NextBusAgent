@@ -96,21 +96,36 @@ public sealed class CurlbusArrivalsProviderTests
     }
 
     [Fact]
-    public async Task GetArrivals_RepeatedFailures_OpenTheCircuit()
+    public async Task GetArrivals_FailuresAtThreeDifferentStops_OpenTheCircuitForEveryStop()
     {
         var handler = new FakeHandler(HttpStatusCode.InternalServerError, "oops");
         var provider = CreateProvider(handler, new FakeClock(Now));
 
-        for (var attempt = 0; attempt < 3; attempt++)
+        foreach (var stop in new[] { "1111", "2222", "3333" })
         {
-            var failure = await provider.GetArrivalsAsync(StopCode);
-            Assert.Equal(ProviderStatus.Unavailable, failure.Status);
+            Assert.Equal(ProviderStatus.Unavailable, (await provider.GetArrivalsAsync(stop)).Status);
         }
 
         var paused = await provider.GetArrivalsAsync(StopCode);
 
         Assert.Equal(ProviderStatus.CircuitOpen, paused.Status);
         Assert.Equal(3, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task GetArrivals_OneBrokenStop_IsNotRetriedEverySecondAndDoesNotPauseOtherStops()
+    {
+        // Curlbus returns 500 for some stop codes (seen live for 4237) while other stops work.
+        var handler = new FakeHandler(HttpStatusCode.InternalServerError, "oops");
+        var provider = CreateProvider(handler, new FakeClock(Now));
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            Assert.Equal(ProviderStatus.Unavailable, (await provider.GetArrivalsAsync("4237")).Status);
+        }
+
+        Assert.Equal(1, handler.CallCount);
+        Assert.NotEqual(ProviderStatus.CircuitOpen, (await provider.GetArrivalsAsync(StopCode)).Status);
     }
 
     [Theory]

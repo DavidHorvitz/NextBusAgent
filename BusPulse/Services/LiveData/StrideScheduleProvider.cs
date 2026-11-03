@@ -12,7 +12,8 @@ namespace BusPulse.Services.LiveData;
 public sealed partial class StrideScheduleProvider(
     IHttpClientFactory httpClientFactory,
     IClock clock,
-    ILogger<StrideScheduleProvider> logger) : IScheduleProvider
+    ILogger<StrideScheduleProvider> logger,
+    BusPulse.Services.Stops.IStopCatalog? catalog = null) : IScheduleProvider
 {
     private const string BaseAddress = "https://open-bus-stride-api.hasadna.org.il/";
     private const int MaxResponseBytes = 1_048_576;
@@ -149,6 +150,13 @@ public sealed partial class StrideScheduleProvider(
         if (_stopIds.TryGetValue(cacheKey, out var cached))
         {
             return cached;
+        }
+
+        // The stop list already holds the id; this saves one slow Stride round trip per stop.
+        if (catalog?.Loaded?.FirstOrDefault(stop => stop.Code == stopCode && stop.Id > 0) is { } known)
+        {
+            _stopIds[cacheKey] = known.Id;
+            return known.Id;
         }
 
         var uri = $"{BaseAddress}gtfs_stops/list?code={stopCode}&date_from={date}&date_to={date}&limit=2";

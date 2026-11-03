@@ -125,9 +125,11 @@ public sealed class TripPlannerService(
 
         var buffer = TimeSpan.FromMinutes(Math.Clamp(request.BufferMinutes, 0, 15));
         var candidates = new List<(RideStop Departure, NearbyStop Origin)>();
-        foreach (var origin in originStops)
+        // Each Stride query can take many seconds, so the origin stops are fetched together.
+        var perStop = await Task.WhenAll(originStops.Select(async origin =>
+            (Origin: origin, Departures: await schedule.GetStopDeparturesAsync(origin.Stop.Id, departuresFrom, to, cancellationToken))));
+        foreach (var (origin, departures) in perStop)
         {
-            var departures = await schedule.GetStopDeparturesAsync(origin.Stop.Id, departuresFrom, to, cancellationToken);
             candidates.AddRange(departures
                 .Where(departure => string.IsNullOrWhiteSpace(request.PreferredLine) ||
                     string.Equals(departure.Line, request.PreferredLine.Trim(), StringComparison.OrdinalIgnoreCase))

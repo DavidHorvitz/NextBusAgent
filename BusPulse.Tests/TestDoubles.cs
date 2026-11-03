@@ -33,6 +33,8 @@ internal sealed class FakeCatalog(params Stop[] stops) : IStopCatalog
 {
     public Exception? Throw { get; set; }
 
+    public IReadOnlyList<Stop>? Loaded => Throw is null ? stops : null;
+
     public Task<IReadOnlyList<Stop>> GetStopsAsync(CancellationToken cancellationToken = default) =>
         Throw is null ? Task.FromResult<IReadOnlyList<Stop>>(stops) : Task.FromException<IReadOnlyList<Stop>>(Throw);
 }

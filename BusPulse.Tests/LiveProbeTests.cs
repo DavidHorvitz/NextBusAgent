@@ -47,11 +47,27 @@ public sealed class LiveProbeTests
         }
     }
 
+    [Fact]
+    public async Task Aggregator_ReturnsCurrentArrivalsFromTheRealServices()
+    {
+        var clock = new SystemClock();
+        var aggregator = new LiveDataAggregator(
+            [new CurlbusArrivalsProvider(new RealFactory(), clock, NullLogger<CurlbusArrivalsProvider>.Instance)],
+            new StrideScheduleProvider(new RealFactory(), clock, NullLogger<StrideScheduleProvider>.Instance),
+            clock,
+            NullLogger<LiveDataAggregator>.Instance);
+
+        var result = await aggregator.GetArrivalsAsync("3490");
+
+        Assert.NotEmpty(result.Arrivals);
+        Assert.All(result.Arrivals, arrival => Assert.InRange(arrival.Eta, clock.UtcNow.AddMinutes(-2), clock.UtcNow.AddHours(6)));
+    }
+
     private sealed class RealFactory : IHttpClientFactory
     {
         public HttpClient CreateClient(string name)
         {
-            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(150) };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("BusPulse-Tests/0.1 (+https://github.com/DavidHorvitz/NextBusAgent)");
             return client;
         }

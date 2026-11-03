@@ -38,3 +38,9 @@ The Curlbus README documents `/<operator>/<route_number>/<alternative>`. In prac
 | `/egged/4` | 200 | Returns data for line 4 of Egged |
 
 So alternative-level data is unavailable upstream. The Lines tab must use the Stride schedule for line stops, and live vehicle positions need a different source.
+
+## Trip ids and ordering (checked 2026-11-03, stop 3490)
+
+- Curlbus trip ids and Stride journey refs share the format `<number>_<ddMMyy>`. They matched on 2026-10-20, but on 2026-11-03 none matched: Stride refs had the suffix `_021126` and different numbers (line 3: Stride 53263877 and 58106769, Curlbus 53264001_031126). Each source names trips from its own GTFS feed version, so the app matches by trip ref only when some live id equals a journey ref, and otherwise falls back to the closest scheduled time on the same line.
+- Stride `order_by=arrival_time desc` works (verified by a live probe); arrive-by uses it to get the latest departures first.
+- Curlbus needs the header `Accept: application/json`; a plain request returned non-JSON.

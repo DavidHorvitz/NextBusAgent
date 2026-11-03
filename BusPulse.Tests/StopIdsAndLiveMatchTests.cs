@@ -140,6 +140,24 @@ public sealed class StopIdsAndLiveMatchTests
     }
 
     [Fact]
+    public async Task TripIdsFromAnotherFeed_FallBackToTime_AndTheDepartedRideStillDoesNotTakeTheNextBus()
+    {
+        // As seen live on 2026-11-03: Curlbus and Stride name trips from different feed versions, so no id is equal.
+        var schedule = new TripPlannerServiceTests.FakeRideSchedule();
+        schedule.Departures[1] = [Departure(10, -5, "53263877_021126"), Departure(11, 6, "58106769_021126")];
+        schedule.DestinationRows = [Row(10, stop: 2, minutes: 10), Row(11, stop: 2, minutes: 21)];
+        var aggregator = new TripPlannerServiceTests.FakeAggregator();
+        aggregator.Arrivals["100"] = [new Arrival("100", "4", "Dan", "X", Now.AddMinutes(4), IsLive: true, ArrivalSource.Curlbus, Now, TripRef: "53264001_031126")];
+
+        var plan = await Planner(new FakeCatalog(StopA, StopB), schedule, aggregator).PlanAsync(Request() with { WatchRideId = 10 });
+
+        Assert.False(plan.Options.Single(option => option.RideId == 10).IsLive);
+        var next = plan.Options.Single(option => option.RideId == 11);
+        Assert.True(next.IsLive);
+        Assert.Equal(Now.AddMinutes(4), next.BusDeparture);
+    }
+
+    [Fact]
     public async Task LiveArrival_IsMatchedByTripEvenWhenAnotherBusIsCloserInTime()
     {
         var schedule = new TripPlannerServiceTests.FakeRideSchedule();

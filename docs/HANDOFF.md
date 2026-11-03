@@ -1,6 +1,6 @@
 # Handoff: what is done, what is not, and what is needed
 
-Snapshot: 2026-11-03, branch `main`, last commit `54cc36b`. `dotnet build` 0 errors; `dotnet test --filter "Category!=Live"` 255 passing; 3 live probes passing. Read [STATUS.md](STATUS.md) for verified/unverified detail and [PLAN.md](PLAN.md) for scope.
+Snapshot: 2026-11-03, branch `main`, last commit: see git log. `dotnet build` 0 errors; `dotnet test --filter "Category!=Live"` 271 passing; 4 live probes passing. Read [STATUS.md](STATUS.md) for verified/unverified detail and [PLAN.md](PLAN.md) for scope.
 
 **Local commits are not pushed.** Per the maintainer's rule, nothing is pushed until the on-screen checks below are done (toasts, full-screen popup, tray tooltip, context menus). Those checks are what still blocks a push.
 
@@ -19,6 +19,7 @@ Snapshot: 2026-11-03, branch `main`, last commit `54cc36b`. `dotnet build` 0 err
 - Calendar card on the trip planner: upcoming events whose location matches a saved place; "Plan this trip" fills destination, arrive-by and time (unit-tested only).
 - Window close hides to the tray; Exit in the tray ends the app.
 - Code review of `ed3e254..314215b` done; all verified findings fixed (see STATUS.md).
+- Second code review of `314215b..54cc36b` done; all 8 findings fixed with tests (see STATUS.md): today's stop ids via `WithCurrentIdsAsync`, trip-ref live matching with a time fallback, calendar horizon under 24 h, suggestions recomputed on "Find trips", late refresh cannot overwrite a newer plan, arrive-by asks for the latest departures first, a watch change cancels its in-flight re-plan, ordinal stop-name search.
 - Slow Stride handled: 45 s client timeout, 120 s `StrideBulk` client, stop list served from cache while it refreshes.
 - Lines tab: line number + origin + direction, stops in order with your stop marked. Schedule only (see below).
 - Settings: language, theme (system/light/dark), notifications on/off, lead time, refresh interval, Home/Work, clear history, clear favorites, test notification, provider status check, Google Calendar connect/disconnect.

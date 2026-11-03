@@ -158,6 +158,7 @@ public sealed class TripPlannerService(
         var live = request.Mode == TripTimeMode.Now || watchRide is not null
             ? await LoadLiveAsync(originStops, cancellationToken)
             : new Dictionary<string, List<Arrival>>();
+        var liveMatches = MatchLive(live, candidates);
 
         var options = new List<TripOption>();
         foreach (var (departure, origin) in candidates)
@@ -174,7 +175,7 @@ public sealed class TripPlannerService(
             }
 
             var (destinationRow, destination) = arrival.Value;
-            var liveMatch = MatchLive(live, origin.Stop.Code, departure);
+            var liveMatch = liveMatches.GetValueOrDefault((origin.Stop.Code, departure.RideId));
             var busDeparture = liveMatch?.Eta ?? departure.Time;
             var rideDuration = destinationRow.Time - departure.Time;
             var busArrival = busDeparture + rideDuration;
@@ -262,35 +263,58 @@ public sealed class TripPlannerService(
     }
 
     /// <summary>
-    /// Pairs a scheduled departure with its live arrival, using each live arrival once. When both sides name their trip
-    /// (Stride journey ref, Curlbus trip id) only the same trip matches: a ride that has already left must not take the
-    /// next bus's ETA. Otherwise the live arrival of the same line closest in time is used.
+    /// Pairs scheduled departures with live arrivals, each used once, per origin stop. When the live trip ids and the
+    /// Stride journey refs come from the same GTFS feed (at least one is equal), only equal trips are paired. They often
+    /// do not: each source names trips from its own feed version (seen 2026-11-03), so otherwise every live arrival goes
+    /// to the departure of its line closest in scheduled time. Either way a ride that has already left cannot take the
+    /// ETA of the next bus.
     /// </summary>
-    private static Arrival? MatchLive(Dictionary<string, List<Arrival>> live, string stopCode, RideStop departure)
+    private static Dictionary<(string StopCode, long RideId), Arrival> MatchLive(
+        Dictionary<string, List<Arrival>> live,
+        IEnumerable<(RideStop Departure, NearbyStop Origin)> candidates)
     {
-        if (!live.TryGetValue(stopCode, out var arrivals))
+        var matches = new Dictionary<(string StopCode, long RideId), Arrival>();
+        foreach (var stop in candidates.GroupBy(c => c.Origin.Stop.Code))
         {
-            return null;
+            if (!live.TryGetValue(stop.Key, out var arrivals) || arrivals.Count == 0)
+            {
+                continue;
+            }
+
+            var departures = stop.Select(c => c.Departure).DistinctBy(d => d.RideId).ToArray();
+            var journeyRefs = departures.Select(d => d.JourneyRef).OfType<string>().ToHashSet(StringComparer.Ordinal);
+            var used = new HashSet<Arrival>(ReferenceEqualityComparer.Instance);
+            if (arrivals.Any(arrival => arrival.TripRef is { } trip && journeyRefs.Contains(trip)))
+            {
+                foreach (var departure in departures)
+                {
+                    if (departure.JourneyRef is { } journey &&
+                        arrivals.FirstOrDefault(arrival => !used.Contains(arrival) && string.Equals(arrival.TripRef, journey, StringComparison.Ordinal)) is { } same)
+                    {
+                        matches[(stop.Key, departure.RideId)] = same;
+                        used.Add(same);
+                    }
+                }
+
+                continue;
+            }
+
+            var pairs = arrivals
+                .SelectMany(arrival => departures
+                    .Where(departure => string.Equals(arrival.LineName, departure.Line, StringComparison.OrdinalIgnoreCase))
+                    .Select(departure => (Arrival: arrival, Departure: departure, Gap: (arrival.Eta - departure.Time).Duration())))
+                .Where(pair => pair.Gap <= LiveMatchTolerance)
+                .OrderBy(pair => pair.Gap);
+            foreach (var (arrival, departure, _) in pairs)
+            {
+                if (!used.Contains(arrival) && matches.TryAdd((stop.Key, departure.RideId), arrival))
+                {
+                    used.Add(arrival);
+                }
+            }
         }
 
-        var hasRef = !string.IsNullOrEmpty(departure.JourneyRef);
-        var match = hasRef
-            ? arrivals.FirstOrDefault(arrival => string.Equals(arrival.TripRef, departure.JourneyRef, StringComparison.Ordinal))
-            : null;
-        match ??= arrivals
-            .Where(arrival => !hasRef || string.IsNullOrEmpty(arrival.TripRef))
-            .Where(arrival => string.Equals(arrival.LineName, departure.Line, StringComparison.OrdinalIgnoreCase))
-            .Select(arrival => (Arrival: arrival, Gap: (arrival.Eta - departure.Time).Duration()))
-            .Where(candidate => candidate.Gap <= LiveMatchTolerance)
-            .OrderBy(candidate => candidate.Gap)
-            .Select(candidate => candidate.Arrival)
-            .FirstOrDefault();
-        if (match is not null)
-        {
-            arrivals.Remove(match);
-        }
-
-        return match;
+        return matches;
     }
 }
 

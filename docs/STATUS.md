@@ -63,6 +63,19 @@ A review of `ed3e254..314215b` produced findings that were verified one by one a
 - The app's brushes follow a Windows theme switch while "system" is selected.
 - The stop list is served from the newest cache (up to 30 days) after midnight while today's list downloads in the background; an empty or failed refresh keeps the previous list.
 
+## Second code review
+
+A review of `314215b..54cc36b` produced 8 findings, all fixed and covered by unit tests (271 unit tests and 4 live probes pass). Mutation checks confirmed that the new tests for findings 1, 2 and 6 fail without the fixes.
+
+1. **Stop ids from an earlier day's cached stop list: fixed.** Stride stop ids change per date. `IStopCatalog.WithCurrentIdsAsync` (`StrideStopCatalog`) resolves today's id by stop code (`gtfs_stops/list?code=..&date_from=today&date_to=today`), caches it per day and drops stops with no service today. Used by `TripPlannerService`, `LinesViewModel` and `StrideScheduleProvider`.
+2. **A watched ride that already left could take the next bus's live ETA: fixed.** `Arrival` now carries `TripRef` (Curlbus `trip_id`) and `RideStop` carries `JourneyRef` (Stride `gtfs_ride__journey_ref`). Per origin stop: if any live trip id equals a Stride journey ref, only equal trips are paired; otherwise each live arrival goes to the same-line departure closest in scheduled time (order-independent).
+3. **Calendar horizon: fixed.** Suggestions are limited to events less than 24 h ahead (was 48 h), so the time of day resolves to the event's day.
+4. **Stale destination suggestions: fixed.** "Find trips" always recomputes the suggestions before auto-picking.
+5. **Late periodic refresh overwriting a newer plan: fixed.** `RunPlanAsync` checks the request reference before applying a result.
+6. **Arrive-by hidden by the 100-row limit: fixed.** Arrive-by asks Stride for the latest departures first (`order_by=arrival_time desc`). `IRideScheduleSource.GetStopDeparturesAsync` got a `latestFirst` parameter.
+7. **Stale re-plan after a watch change: fixed.** Watching another ride or cancelling cancels the in-flight re-plan (per-watch `CancellationTokenSource` in `DepartureReminderService`).
+8. **Stop-name search: fixed.** It uses `OrdinalIgnoreCase`.
+
 ## Live findings (2026-11-03)
 
 - **Stride was slow:** every page of the stop list took 17-51 s and small queries 10-25 s (10-50 s per request overall). The old 12 s timeout failed every request. The Stride client now has a 45 s timeout and a separate 120 s `StrideBulk` client for the stop list. Schedule lookups take the stop id from the loaded stop list, and the planner queries origin stops in parallel.

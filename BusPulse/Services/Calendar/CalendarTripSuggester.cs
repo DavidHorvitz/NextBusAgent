@@ -7,12 +7,13 @@ public sealed record CalendarSuggestion(CalendarEvent Event, SavedPlace Place);
 
 /// <summary>
 /// Matches events to saved places by name, entirely on this machine: addresses are never sent to a geocoding service.
+/// Only events less than 24 hours ahead are suggested, so a time of day always resolves to the event's own day.
 /// An event matches when its location text contains the place name (or the other way round), ignoring case.
 /// </summary>
 public static class CalendarTripSuggester
 {
     private static readonly TimeSpan MinLead = TimeSpan.FromMinutes(10);
-    private static readonly TimeSpan Horizon = TimeSpan.FromHours(48);
+    private static readonly TimeSpan Horizon = TimeSpan.FromHours(24);
 
     public static IReadOnlyList<CalendarSuggestion> Suggest(IEnumerable<CalendarEvent> events, IEnumerable<SavedPlace> places, DateTimeOffset now)
     {

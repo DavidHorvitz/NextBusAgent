@@ -526,10 +526,10 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         }
 
         return stops
-            .Where(stop => stop.Name.Contains(query, StringComparison.CurrentCultureIgnoreCase))
+            .Where(stop => stop.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
             .GroupBy(stop => (stop.Name, stop.City))
             .Select(group => group.First())
-            .OrderBy(stop => stop.Name.StartsWith(query, StringComparison.CurrentCultureIgnoreCase) ? 0 : 1)
+            .OrderBy(stop => stop.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenBy(stop => stop.Name, StringComparer.CurrentCultureIgnoreCase)
             .Take(count);
     }
@@ -585,10 +585,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         // Typed a name and pressed "Find trips" without picking from the list: take the best match.
         if (SelectedDestination is null && DestinationQuery.Trim().Length > 0)
         {
-            if (Suggestions.Count == 0)
-            {
-                await UpdateSuggestionsNowAsync();
-            }
+            // Always recompute: the list may be stale when the text changed within the debounce window.
+            await UpdateSuggestionsNowAsync();
 
             if (Suggestions.FirstOrDefault() is { } best)
             {
@@ -702,6 +700,12 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     {
         // "Now" requests are re-based on every refresh so the search window moves with the clock.
         var plan = await _planner.PlanAsync(request, cancellationToken);
+        if (!ReferenceEquals(request, _lastRequest))
+        {
+            // A newer plan replaced this request while it was in flight; its results must not overwrite the newer ones.
+            return;
+        }
+
         Reconcile(plan.Options, request);
         StatusText = plan.Status switch
         {

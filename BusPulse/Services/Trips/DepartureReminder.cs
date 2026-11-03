@@ -129,13 +129,21 @@ public sealed class DepartureReminderService(
         if (message.Kind == AlertKind.Missed)
         {
             // The bus has gone; the user picks the next option from the planner.
+            var cleared = false;
             lock (_gate)
             {
-                _request = null;
-                Watched = null;
+                if (Watched?.RideId == watched.RideId)
+                {
+                    _request = null;
+                    Watched = null;
+                    cleared = true;
+                }
             }
 
-            Changed?.Invoke(this, EventArgs.Empty);
+            if (cleared)
+            {
+                Changed?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         return message;

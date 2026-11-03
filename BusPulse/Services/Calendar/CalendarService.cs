@@ -74,9 +74,9 @@ public sealed class GoogleCalendarService(
         var state = GoogleOAuth.CreateState();
         using var listener = new HttpListener();
         listener.Prefixes.Add(redirect);
-        listener.Start();
         try
         {
+            listener.Start();
             Process.Start(new ProcessStartInfo(GoogleOAuth.BuildAuthUrl(ClientId!, redirect.TrimEnd('/'), pkce.Challenge, state).ToString())
             {
                 UseShellExecute = true
@@ -126,14 +126,17 @@ public sealed class GoogleCalendarService(
         {
             return new CalendarConnectResult(CalendarConnectStatus.Cancelled, "timeout");
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or System.ComponentModel.Win32Exception or InvalidOperationException)
+        catch (Exception exception) when (exception is HttpRequestException or IOException or System.ComponentModel.Win32Exception or InvalidOperationException or System.Text.Json.JsonException or CryptographicException)
         {
             logger.LogWarning(exception, "Calendar connection failed.");
             return new CalendarConnectResult(CalendarConnectStatus.Failed, exception.GetType().Name);
         }
         finally
         {
-            listener.Stop();
+            if (listener.IsListening)
+            {
+                listener.Stop();
+            }
         }
     }
 

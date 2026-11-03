@@ -281,11 +281,11 @@ public sealed partial class StopsViewModel : ObservableObject
             Reconcile(nearby);
             StatusText = nearby.Count == 0 ? _localizer.Get("NoStopsNearby") : string.Empty;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException or OperationCanceledException)
         {
             _logger.LogWarning(exception, "Could not load nearby stops.");
             StatusText = _localizer.Get("StopsLoadFailed");
@@ -375,7 +375,7 @@ public sealed partial class StopsViewModel : ObservableObject
                 ? _localizer.Get("NoArrivals")
                 : arrivals.Any(arrival => arrival.IsLive) ? string.Empty : _localizer.Get("NoLiveData");
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
@@ -488,7 +488,15 @@ public sealed partial class StopsViewModel : ObservableObject
                 if (sinceRefresh >= TimeSpan.FromSeconds(Math.Clamp(_settings.Config.PollingSeconds, 15, 60)))
                 {
                     sinceRefresh = TimeSpan.Zero;
-                    await RefreshExpandedAsync(cancellationToken);
+                    try
+                    {
+                        await RefreshExpandedAsync(cancellationToken);
+                    }
+                    catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+                    {
+                        // One failed refresh must not stop the countdown; the next interval retries.
+                        _logger.LogWarning(exception, "Stop refresh failed; will retry.");
+                    }
                 }
             }
         }

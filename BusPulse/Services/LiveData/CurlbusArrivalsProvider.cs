@@ -59,6 +59,18 @@ public sealed class CurlbusArrivalsProvider(
         await _requestGate.WaitAsync(cancellationToken);
         try
         {
+            // Another caller may have refreshed this stop, or opened the circuit, while this one waited.
+            var afterWait = clock.UtcNow;
+            if (_cache.TryGetValue(stopCode, out var fresh) && afterWait - fresh.FetchedAt < CacheDuration)
+            {
+                return fresh.Result;
+            }
+
+            if (afterWait < _circuitOpenUntil)
+            {
+                return ProviderResult.Failed(ProviderStatus.CircuitOpen, "Curlbus is paused after repeated failures.");
+            }
+
             var wait = _lastRequestAt + MinRequestSpacing - clock.UtcNow;
             if (wait > TimeSpan.Zero)
             {

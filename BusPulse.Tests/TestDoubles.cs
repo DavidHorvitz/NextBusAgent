@@ -146,11 +146,18 @@ internal sealed class FakeTripPlanner : ITripPlannerService
     public TripRequest? LastRequest { get; private set; }
     public int Calls { get; private set; }
 
+    /// <summary>Thrown from PlanAsync when set (for example a timeout's TaskCanceledException).</summary>
+    public Exception? Throw { get; set; }
+
+    /// <summary>Runs inside PlanAsync, to simulate something happening while a plan is in flight.</summary>
+    public Action? OnPlan { get; set; }
+
     public Task<TripPlan> PlanAsync(TripRequest request, CancellationToken cancellationToken = default)
     {
         Calls++;
         LastRequest = request;
-        return Task.FromResult(Plan);
+        OnPlan?.Invoke();
+        return Throw is null ? Task.FromResult(Plan) : Task.FromException<TripPlan>(Throw);
     }
 }
 

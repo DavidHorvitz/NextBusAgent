@@ -11,6 +11,22 @@ public partial class App : Application
 {
     private IHost? _host;
 
+    /// <summary>True once the user chose Exit (or Windows is ending the session); the main window then really closes.</summary>
+    public static bool IsExiting { get; private set; }
+
+    /// <summary>Ends the app from the tray menu; closing the window only hides it.</summary>
+    public static void RequestExit()
+    {
+        IsExiting = true;
+        Current.Shutdown();
+    }
+
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        IsExiting = true;
+        base.OnSessionEnding(e);
+    }
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);

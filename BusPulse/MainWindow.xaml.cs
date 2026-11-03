@@ -17,6 +17,15 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         tray.ShowRequested += (_, _) => ShowWindow();
         IsVisibleChanged += (_, _) => shell.IsWindowActive = IsVisible && WindowState != WindowState.Minimized;
         StateChanged += (_, _) => shell.IsWindowActive = IsVisible && WindowState != WindowState.Minimized;
+        // The app lives in the tray: the title-bar X hides the window, and Exit in the tray menu ends the process.
+        Closing += (_, e) =>
+        {
+            if (!App.IsExiting)
+            {
+                e.Cancel = true;
+                Hide();
+            }
+        };
         Closed += (_, _) => _tray.Dispose();
     }
 

@@ -50,7 +50,7 @@ public sealed class TrayController : IDisposable
 
         _muteItem.Click += (_, _) => _dispatcher.Post(() => _shell.ToggleMuteCommand.Execute(null));
         _settingsItem.Click += (_, _) => _dispatcher.Post(() => ShowRequested?.Invoke(this, EventArgs.Empty));
-        _exitItem.Click += (_, _) => _dispatcher.Post(() => Application.Current.Shutdown());
+        _exitItem.Click += (_, _) => _dispatcher.Post(App.RequestExit);
         _menu.Items.Add(_muteItem);
         _menu.Items.Add(_profilesItem);
         _menu.Items.Add(_settingsItem);

@@ -106,11 +106,27 @@ public sealed partial class LinesViewModel : ObservableObject
 
     private void RebuildOrigins()
     {
+        var previous = SelectedOrigin;
         Origins.Clear();
         Origins.Add(MyLocation);
         foreach (var place in _places.Items)
         {
             Origins.Add(new LocationChoice(place.Name, place));
+        }
+
+        // WPF pushes null into SelectedItem when the source is cleared; restore a valid origin.
+        if (previous is null || previous.IsMyLocation)
+        {
+            SelectedOrigin = MyLocation;
+        }
+        else if (previous.Place is { } place)
+        {
+            SelectedOrigin = Origins.FirstOrDefault(c => c.Place?.Id == place.Id) ?? MyLocation;
+        }
+        else
+        {
+            Origins.Add(previous);
+            SelectedOrigin = previous;
         }
     }
 
@@ -224,11 +240,11 @@ public sealed partial class LinesViewModel : ObservableObject
             StatusText = directions.Length == 0 ? _localizer.Get("LinesNoService") : string.Empty;
             SelectedDirection = directions.FirstOrDefault();
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException or OperationCanceledException)
         {
             _logger.LogWarning(exception, "Could not load the line schedule.");
             StatusText = _localizer.Get("LinesLoadFailed");
@@ -326,7 +342,7 @@ public sealed partial class LinesViewModel : ObservableObject
                     row.StopCode is not null && row.StopCode == origin));
             }
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException or OperationCanceledException)
         {
             _logger.LogWarning(exception, "Could not load the stops of the selected direction.");
             StatusText = _localizer.Get("LinesLoadFailed");

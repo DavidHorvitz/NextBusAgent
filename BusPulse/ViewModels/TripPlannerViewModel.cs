@@ -76,7 +76,7 @@ public sealed partial class TripOptionViewModel : ObservableObject
 
     public double BearingDegrees { get; private set; }
 
-    public bool Rtl { get; }
+    public bool Rtl { get; private set; }
 
     public string Line => Option.Line;
 
@@ -119,6 +119,18 @@ public sealed partial class TripOptionViewModel : ObservableObject
         BearingDegrees = bearingDegrees;
         OnPropertyChanged(nameof(BearingDegrees));
         foreach (var name in new[] { nameof(Line), nameof(Operator), nameof(IsLive), nameof(BadgeText), nameof(RouteText), nameof(LeaveAtText), nameof(BusText), nameof(ArriveText), nameof(WalkText) })
+        {
+            OnPropertyChanged(name);
+        }
+
+        Refresh(now);
+    }
+
+    /// <summary>Re-reads every localized text and the reading direction after a language change.</summary>
+    public void RefreshLanguage(bool rtl, DateTimeOffset now)
+    {
+        Rtl = rtl;
+        foreach (var name in new[] { nameof(Rtl), nameof(BadgeText), nameof(RouteText), nameof(BusText), nameof(ArriveText), nameof(WalkText) })
         {
             OnPropertyChanged(name);
         }
@@ -309,6 +321,12 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
         _hintText = newHint;
         OnPropertyChanged(nameof(RouteSummary));
+        var rtl = _settings.Config.Language == "he";
+        var now = _clock.UtcNow;
+        foreach (var option in Options)
+        {
+            option.RefreshLanguage(rtl, now);
+        }
     }
 
     /// <summary>Raised when the destination search should take keyboard focus (Ctrl+F).</summary>
@@ -396,7 +414,36 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     public void SetOrigin(Stop stop)
     {
-        SelectedOrigin = new LocationChoice(stop.Name, stop: stop);
+        var choice = Choices.FirstOrDefault(c => c.Stop?.Code == stop.Code);
+        if (choice is null)
+        {
+            choice = new LocationChoice(stop.Name, stop: stop);
+            Choices.Add(choice);
+        }
+
+        SelectedOrigin = choice;
+    }
+
+    /// <summary>Finds the rebuilt choice for a previous selection: the same saved place, my location, or a kept stop.</summary>
+    private LocationChoice? Reselect(LocationChoice? previous)
+    {
+        if (previous is null)
+        {
+            return null;
+        }
+
+        if (previous.IsMyLocation)
+        {
+            return MyLocation;
+        }
+
+        if (previous.Place is { } place)
+        {
+            return Choices.FirstOrDefault(c => c.Place?.Id == place.Id);
+        }
+
+        Choices.Add(previous);
+        return previous;
     }
 
     [RelayCommand]
@@ -529,11 +576,11 @@ public sealed partial class TripPlannerViewModel : ObservableObject
                 PromptForRoute("PromptEnableAlerts");
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException or OperationCanceledException)
         {
             _logger.LogWarning(exception, "Trip planning failed.");
             StatusText = _localizer.Get("PlanFailed");
@@ -574,7 +621,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         {
             await RunPlanAsync(_lastRequest, cancellationToken);
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException or OperationCanceledException)
         {
             _logger.LogWarning(exception, "Trip refresh failed.");
         }
@@ -681,12 +728,17 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     private void RebuildChoices()
     {
+        var origin = SelectedOrigin;
+        var destination = SelectedDestination;
         Choices.Clear();
         Choices.Add(MyLocation);
         foreach (var place in _places.Items)
         {
             Choices.Add(new LocationChoice(place.Name, place));
         }
+
+        SelectedOrigin = Reselect(origin) ?? MyLocation;
+        SelectedDestination = Reselect(destination);
 
         OnPropertyChanged(nameof(HasHome));
         OnPropertyChanged(nameof(HasWork));
@@ -705,7 +757,15 @@ public sealed partial class TripPlannerViewModel : ObservableObject
                 if (sinceRefresh >= TimeSpan.FromSeconds(Math.Clamp(_settings.Config.PollingSeconds, 15, 60)))
                 {
                     sinceRefresh = TimeSpan.Zero;
-                    await RefreshAsync(cancellationToken);
+                    try
+                    {
+                        await RefreshAsync(cancellationToken);
+                    }
+                    catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+                    {
+                        // One failed refresh must not stop the countdown; the next interval retries.
+                        _logger.LogWarning(exception, "Trip refresh failed; will retry.");
+                    }
                 }
             }
         }

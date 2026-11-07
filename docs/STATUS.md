@@ -1,4 +1,4 @@
-# BusPulse status (2026-11-03)
+# BusPulse status (2026-11-07)
 
 Start with [HANDOFF.md](HANDOFF.md) for the current handoff. Snapshot of what works, what was verified and how, what is still open, and known edge cases. [PLAN.md](PLAN.md) holds scope and decisions; this file holds the current state.
 
@@ -6,19 +6,19 @@ Start with [HANDOFF.md](HANDOFF.md) for the current handoff. Snapshot of what wo
 
 | Area | Evidence |
 | --- | --- |
-| Build | `dotnet build BusPulse.sln`: 0 errors |
-| Unit tests | 255 passing (`dotnet test --filter "Category!=Live"`) |
+| Build | `dotnet build BusPulse.sln`: 0 errors (2026-11-03); the .NET 10 move on 2026-11-07 is described below |
+| Unit tests | 514 passing on net10.0 as of 2026-11-07 (`dotnet test --filter "Category!=Live"`); not re-run while writing this update |
 | Live probes | 3 passing (`Category=Live`): Curlbus stop 3490, the Stride stop list, and the end-to-end aggregator probe (Curlbus + Stride schedule, stop 3490). The stop list probe needed more than 30 s on a slow day, so the probe timeout was raised |
 | App start | Smoke launch after the latest changes: the window opens and stays up (14 s, no crash events); dependency injection resolves and XAML loads |
 | Stops tab in the running app | A stop was expanded and showed live and scheduled arrivals (2026-11-03) |
 | Destination search by stop name | Typing the hospital name picked "המרכז הרפואי יצחק שמיר, באר יעקב" and planned (no direct trip from the test location) |
 | Window close | Closing the window hides it to the tray; Exit in the tray ends the process |
 | Themes | Dark and light themes checked on screen (`--theme=` launch flag); the app's own brushes follow a Windows theme switch while "system" is selected |
-| Vulnerable packages | `dotnet list package --vulnerable --include-transitive` clean after pinning `System.Drawing.Common` 8.0.10 |
+| Vulnerable packages | `dotnet list package --vulnerable --include-transitive` was clean on 2026-11-03; `System.Drawing.Common` is no longer a package reference on .NET 10. Not re-run for 2026-11-07 |
 
 ## Not verified
 
-- **Not checked on screen:** toast appearance and delivery, the full-screen popup, the tray icon tooltip, the context menus (right-click on stops and lines), the time wheel, Hebrew RTL on every tab, and the "From your calendar" card with a real Google account (the OAuth flow has never run against Google). These need a person at the screen. Do not treat the RTL work as verified.
+- **Superseded by the 2026-11-07 section below:** the popup and toasts were since seen on screen. **Not checked on screen (as of 2026-11-03):** toast appearance and delivery, the full-screen popup, the tray icon tooltip, the context menus (right-click on stops and lines), the time wheel, Hebrew RTL on every tab, and the "From your calendar" card with a real Google account (the OAuth flow has never run against Google). These need a person at the screen. Do not treat the RTL work as verified.
 - **GitHub Actions** has not run yet. The workflow is committed (`.github/workflows/build-test.yml`).
 
 ## Feature status
@@ -27,23 +27,69 @@ Start with [HANDOFF.md](HANDOFF.md) for the current handoff. Snapshot of what wo
 | --- | --- | --- |
 | Tray icon, mute, language and profile menu | Done | Localized (en/he); tooltip shows the next departure of the selected route |
 | Stops tab (nearby, expand, live/scheduled badges) | Done | Expanded in the running app: live and scheduled arrivals shown. The inline pin star sits on the stop line next to the distance |
-| Trip planner: current location as origin, destination, swap, Home/Work, search with history | Done | Origin is always the current location |
-| Trip planner: now / depart at / arrive by, wheel time picker | Done | The picker is not visually verified |
+| Trip planner: origin (current location, saved place or searched address), destination, swap, Home/Work, search with history | Done | Origin search and address search added 2026-11-07 |
+| Trip planner: now / depart at / arrive by, wheel time picker, date selector (up to 60 days) | Done | The picker is not visually verified; dates after today come from the Ministry of Transport feed |
 | Direct trips and regional filtering | Done | Only direct trips; no transfers (see live findings) |
-| Destination search by stop name | Done | Matches saved places first, then local stop names (names starting with the text first, one entry per name and city); no geocoding service. "Find trips" with typed text and no pick uses the best match |
+| Destination search by stop name | Done | Matches saved places first, then local stop names (names starting with the text first, one entry per name and city). Address search is a separate, explicit button (Nominatim, can be switched off). "Find trips" with typed text and no pick uses the best match |
 | Calendar suggestions on the trip planner | Done (untested against Google) | "From your calendar" card lists events whose location matches a saved place; "Plan this trip" sets destination, arrive-by and time. Unit-tested only |
 | Theme picker, WPF-UI design pass | Done | `FluentWindow` with Mica, `IThemeService`, brand header, theme-aware cards; system/light/dark |
 | Window close | Done | Hides to the tray; Exit in the tray ends the app |
 | Time to leave with walking and waiting | Done | `Walking.Estimate` uses a fixed 1.25 m/s with a 25% detour factor |
-| Smart alerts (upcoming, soon, leave now, popup, late, missed) | Done | Logic tested; popup and toast presentation not visually verified |
-| Full-screen red popup | Done (untested visually) | Stays until dismissed; shown once per stage |
-| Settings: language, lead time, refresh interval, notifications on/off, test notification, Home/Work, history clear | Done | |
+| Smart alerts (upcoming, soon, leave now, popup, late, missed) | Done | Logic tested; the popup and the upcoming-stage toast were seen on screen on 2026-11-07, the amber stages were not |
+| Full-screen red popup | Done | Stays until dismissed; shown once per stage; seen on screen 2026-11-07 |
+| Settings: language, lead time, refresh interval, notifications on/off, test notification, Home/Work, places by address or stop code, address-search switch, secrets-source line, history clear | Done | Default lead time is 10 minutes since 2026-11-07 |
 | Lines tab | Done (schedule only) | Pick a line, an origin and a direction; stops listed in calling order with your stop marked |
 | Live vehicle positions on the line | **Not available** | No connected source provides them; the Lines tab says times come from the schedule |
 | Favorites (pin stops and lines) | Done | Stops: pinned first with a star. Lines: quick buttons. Stored in the config, not a separate favorites.json |
 | Keyboard shortcuts | Done | `Ctrl+1..4`, `Ctrl+,`, `F5`, and `Ctrl+F` (opens the planner and focuses the destination search) |
 | Rail provider | Disabled | Needs an official key; see [live-data-probe.md](live-data-probe.md) |
-| Notification delivery on Windows | Wired, unverified | `AlertPresenter` shows toasts and plays sounds; delivery for an unpackaged app depends on AUMID / Start Menu shortcut registration, which is not built. Not seen on screen |
+| Notification delivery on Windows | Wired, partly seen | `AlertPresenter` shows toasts and plays sounds. Toasts appeared on this machine on 2026-11-07; delivery for an unpackaged app on a clean machine still depends on AUMID / Start Menu shortcut registration, which is not built |
+
+## 2026-11-07: .NET 10, address search, future dates
+
+All of this is in local commits (`git log --oneline a136d63..HEAD`); nothing is pushed.
+
+What changed:
+
+- **.NET 10 (LTS to 2028-11-14).** `net10.0-windows10.0.19041.0`, `Microsoft.Extensions.*` 10.0.14, xunit 2.9.3. The `System.Drawing.Common` and `ProtectedData` package references are gone (both are in the framework now). .NET 11 was still a release candidate.
+- **Infisical secret provider** (`Services/Secrets`). Environment variables `BUSPULSE_INFISICAL_CLIENT_ID`, `_CLIENT_SECRET`, `_PROJECT_ID` (and optionally `_ENV`, default `dev`; `_PATH`, default `/`; `_URL`, default `https://app.infisical.com`). It reads `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` and falls back to `BUSPULSE_GOOGLE_*`. Not verified against a live Infisical: there are no credentials, and the fixtures come from the official documentation (v4 read endpoint). The maintainer will fill in the Infisical details later.
+- **Saved places by coordinates.** `SavedPlace` has `Latitude`, `Longitude`, `Address` and `DisplayDetail`; `PlacePoint.Resolve` and `PlacePoint.NearestStop` turn a place into a point and the nearest stop. Old configs still load.
+- **Address search.** `IGeocoder` / `NominatimGeocoder` against the public OpenStreetMap Nominatim server. The maintainer explicitly confirmed the OSM usage policy on 2026-11-07: at most 1 request/s, no search-as-you-type, the typed text is sent to OSM, the location is never sent. The Settings switch `AddressSearchEnabled` turns it off. Attribution is shown, the query text is never logged, addresses are never written to the history file, and background or timer geocoding must never be added.
+- **Settings screen:** add a place by address, address-search switch with a privacy line and attribution, a secrets-source status line, a Google card that says what is missing, and an advanced add-by-stop-code section.
+- **Trip planner screen:** an origin search box, "Search address" buttons for origin and destination, Save place / Save as Home / Save as Work, and a date selector (Today / Tomorrow plus a DatePicker, up to 60 days) for depart-at and arrive-by. `TripTime.Resolve(date, ...)` builds the target; a time that already passed today shows tomorrow's date. The alert text is "Leave in N min: M min walk to <stop> for line X"; a departure 180 minutes or more away shows "Leave at HH:mm" instead of a countdown.
+- **Default alert lead time is 10 minutes** (saved configs keep their own value).
+- **Future dates.** Stride holds no timetable after today (probed empty for tomorrow). The planner now uses the official Ministry of Transport GTFS feed (`https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip`, about 155 MB, about 30 days ahead, no key) through `IFutureScheduleSource` / `GtfsFeedScheduleSource` (`Services/Trips/Gtfs`). Measured by the build agent (not re-measured here): download about 7 s, index build 5-9 s per date, query 8-15 ms, peak about 284-318 MB while building, about 87 MB per day index, at most 2 indexes in memory (dropped after 15 idle minutes). It matched Stride's departures for stop 3490 exactly on one probed window. Statuses: `NoScheduleForDate` (the date is outside the feed, or the feed has no service), `ScheduleUnavailable` (download failed), and a ready feed with no departures nearby is `NoOptions`. Future-date trips are never labelled live. Today still uses Stride + Curlbus. Licence: no explicit open licence was found and the Ministry terms were read only through secondary sources; fine for personal use, re-check before redistributing. Trip ids: the Curlbus `trip_id` matches the feed's; Stride's `journey_ref` has a different date suffix but the same numeric part.
+- **Resilience.** `TransientRetryHandler` (`Infrastructure`) retries GETs on 500/502/503/504/408 and dropped connections (two retries, 0.4 s and 1.5 s) on the two Stride clients (`TransitApi`, `StrideBulk`). One failed per-stop id lookup no longer fails a plan; only all of them failing does. Observed the same day: Stride answered sporadic 500s and a plan failed before this fix.
+- **Second code review:** the 8 findings fixed earlier that day are described below ("Second code review"); not repeated here.
+
+Verified on the real screen (2026-11-07):
+
+- The red full-screen alert popup ("Leave now - line 66 in 7 min!" with the station and a close button).
+- Windows toasts: "Alert added", and the upcoming-stage toast with "N min walk to <stop>".
+- The planner and Settings screens load.
+- Address search against the real Nominatim: a typed address, a result, chosen with Enter, then trip options.
+- Planning for tomorrow from the real feed in the app (options labelled as schedule).
+
+Not verified on screen:
+
+- The amber "soon" and "leave now" toast stages (unit-tested only).
+- The Settings add-place-by-address flow.
+- The tray tooltip and the context menus.
+- Dark theme and right-to-left layout of every new row, and the DatePicker look in the dark theme.
+- A real Google Calendar connection (needs OAuth client credentials).
+- Infisical against a live server.
+- How a reminder set for a future date behaves once that date becomes today (the watched ride's id comes from a different source).
+
+Lessons from bugs found only by running the app:
+
+- An XAML `DatePicker.DisplayDateEnd` bound two-way to a get-only property made the window never open (the "startup failed" message).
+- Two merged branches both defined the same string keys; the localization tests caught it.
+- A mutation check leaves the mutant compiled in `bin`; rebuild after it.
+- Alerts were silent because notifications were muted in the saved settings (the header button reads "Resume alerts" when muted).
+
+Tests: 514 unit tests pass on net10.0. Live probes (`Category=Live`) exist for Curlbus, the Stride stop list, the aggregator, trip-id and ordering, the planner against real services, Nominatim, and the GTFS feed (the last downloads 155 MB). They were not re-run for this update.
+
+Still open: transfers (direct trips only), the maintainer's Infisical details, a Google OAuth client, and the push, which is blocked until the on-screen items above are checked and the maintainer approves (push only verified work).
 
 ## Code review outcome
 
@@ -101,9 +147,9 @@ Still open:
 
 ## Next steps
 
-1. Click through the app with a person at the screen: toasts, popup, tray tooltip, context menus, RTL, time wheel. Record the results here.
-2. Connect a real Google account and check the calendar card (needs the OAuth client from HANDOFF.md).
-3. Add transfers to the planner, or state clearly in the UI that only direct trips are searched.
+1. Click through the app with a person at the screen: the amber toast stages, tray tooltip, context menus, RTL and dark theme of the new rows, DatePicker, time wheel, Settings add-by-address. Record the results here.
+2. Connect a real Google account and check the calendar card (needs the OAuth client from HANDOFF.md, which can now come from Infisical or the environment). Check Infisical against a live project once the maintainer has the details.
+3. Add transfers to the planner (direct trips only today).
 4. Decide on a live vehicle source (Curlbus does not expose one), or keep the Lines tab schedule-only.
 5. Apply for official Ministry of Transport access (see PLAN.md).
 6. AUMID and Start Menu shortcut for toasts, installer.

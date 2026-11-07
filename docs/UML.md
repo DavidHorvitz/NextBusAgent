@@ -1,6 +1,6 @@
 # BusPulse UML
 
-Diagrams are Mermaid, so they render on GitHub and in the VS Code Markdown preview. They reflect the code as of 2026-10-20; members are abbreviated to the ones that matter for understanding the design.
+Diagrams are Mermaid, so they render on GitHub and in the VS Code Markdown preview. Sections 1-4 reflect the code as of 2026-10-20 (section 3 was extended for saved places on 2026-11-07); section 5 reflects 2026-11-07; members are abbreviated to the ones that matter for understanding the design.
 
 ## 1. Presentation layer (MVVM)
 
@@ -244,6 +244,10 @@ classDiagram
         Id
         Name
         StopCode
+        Latitude
+        Longitude
+        Address
+        DisplayDetail
     }
     class SavedPlaceCollection {
         +Items
@@ -318,3 +322,100 @@ sequenceDiagram
     W->>S: IsWindowActive = false
     S->>V: SetActive(false) stops ticker and polling
 ```
+
+## 5. Planner schedule sources, address search, secrets and retry (2026-11-07)
+
+```mermaid
+classDiagram
+    direction LR
+
+    class TripPlannerViewModel
+    class SettingsViewModel
+    class ITripPlannerService {
+        <<interface>>
+        +PlanAsync(request) TripPlan
+    }
+    class TripPlannerService {
+        today: Stride
+        later date: feed
+        NoScheduleForDate
+        ScheduleUnavailable
+    }
+    class IRideScheduleSource {
+        <<interface>>
+        +GetStopDeparturesAsync(stopId, from, to, latestFirst)
+    }
+    class StrideRideScheduleSource {
+        today only
+    }
+    class IFutureScheduleSource {
+        <<interface>>
+        +PrepareAsync(date, progress) FeedAvailability
+        +IsDownloading
+    }
+    class GtfsFeedScheduleSource {
+        day index in memory
+        max 2 indexes
+        dropped after 15 idle min
+        never live
+    }
+    class GtfsFeedStore {
+        gtfs.mot.gov.il zip
+        cache refreshed daily
+        400 MB cap
+    }
+    class IGeocoder {
+        <<interface>>
+        +SearchAsync(query) GeocodeResult
+    }
+    class NominatimGeocoder {
+        1 request per second
+        24 h cache
+        explicit search only
+        query never logged
+    }
+    class ISecretProvider {
+        <<interface>>
+        +GetAsync(name) string
+        +Describe
+    }
+    class ChainedSecretProvider
+    class InfisicalSecretProvider {
+        BUSPULSE_INFISICAL_*
+        only when configured
+    }
+    class EnvironmentSecretProvider {
+        BUSPULSE_NAME
+    }
+    class GoogleCalendarService
+    class TransientRetryHandler {
+        <<DelegatingHandler>>
+        GET only
+        2 retries on 500 502 503 504 408
+    }
+    class StrideHttpClients {
+        TransitApi 45 s
+        StrideBulk 120 s
+    }
+
+    TripPlannerViewModel --> ITripPlannerService
+    TripPlannerViewModel --> IGeocoder
+    SettingsViewModel --> IGeocoder
+    SettingsViewModel --> ISecretProvider : status line
+    ITripPlannerService <|.. TripPlannerService
+    TripPlannerService --> IRideScheduleSource : today
+    TripPlannerService --> IFutureScheduleSource : later dates
+    IRideScheduleSource <|.. StrideRideScheduleSource
+    IRideScheduleSource <|-- IFutureScheduleSource
+    IFutureScheduleSource <|.. GtfsFeedScheduleSource
+    GtfsFeedScheduleSource --> GtfsFeedStore
+    IGeocoder <|.. NominatimGeocoder
+    ISecretProvider <|.. ChainedSecretProvider
+    ChainedSecretProvider --> InfisicalSecretProvider : first
+    ChainedSecretProvider --> EnvironmentSecretProvider : fallback
+    GoogleCalendarService --> ISecretProvider
+    StrideHttpClients --> TransientRetryHandler
+    StrideRideScheduleSource ..> StrideHttpClients
+```
+
+`StrideHttpClients` is a label for the two named `HttpClient` registrations in `Program.BuildHost`, not a class.

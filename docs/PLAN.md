@@ -1,6 +1,6 @@
 # BusPulse Plan
 
-Single source of truth for scope, decisions, status and next steps. It merges the original agent brief, the follow-up brief and the four-workstream execution plan. Status is as of 2026-11-03 (`dotnet build`: 0 errors; 255 unit tests and 3 live probes pass). Supporting documents: [audit.md](audit.md) (requirement-by-requirement audit), [live-data-probe.md](live-data-probe.md) (measured provider behavior), [assets.md](assets.md) (icon and audio specs), [UML.md](UML.md) (class and sequence diagrams), [planner-upgrade-prework.md](planner-upgrade-prework.md) (decisions needed before the planner gets dates, origin search, saved places and address search; written in Hebrew), [../SECURITY.md](../SECURITY.md).
+Single source of truth for scope, decisions, status and next steps. It merges the original agent brief, the follow-up brief and the four-workstream execution plan. Status is as of 2026-11-07 (514 unit tests passed on net10.0; live probes are run by hand and were not re-run for this update). Supporting documents: [audit.md](audit.md) (requirement-by-requirement audit), [live-data-probe.md](live-data-probe.md) (measured provider behavior), [assets.md](assets.md) (icon and audio specs), [UML.md](UML.md) (class and sequence diagrams), [planner-upgrade-prework.md](planner-upgrade-prework.md) (decisions needed before the planner gets dates, origin search, saved places and address search; written in Hebrew), [../SECURITY.md](../SECURITY.md).
 
 ## 1. Product
 
@@ -14,9 +14,13 @@ Non-negotiables: **secure**, **interactive**, **real live data**. Nothing schedu
 - **CI:** GitHub-hosted `windows-latest`. No self-hosted runner. Done.
 - **Primary live source:** Curlbus (unofficial, no SLA). The public Stride SIRI feed is stale (last real snapshot 2026-03-19, with impossible dates such as 2036/2038) and is not used as live data. Stride GTFS static data is current and serves as the schedule fallback.
 - **Israel Railways:** keep the provider disabled until an official API key is supplied through configuration (`RailApiKey`). The key embedded in rail.co.il's public JavaScript, used by the `israel-rail-api` package, is deliberately not used: Israel Railways states that access to its internal interfaces requires a dedicated key and has threatened legal action against a third-party app that used them. No public, official key-request process was found (searched 2026-10-20). The recommended route is the Ministry of Transport data channel (GTFS and real-time SIRI via the gov.il application, which needs an approved request and a static-IP whitelist), or a direct request to Israel Railways. Until then, trains show the GTFS schedule only.
-- **Location:** Windows Location API only. No IP-based fallback (it would send the user's IP to a third party). The user can anchor the search on a saved place instead.
+- **Location:** Windows Location API only. No IP-based fallback (it would send the user's IP to a third party). The user can anchor the search on a saved place, which may be defined by coordinates (from an address search) instead of a stop code.
 - **Installers:** local installers such as `docs/Claude Setup.exe` are git-ignored.
 - **Ministry of Transport SIRI-SM:** implement behind configuration only, disabled by default. Access needs an approved application and a static-IP whitelist, so it realistically needs a small proxy server.
+- **Runtime:** .NET 10 (`net10.0-windows10.0.19041.0`), an LTS release supported to 2028-11-14; .NET 11 was still a release candidate on 2026-11-07. Moved on 2026-11-07 together with `Microsoft.Extensions.*` 10.0.14 and xunit 2.9.3; the `System.Drawing.Common` and `ProtectedData` package references were removed because the framework provides them.
+- **Address search:** OpenStreetMap Nominatim (`NominatimGeocoder`, public server), approved by the maintainer on 2026-11-07 after reading the OSM usage policy. Rules: at most 1 request per second, only on an explicit Search or Enter (never search-as-you-type, never from a timer or in the background), the typed text is sent to OSM, the device location is never sent, the query text is never logged, addresses never go into the history file, attribution "© OpenStreetMap contributors" is shown, and the Settings switch `AddressSearchEnabled` turns it off.
+- **Future dates:** Stride holds no timetable after today (probed empty for tomorrow), so trips for later dates (up to 60 days, the feed itself covers about 30) are planned from the official Ministry of Transport GTFS feed (`https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip`, about 155 MB, no key) via `IFutureScheduleSource` / `GtfsFeedScheduleSource`. Schedule only: such trips are never labelled live. Today still uses Stride + Curlbus. No explicit open licence was found (terms read only via secondary sources): fine for personal use, re-check before redistributing.
+- **Secrets:** Google OAuth client id and secret come from `ISecretProvider`: Infisical when `BUSPULSE_INFISICAL_*` is configured (Machine Identity, read-only, one project), then the `BUSPULSE_GOOGLE_*` environment variables. Written against the official Infisical documentation, not yet verified against a live Infisical; the maintainer will supply the details.
 - **Audience:** personal use only (one user, one machine), as stated by the maintainer on 2026-11-03. It keeps quota, cost, key-distribution and consent questions small (see [planner-upgrade-prework.md](planner-upgrade-prework.md)); it does not relax the rules for untrusted external data and secrets.
 
 ## 3. Working rules
@@ -37,7 +41,7 @@ Legend: Done, Partial, Open.
 | --- | --- | --- |
 | Views and ViewModels: Shell, Stops, TripPlanner, Lines, Settings | Done | CommunityToolkit.Mvvm; `MainWindow.xaml.cs` is wiring only. Lines tab lists ordered stops; `ThemeService` and WPF-UI `FluentWindow` added |
 | Generic Host DI, configuration, logging, `IHttpClientFactory` | Done | `Program.cs` |
-| Interfaces: `ILocationService`, `IStopCatalog` (planned name `IStaticGtfsService`), `ILiveArrivalsProvider`, `ILiveDataAggregator`, `ISettingsService`, `IClock`, `IDispatcher`, `ILocalizer`, `IScheduleProvider` | Done | |
+| Interfaces: `ILocationService`, `IStopCatalog` (planned name `IStaticGtfsService`), `ILiveArrivalsProvider`, `ILiveDataAggregator`, `ISettingsService`, `IClock`, `IDispatcher`, `ILocalizer`, `IScheduleProvider`, `IGeocoder`, `ISecretProvider`, `IFutureScheduleSource` | Done | The last three were added on 2026-11-07 |
 | `ITrainProvider`, `ITripPlannerService`, `IDisruptionService`, `IHistoryService` | Open | `RailProvider` implements `ILiveArrivalsProvider` for now |
 | Single UI-thread marshalling abstraction | Done | `IDispatcher` |
 
@@ -50,7 +54,7 @@ Legend: Done, Partial, Open.
 | `RailProvider` | Partial | Disabled stub; real client needs an official key |
 | `StrideSiriProvider` (use only if newest snapshot is under 5 minutes old) | Open | Not built; the feed is currently stale |
 | `MotSiriProvider` (config only) and `docs/live-data.md` | Open | |
-| Schedule fallback from Stride GTFS | Partial | Per-stop schedule works; stop catalog cached daily; schedule rows themselves are not cached |
+| Schedule fallback from Stride GTFS | Partial | Per-stop schedule works; stop catalog cached daily; schedule rows themselves are not cached. Dates after today come from the Ministry of Transport feed (planner only) |
 | `LiveDataAggregator` (freshest valid per line, priority tie-break, schedule merge, rejects invalid data, every ETA carries `Source`, `IsLive`, `ObservedAt`) | Done | |
 | Poll 15-30 s only while the view is visible; pause when minimized or idle/locked | Partial | 25 s while the Stops tab is visible and the window is not minimized; idle/lock detection open |
 | Connection probe with backoff (max about 5 attempts) from Settings, per-provider status | Partial | Single probe per provider, no retry loop yet |
@@ -62,11 +66,11 @@ Legend: Done, Partial, Open.
 | Item | Status | Notes |
 | --- | --- | --- |
 | HTTPS only, OS-default TLS, validation on, one client per provider, timeouts, size caps | Done | |
-| No secrets in repo; DPAPI for runtime secrets; user-secrets for development | Done | Settings file is DPAPI-encrypted |
+| No secrets in repo; DPAPI for runtime secrets; user-secrets for development | Done | Settings file is DPAPI-encrypted. Google client id and secret come from Infisical or environment variables (`ISecretProvider`); Infisical is not verified live |
 | Strict typed parsing, range validation, length caps | Done | |
 | Privacy: local-only data, redacted coordinates, history cap, "clear history" | Partial | No history store exists yet; location is never stored or logged |
 | Dependencies pinned; vulnerable-package check in CI | Done | Fixed a critical transitive `System.Drawing.Common 4.7.0` |
-| `Microsoft.Extensions.Http.Resilience` (Polly) | Open | Curlbus has its own breaker; adopt Polly for the rest |
+| `Microsoft.Extensions.Http.Resilience` (Polly) | Partial | Curlbus has its own breaker; the Stride clients use `TransientRetryHandler` (two retries on 500/502/503/504/408 and dropped connections, GET only). Polly is not adopted |
 | Background-loop exceptions caught, logged and shown as UI state | Partial | Stops tab does; poller logs only |
 | Toasts contain only line, stop and time | Open | Toast delivery not wired |
 | `SECURITY.md` | Done | |
@@ -81,11 +85,11 @@ General rules for every tab: in-place updates without flicker, ETAs counting dow
 | Shortcuts: `Ctrl+1..4`, `F5`, `Ctrl+,`, `Ctrl+F` | Done | |
 | **Stops tab:** loads on entry, sorted by distance, name/code/distance only, expands to arrivals with "live"/"scheduled" badge, source and freshness tooltip, countdown in place, stale data greyed after 2 minutes | Done | |
 | Location accuracy shown, saved-place override, how-to message when permission is off | Done | |
-| Address search, "approximate location" label | Open | IP fallback intentionally excluded |
+| Address search | Done | Nominatim, explicit Search only, can be switched off; adding a place by address in Settings is not yet checked on screen. IP fallback intentionally excluded |
 | Debounced search, favorites | Done | Context menu added; not checked on screen |
-| **Trip planner:** origin/destination/line check against the aggregator | Done (direct trips only) | Current location as origin, swap, Home/Work, history, destination search by saved place or any stop name (local), now / depart at / arrive by with wheel picker, regional filtering, direction arrow, time-to-leave and alerts, calendar suggestions card. No transfers |
+| **Trip planner:** origin/destination/line check against the aggregator | Done (direct trips only) | Origin is the current location, a saved place or a searched address; swap, Home/Work, Save place, history, destination search by saved place, any stop name (local) or address, now / depart at / arrive by with wheel picker and a date selector (up to 60 days; later dates from the Ministry of Transport feed), regional filtering, direction arrow, time-to-leave and alerts, calendar suggestions card. No transfers |
 | **Lines tab:** line and direction picker, ordered stops | Done | Schedule only; live vehicles are not available from any connected source |
-| **Settings:** places, provider status | Done | Home/Work, refresh interval, lead time, theme picker (system/light/dark), clear history and favorites, Google Calendar connect |
+| **Settings:** places, provider status | Done | Home/Work, places by address or stop code, address-search switch, secrets-source line, refresh interval, lead time (default 10 min), theme picker (system/light/dark), clear history and favorites, Google Calendar connect |
 | Tray tooltip with next departure; optional always-on-top mini window | Partial | Tray icon states, mute and tooltip done (tooltip not checked on screen); mini window open. Window close hides to the tray |
 | Google Calendar read-only connection and trip suggestions | Done | Needs an OAuth client from the maintainer; never run against Google |
 | Code review of `ed3e254..314215b` | Done | Findings fixed; see STATUS.md |
@@ -120,12 +124,12 @@ Integration order: confirm schemas against reachable endpoints (done), replace p
 
 ## 6. Next steps (in order)
 
-Planner upgrade (dates, origin search, saved places, address search): prepared, waiting for the decisions in [planner-upgrade-prework.md](planner-upgrade-prework.md). The Stride API holds no timetable for future dates (checked 2026-11-03), so "tomorrow" needs another schedule source.
+Planner upgrade (dates, origin search, saved places, address search): built on 2026-11-07 (see [planner-upgrade-prework.md](planner-upgrade-prework.md) for the original questions). Future dates use the Ministry of Transport feed because Stride holds no timetable after today (checked 2026-11-03 and 2026-11-07).
 
-1. On-screen checks of toasts, the full-screen popup, the tray tooltip and context menus; then push and run the workflow on GitHub (gitleaks, vulnerable-package check).
-2. Real Google Calendar connection test (needs the OAuth client).
+1. Remaining on-screen checks (amber toast stages, tray tooltip, context menus, dark theme and RTL of the new rows, DatePicker, Settings add-by-address; the popup and the upcoming toast were seen on 2026-11-07); then, with the maintainer's approval, push and run the workflow on GitHub (gitleaks, vulnerable-package check).
+2. Real Google Calendar connection test (needs the OAuth client, from the environment or Infisical), and an Infisical test once the maintainer supplies the details. Also check how a reminder set for a future date behaves when that date becomes today.
 3. Transfers in the planner (only direct trips today).
-4. Replace the single connection probe with retry plus exponential backoff, adopt `Microsoft.Extensions.Http.Resilience`, and pause polling when the machine is idle or locked.
+4. Replace the single connection probe with retry plus exponential backoff, consider `Microsoft.Extensions.Http.Resilience` in place of `TransientRetryHandler`, and pause polling when the machine is idle or locked.
 5. Official data access (maintainer action): apply for Ministry of Transport SIRI access, which also gives an official live bus source to replace Curlbus, and optionally contact Israel Railways. Then implement the rail client, the disruptions provider, `StrideSiriProvider` and the config-only `MotSiriProvider` with `docs/live-data.md`.
 6. Design polish (Phase 5): Hebrew font, states, motion, accessibility.
 7. Packaging: per-user installer, AUMID and Start Menu shortcut for toasts, signing.

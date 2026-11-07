@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using BusPulse.Configuration;
+using BusPulse.Services.Secrets;
 using Microsoft.Extensions.Logging;
 
 namespace BusPulse.Services.Calendar;
@@ -24,7 +25,11 @@ public sealed record CalendarConnectResult(CalendarConnectStatus Status, string?
 /// <summary>Connects a read-only Google Calendar. The UI uses this interface so the view model can be tested without Google.</summary>
 public interface ICalendarService
 {
+    /// <summary>Whether a Google client id and secret were found (last resolved value; see <see cref="RefreshConfigurationAsync"/>).</summary>
     bool IsConfigured { get; }
+
+    /// <summary>Looks the Google client id and secret up again (Infisical, then environment) and returns whether both exist.</summary>
+    Task<bool> RefreshConfigurationAsync(CancellationToken cancellationToken = default) => Task.FromResult(IsConfigured);
 
     bool IsConnected { get; }
 
@@ -42,6 +47,7 @@ public interface ICalendarService
 /// </summary>
 public sealed class GoogleCalendarService(
     AppConfig config,
+    ISecretProvider secrets,
     IHttpClientFactory httpClientFactory,
     CalendarTokenStore tokens,
     ILogger<GoogleCalendarService> logger) : ICalendarService
@@ -49,21 +55,39 @@ public sealed class GoogleCalendarService(
     public const string ClientName = "Google";
     private static readonly TimeSpan ConsentTimeout = TimeSpan.FromMinutes(3);
 
-    /// <summary>Environment variables win over the config so the client can be set without touching the settings file.</summary>
-    public const string ClientIdVariable = "BUSPULSE_GOOGLE_CLIENT_ID";
-    public const string ClientSecretVariable = "BUSPULSE_GOOGLE_CLIENT_SECRET";
+    private string? _clientId;
+    private string? _clientSecret;
+    private bool _resolved;
 
-    private string? ClientId => Environment.GetEnvironmentVariable(ClientIdVariable) is { Length: > 0 } fromEnv ? fromEnv : config.GoogleClientId;
+    /// <summary>
+    /// Secrets come from <see cref="ISecretProvider"/> (Infisical, then <c>BUSPULSE_GOOGLE_CLIENT_ID</c> / <c>BUSPULSE_GOOGLE_CLIENT_SECRET</c>);
+    /// the config is the last resort. Before the first lookup this answers from the environment and config only.
+    /// </summary>
+    public bool IsConfigured => _resolved
+        ? !string.IsNullOrWhiteSpace(_clientId) && !string.IsNullOrWhiteSpace(_clientSecret)
+        : !string.IsNullOrWhiteSpace(EnvironmentOrConfig(SecretNames.GoogleClientId, config.GoogleClientId)) &&
+          !string.IsNullOrWhiteSpace(EnvironmentOrConfig(SecretNames.GoogleClientSecret, config.GoogleClientSecret));
 
-    private string? ClientSecret => Environment.GetEnvironmentVariable(ClientSecretVariable) is { Length: > 0 } fromEnv ? fromEnv : config.GoogleClientSecret;
+    private static string? EnvironmentOrConfig(string name, string? fromConfig) =>
+        Environment.GetEnvironmentVariable(EnvironmentSecretProvider.Prefix + name) is { Length: > 0 } fromEnv ? fromEnv : fromConfig;
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(ClientId) && !string.IsNullOrWhiteSpace(ClientSecret);
+    public async Task<bool> RefreshConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        _clientId = await secrets.GetAsync(SecretNames.GoogleClientId, cancellationToken) ?? config.GoogleClientId;
+        _clientSecret = await secrets.GetAsync(SecretNames.GoogleClientSecret, cancellationToken) ?? config.GoogleClientSecret;
+        _resolved = true;
+        return IsConfigured;
+    }
+
+    private string? ClientId => _clientId;
+
+    private string? ClientSecret => _clientSecret;
 
     public bool IsConnected => tokens.Exists;
 
     public async Task<CalendarConnectResult> ConnectAsync(CancellationToken cancellationToken = default)
     {
-        if (!IsConfigured)
+        if (!await RefreshConfigurationAsync(cancellationToken))
         {
             return new CalendarConnectResult(CalendarConnectStatus.NotConfigured);
         }

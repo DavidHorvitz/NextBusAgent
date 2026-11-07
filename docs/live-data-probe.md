@@ -44,3 +44,13 @@ So alternative-level data is unavailable upstream. The Lines tab must use the St
 - Curlbus trip ids and Stride journey refs share the format `<number>_<ddMMyy>`. They matched on 2026-10-20, but on 2026-11-03 none matched: Stride refs had the suffix `_021126` and different numbers (line 3: Stride 53263877 and 58106769, Curlbus 53264001_031126). Each source names trips from its own GTFS feed version, so the app matches by trip ref only when some live id equals a journey ref, and otherwise falls back to the closest scheduled time on the same line.
 - Stride `order_by=arrival_time desc` works (verified by a live probe); arrive-by uses it to get the latest departures first.
 - Curlbus needs the header `Accept: application/json`; a plain request returned non-JSON.
+
+## Infisical (not yet probed live)
+
+No Infisical credentials existed when this provider was written, so nothing here was observed against a live service. The shapes come from the official API reference (checked on 2026-11-07) and the test fixtures say the same.
+
+- Login: `POST {url}/api/v1/auth/universal-auth/login` with JSON `clientId` and `clientSecret` returns `accessToken`, `expiresIn` (seconds), `accessTokenMaxTTL`, `tokenType` ("Bearer").
+- Read: `GET {url}/api/v4/secrets/{secretName}?projectId=&environment=&secretPath=` with `Authorization: Bearer <accessToken>` returns `{ "secret": { "secretKey", "secretValue", ... } }`. The older `/api/v3/secrets/raw/{name}` with `workspaceId` is not used; the current reference documents v4 with `projectId`.
+- Errors (400, 401, 403, 404, 422, 500) return JSON with `reqId`, `statusCode`, `message`, `error`; the app only looks at the status code.
+
+Run a real probe once the maintainer has set `BUSPULSE_INFISICAL_*` and record the result here.

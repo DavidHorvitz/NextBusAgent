@@ -20,12 +20,17 @@ Your device location is read through the Windows Location API only to sort nearb
 | `curlbus.app` | Live bus arrivals (unofficial community service) | A stop code, and a descriptive `User-Agent` |
 | `open-bus-stride-api.hasadna.org.il` | GTFS static stops and scheduled arrivals | A date, a stop code or id, and a time window |
 | `accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com` | Optional Google Calendar connection (sign-in, token exchange, event list) | OAuth requests with your consent, read-only scope `calendar.events.readonly`. Nothing else from the app is sent |
+| The configured Infisical URL (default `app.infisical.com`) | Optional secrets lookup for the Google client id and secret | The Machine Identity client id and secret (login), then the secret name, project id, environment and path. Only if `BUSPULSE_INFISICAL_*` is set |
 
 Both are HTTPS only, use the operating system's default TLS (1.2 or later) with certificate validation always on, have redirects disabled, response size caps, and timeouts of 45 seconds (120 seconds for the stop list download, because the Stride API can take 10-50 seconds per request). Israel Railways and the Ministry of Transport feeds are not contacted; they stay disabled until an official key or endpoint is configured.
 
 ## Google Calendar
 
 The connection is off until you click Connect in Settings. It uses the OAuth installed-app flow in your browser with a loopback listener and requests only the read-only scope `calendar.events.readonly`. The refresh token is stored with DPAPI in `%LOCALAPPDATA%\BusPulse\calendar.dpapi`. The OAuth client id and secret are read from the environment variables `BUSPULSE_GOOGLE_CLIENT_ID` and `BUSPULSE_GOOGLE_CLIENT_SECRET` and are never committed. Event locations are matched to your saved places on this machine and are never sent anywhere else.
+
+## Secrets source
+
+The Google client id and secret are read through a secret provider: Infisical first (when configured), then the environment variables `BUSPULSE_GOOGLE_CLIENT_ID` and `BUSPULSE_GOOGLE_CLIENT_SECRET`. Infisical is configured only by environment variables (`BUSPULSE_INFISICAL_CLIENT_ID`, `BUSPULSE_INFISICAL_CLIENT_SECRET`, `BUSPULSE_INFISICAL_PROJECT_ID`, and optionally `BUSPULSE_INFISICAL_ENV`, `BUSPULSE_INFISICAL_PATH`, `BUSPULSE_INFISICAL_URL`); give the Machine Identity read-only access to a single project. Requests go to the configured HTTPS host only, with redirects off, a 15 second timeout, a 64 KB response cap and strict JSON parsing. The access token is held in memory until shortly before it expires and secret values are cached in memory for 10 minutes; nothing is written to disk. Secret values, tokens and the client secret are never logged (only the secret name and an HTTP status). A failure or a missing secret in Infisical falls back to the environment variables.
 
 ## Destination search
 

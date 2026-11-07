@@ -4,7 +4,9 @@ using BusPulse.Configuration;
 using BusPulse.Infrastructure;
 using BusPulse.Services;
 using BusPulse.Services.Calendar;
+using BusPulse.Services.Geocoding;
 using BusPulse.Services.LiveData;
+using BusPulse.Services.Secrets;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -30,6 +32,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public static readonly int[] PollingSecondsOptions = [15, 20, 30];
 
+    /// <summary>Same cap as the config validation.</summary>
+    public const int MaxSavedPlaces = 30;
+
     private readonly ISettingsService _settings;
     private readonly SavedPlaceCollection _places;
     private readonly ILocalizer _localizer;
@@ -38,6 +43,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IHistoryService _history;
     private readonly INotifier _notifier;
     private readonly ICalendarService _calendar;
+    private readonly IGeocoder? _geocoder;
+    private readonly ISecretProvider? _secrets;
+    private string _suggestedAddressName = string.Empty;
     private string? _calendarStatusKey;
     private bool _loading = true;
     private string _defaultPlaceName = string.Empty;
@@ -113,6 +121,42 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _saveStatus = string.Empty;
 
+    [ObservableProperty]
+    private string _addressQuery = string.Empty;
+
+    [ObservableProperty]
+    private GeocodedPlace? _selectedAddress;
+
+    [ObservableProperty]
+    private string _newAddressPlaceName = string.Empty;
+
+    [ObservableProperty]
+    private string _addressStatus = string.Empty;
+
+    [ObservableProperty]
+    private bool _isSearchingAddress;
+
+    [ObservableProperty]
+    private bool _addressSearchEnabled;
+
+    /// <summary>Up to <see cref="NominatimGeocoder.MaxResults"/> labels from the last address search.</summary>
+    public ObservableCollection<GeocodedPlace> AddressResults { get; } = [];
+
+    public string AddressAttribution => NominatimGeocoder.Attribution;
+
+    /// <summary>Where the Google client id and secret come from, in words.</summary>
+    public string SecretsSourceStatus
+    {
+        get
+        {
+            var describe = _secrets?.Describe ?? string.Empty;
+            var key = describe.Length == 0 || describe.Contains("not configured", StringComparison.OrdinalIgnoreCase)
+                ? "SecretsSourceNone"
+                : describe.StartsWith("Infisical", StringComparison.OrdinalIgnoreCase) ? "SecretsSourceInfisical" : "SecretsSourceEnvironment";
+            return _localizer.Get(key);
+        }
+    }
+
     public SettingsViewModel(
         ISettingsService settings,
         SavedPlaceCollection places,
@@ -121,9 +165,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         IScheduleProvider schedule,
         IHistoryService history,
         INotifier notifier,
-        ICalendarService calendar)
+        ICalendarService calendar,
+        IGeocoder? geocoder = null,
+        ISecretProvider? secrets = null)
     {
         _settings = settings;
+        _geocoder = geocoder;
+        _secrets = secrets;
         _calendar = calendar;
         _isCalendarConnected = calendar.IsConnected;
         _places = places;
@@ -146,6 +194,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         };
         var config = settings.Config;
         _notificationsEnabled = !config.NotificationsMuted;
+        _addressSearchEnabled = config.AddressSearchEnabled;
+        localizer.LanguageChanged += (_, _) => OnPropertyChanged(nameof(SecretsSourceStatus));
         _selectedLeadMinutes = Nearest(LeadMinutesOptions, config.LeadMinutes);
         _selectedPollingSeconds = Nearest(PollingSecondsOptions, config.PollingSeconds);
         _homePlace = places.Items.FirstOrDefault(place => place.Id == config.HomePlaceId);
@@ -361,32 +411,149 @@ public sealed partial class SettingsViewModel : ObservableObject
         HistoryStatus = _localizer.Get("HistoryCleared");
     }
 
+    partial void OnAddressSearchEnabledChanged(bool value)
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        _settings.Config.AddressSearchEnabled = value;
+        _ = PersistAsync();
+    }
+
+    /// <summary>Runs one address lookup. Only the button and Enter call this; typing never does.</summary>
+    [RelayCommand]
+    private async Task SearchAddressAsync(CancellationToken cancellationToken)
+    {
+        var query = AddressQuery.Trim();
+        if (!_settings.Config.AddressSearchEnabled)
+        {
+            AddressStatus = _localizer.Get("AddressSearchOff");
+            return;
+        }
+
+        if (_geocoder is null)
+        {
+            AddressStatus = _localizer.Get("AddressUnavailable");
+            return;
+        }
+
+        if (query.Length < NominatimGeocoder.MinQueryLength)
+        {
+            AddressStatus = _localizer.Get("AddressTooShort");
+            return;
+        }
+
+        IsSearchingAddress = true;
+        AddressStatus = _localizer.Get("AddressSearching");
+        try
+        {
+            var result = await _geocoder.SearchAsync(query, cancellationToken);
+            AddressResults.Clear();
+            SelectedAddress = null;
+            if (result.Status == GeocodeStatus.Ok && result.Places.Count > 0)
+            {
+                foreach (var found in result.Places.Take(NominatimGeocoder.MaxResults))
+                {
+                    AddressResults.Add(found);
+                }
+
+                SelectedAddress = AddressResults[0];
+                var suggestion = Truncate(AddressResults[0].Label, 64);
+                if (NewAddressPlaceName.Length == 0 || NewAddressPlaceName == _suggestedAddressName)
+                {
+                    NewAddressPlaceName = suggestion;
+                }
+
+                _suggestedAddressName = suggestion;
+                AddressStatus = string.Empty;
+                return;
+            }
+
+            AddressStatus = _localizer.Get(result.Status switch
+            {
+                GeocodeStatus.Disabled => "AddressSearchOff",
+                GeocodeStatus.TooShort => "AddressTooShort",
+                GeocodeStatus.NoResults or GeocodeStatus.Ok => "AddressNoResults",
+                _ => "AddressUnavailable"
+            });
+        }
+        finally
+        {
+            IsSearchingAddress = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task AddAddressPlaceAsync()
+    {
+        if (SelectedAddress is not { } address)
+        {
+            AddressStatus = _localizer.Get("AddressPickFirst");
+            return;
+        }
+
+        var place = new SavedPlace
+        {
+            Name = NewAddressPlaceName.Trim(),
+            Latitude = address.Latitude,
+            Longitude = address.Longitude,
+            Address = Truncate(address.Label, 200)
+        };
+        var (message, stored) = await TryAddPlaceAsync(place);
+        AddressStatus = message;
+        if (stored)
+        {
+            AddressResults.Clear();
+            SelectedAddress = null;
+            AddressQuery = string.Empty;
+            NewAddressPlaceName = string.Empty;
+            _suggestedAddressName = string.Empty;
+        }
+    }
+
     [RelayCommand]
     private async Task AddPlaceAsync()
     {
         var place = new SavedPlace { Name = NewPlaceName.Trim(), StopCode = NewPlaceStopCode.Trim() };
+        var (message, stored) = await TryAddPlaceAsync(place);
+        PlaceStatus = message;
+        if (stored)
+        {
+            NewPlaceStopCode = string.Empty;
+            NewPlaceName = _localizer.Get("HomeName");
+        }
+    }
+
+    /// <summary>Validates and stores a place; returns the localized status message and whether the place was added.</summary>
+    private async Task<(string Message, bool Stored)> TryAddPlaceAsync(SavedPlace place)
+    {
         try
         {
             place.Validate();
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidDataException)
         {
-            PlaceStatus = _localizer.Get("InvalidPlaceMessage");
-            return;
+            return (_localizer.Get("InvalidPlaceMessage"), false);
         }
 
         if (Places.Any(existing => string.Equals(existing.Name, place.Name, StringComparison.OrdinalIgnoreCase)))
         {
-            PlaceStatus = _localizer.Get("PlaceAlreadyExists");
-            return;
+            return (_localizer.Get("PlaceAlreadyExists"), false);
+        }
+
+        if (Places.Count >= MaxSavedPlaces)
+        {
+            return (_localizer.Get("PlaceLimitReached"), false);
         }
 
         Places.Add(place);
         _places.SyncToConfig();
-        PlaceStatus = await _settings.SaveAsync() ? _localizer.Get("PlaceSaved") : _localizer.Get("PlaceSaveFailed");
-        NewPlaceStopCode = string.Empty;
-        NewPlaceName = _localizer.Get("HomeName");
+        return (await _settings.SaveAsync() ? _localizer.Get("PlaceSaved") : _localizer.Get("PlaceSaveFailed"), true);
     }
+
+    private static string Truncate(string value, int length) => value.Length <= length ? value : value[..length];
 
     [RelayCommand]
     private async Task CheckConnectionAsync(CancellationToken cancellationToken)

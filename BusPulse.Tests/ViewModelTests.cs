@@ -134,11 +134,11 @@ public sealed class ShellAndSettingsTests
     }
 
     [Fact]
-    public void Settings_ShippedDefaults_AreFiveMinutesAndTwentySeconds()
+    public void Settings_ShippedDefaults_AreTenMinutesAndTwentySeconds()
     {
         var config = new AppConfig();
 
-        Assert.Equal(5, config.LeadMinutes);
+        Assert.Equal(10, config.LeadMinutes);
         Assert.Equal(20, config.PollingSeconds);
         config.Validate();
     }
@@ -148,10 +148,10 @@ public sealed class ShellAndSettingsTests
     {
         var f = new Fixture();
 
-        f.SettingsTab.SelectedLeadMinutes = 10;
+        f.SettingsTab.SelectedLeadMinutes = 15;
         f.SettingsTab.SelectedPollingSeconds = 15;
 
-        Assert.Equal(10, f.Settings.Config.LeadMinutes);
+        Assert.Equal(15, f.Settings.Config.LeadMinutes);
         Assert.Equal(15, f.Settings.Config.PollingSeconds);
         Assert.Equal(2, f.Settings.SaveCount);
     }
@@ -395,7 +395,7 @@ public sealed class ShellAndSettingsTests
         var f = new Fixture();
         f.Settings.SaveSucceeds = false;
 
-        f.SettingsTab.SelectedLeadMinutes = 10;
+        f.SettingsTab.SelectedLeadMinutes = 15;
         await Task.Delay(20);
 
         Assert.Equal("SettingsSaveFailed", f.SettingsTab.SaveStatus);

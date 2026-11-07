@@ -19,7 +19,7 @@ public sealed class AppConfig
     public int PollingSeconds { get; set; } = 20;
 
     /// <summary>Minutes before the leave-by time at which a departure reminder fires (0-15).</summary>
-    public int LeadMinutes { get; set; } = 5;
+    public int LeadMinutes { get; set; } = 10;
 
     /// <summary>Minutes to be at the stop before the bus is due (0-15).</summary>
     public int BufferMinutes { get; set; } = 1;

@@ -79,6 +79,10 @@ public sealed class GoogleCalendarService(
         return IsConfigured;
     }
 
+    /// <summary>Resolves the client id and secret when that has not happened yet; false when they are still missing.</summary>
+    private async Task<bool> EnsureConfiguredAsync(CancellationToken cancellationToken) =>
+        _resolved ? IsConfigured : await RefreshConfigurationAsync(cancellationToken);
+
     private string? ClientId => _clientId;
 
     private string? ClientSecret => _clientSecret;
@@ -172,6 +176,11 @@ public sealed class GoogleCalendarService(
             return [];
         }
 
+        if (!await EnsureConfiguredAsync(cancellationToken))
+        {
+            return [];
+        }
+
         var token = await ExchangeAsync(
             new Dictionary<string, string> { ["refresh_token"] = refresh, ["grant_type"] = "refresh_token" },
             cancellationToken);
@@ -201,6 +210,11 @@ public sealed class GoogleCalendarService(
 
     private async Task<TokenResult> ExchangeAsync(Dictionary<string, string> fields, CancellationToken cancellationToken)
     {
+        if (!await EnsureConfiguredAsync(cancellationToken))
+        {
+            return new TokenResult(null, null, 0, "not_configured");
+        }
+
         var client = httpClientFactory.CreateClient(ClientName);
         fields["client_id"] = ClientId!;
         fields["client_secret"] = ClientSecret!;
@@ -233,8 +247,14 @@ public sealed class GoogleCalendarService(
 public sealed class CalendarTokenStore
 {
     private static readonly byte[] Entropy = "BusPulse.Calendar.v1"u8.ToArray();
-    private readonly string _path = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BusPulse", "calendar.dpapi");
+    private readonly string _path;
+
+    public CalendarTokenStore()
+        : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BusPulse", "calendar.dpapi"))
+    {
+    }
+
+    internal CalendarTokenStore(string path) => _path = path;
 
     public bool Exists => File.Exists(_path);
 

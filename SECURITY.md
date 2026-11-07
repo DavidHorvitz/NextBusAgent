@@ -19,6 +19,7 @@ Your device location is read through the Windows Location API only to sort nearb
 | --- | --- | --- |
 | `curlbus.app` | Live bus arrivals (unofficial community service) | A stop code, and a descriptive `User-Agent` |
 | `open-bus-stride-api.hasadna.org.il` | GTFS static stops and scheduled arrivals | A date, a stop code or id, and a time window |
+| `nominatim.openstreetmap.org` | Optional address search for the trip planner (OpenStreetMap Nominatim; the server address is configurable in the settings file) | The text you typed into address search, your IP address, and a descriptive `User-Agent` (no email address). Not your device location, calendar locations or stop names. Off when the Settings switch is off |
 | `accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com` | Optional Google Calendar connection (sign-in, token exchange, event list) | OAuth requests with your consent, read-only scope `calendar.events.readonly`. Nothing else from the app is sent |
 
 Both are HTTPS only, use the operating system's default TLS (1.2 or later) with certificate validation always on, have redirects disabled, response size caps, and timeouts of 45 seconds (120 seconds for the stop list download, because the Stride API can take 10-50 seconds per request). Israel Railways and the Ministry of Transport feeds are not contacted; they stay disabled until an official key or endpoint is configured.
@@ -29,7 +30,9 @@ The connection is off until you click Connect in Settings. It uses the OAuth ins
 
 ## Destination search
 
-Searching for a destination by name (saved places, then any stop name) runs against the stop list held locally. The typed text is not sent to any geocoding or search service.
+Searching for a destination by name (saved places, then any stop name) runs against the stop list held locally. That text is not sent anywhere.
+
+Searching for an address is the one exception. When you press Search (never while typing), the typed address text is sent to the OpenStreetMap Nominatim service (`nominatim.openstreetmap.org`), and the service sees your IP address. The device location, calendar event locations and stop names are never sent. The Settings switch "Address search" turns it off, and then nothing is sent. Requests are limited to one per second, results are cached in memory for 24 hours (no repeated query is sent twice), and the app identifies itself with a `User-Agent` that names the project, not a person. Typed addresses are not written to the history file or to the logs; only an address you choose to save is kept, in the DPAPI-encrypted settings. Results are credited "© OpenStreetMap contributors" (ODbL).
 
 ## Handling untrusted data
 

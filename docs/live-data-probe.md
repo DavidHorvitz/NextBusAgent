@@ -45,6 +45,41 @@ So alternative-level data is unavailable upstream. The Lines tab must use the St
 - Stride `order_by=arrival_time desc` works (verified by a live probe); arrive-by uses it to get the latest departures first.
 - Curlbus needs the header `Accept: application/json`; a plain request returned non-JSON.
 
+## Ministry of Transport GTFS feed (probed 2026-11-07)
+
+`GET https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip`, no key, no redirect, HTTP 200, `Cache-Control: no-store`, `Last-Modified: Fri, 06 Nov 2026 17:37:20 GMT`. 155,279,794 bytes; downloaded in 7 s with curl (about 2 minutes was measured on 2026-11-03). Used by `GtfsFeedScheduleSource` for dates after today, which Stride cannot answer.
+
+- Files: agency, calendar, fare_attributes, fare_rules, routes, shapes (231 MB, never read), stop_times (663 MB uncompressed), stops, translations, trips. There is **no calendar_dates.txt**; the app handles both (the test fixture adds a synthetic one).
+- Columns relied on (verified): `agency.txt` agency_id, agency_name; `routes.txt` route_id, agency_id, route_short_name, route_long_name; `trips.txt` route_id, service_id, trip_id; `stops.txt` stop_id, stop_code, stop_name; `stop_times.txt` trip_id, arrival_time, departure_time, stop_id, stop_sequence; `calendar.txt` service_id, sunday..saturday, start_date, end_date. `stop_times.stop_id` is the feed's own stop id, so it is mapped to `stop_code` through `stops.txt` (stop 3490 is stop_id 52158). The files are read by header name, so column order does not matter.
+- Coverage on the probe day: 2026-11-07 to 2026-12-07 (about 30 days).
+- Trip ids have the form `<number>_<ddMMyy>`, the same shape as Curlbus `trip_id`.
+
+### Trip-id comparison for stop 3490 (2026-11-07, 20:00-01:00 Israel time)
+
+| Source | Trips | Equal to the MOT feed |
+| --- | --- | --- |
+| Curlbus `trip_id` | 3 | 2 of 3 identical strings (`53313636_071126`, `586039354_071126`); the third (`53491814_071126`) is not in the feed |
+| Stride `gtfs_ride__journey_ref` | 26 | 0 of 26 identical (Stride suffix is `_061126`, the feed's `_071126`); the numeric part before `_` equals the feed's for 26 of 26 |
+
+So the feed matches Curlbus's version, and Stride uses the same numbers with the previous day's suffix. Matching live ids to feed trips can compare the numeric part. For the same stop and window the feed index returned 26 departures with exactly the same times as Stride's 26, so scheduled times agree.
+
+### Measurements (Windows 10, release build of the app library, SSD, feed in the cache folder)
+
+| Measure | Result | Target |
+| --- | --- | --- |
+| Build one day index (first, includes JIT) | 6.6-9.3 s; second date 5.1-5.6 s | under 40 s |
+| Rows per day | 4.47 M stop calls (Sunday 2026-11-08), 4.31 M (Monday), 122,633 and 118,923 rides | |
+| Peak working set while building one index | 284-318 MB (process baseline about 25 MB) | under 400 MB |
+| Peak with a second index already loaded | 430 MB | |
+| Steady memory | about 87 MB managed per day index, 175 MB for two | under 150 MB per index |
+| Query after build | 8-15 ms for a 3-hour window at one stop | |
+
+The first version used a 16-byte row and measured 104 MB per index; the ride is now implied by the row position (12-byte rows plus a 4-byte per-stop order array), and the build forces a garbage collection afterwards to give back about 150 MB of temporary arrays. A cold download plus first index is about 30 s on a fast line.
+
+### Licence and terms
+
+Not found as an explicit open licence. Searched on 2026-11-07: the Ministry publishes the feed under its own Hebrew "terms of use" on gov.il (referenced from the MobilityData catalogue entry mdb-2519). Secondary sources (OpenStreetMap community threads) report that the terms only reserve the right to change them without notice and disclaim liability for errors and out-of-date data. No attribution or non-commercial clause was found, but this was not read from the official page. Treat it as: free to download and use for personal, non-commercial purposes, no warranty. Re-check the official terms before any redistribution or publication.
+
 ## Infisical (not yet probed live)
 
 No Infisical credentials existed when this provider was written, so nothing here was observed against a live service. The shapes come from the official API reference (checked on 2026-11-07) and the test fixtures say the same.

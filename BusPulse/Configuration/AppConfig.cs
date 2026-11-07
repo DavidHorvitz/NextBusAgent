@@ -41,6 +41,12 @@ public sealed class AppConfig
 
     public string? GoogleClientSecret { get; set; }
 
+    /// <summary>Whether typed addresses may be sent to the geocoding service (Settings switch).</summary>
+    public bool AddressSearchEnabled { get; set; } = true;
+
+    /// <summary>Address search server (Nominatim API). Must be an absolute https URL so it can be redirected without an update.</summary>
+    public string GeocoderBaseUrl { get; set; } = "https://nominatim.openstreetmap.org/";
+
     public void Validate()
     {
         if (Language is not ("en" or "he"))
@@ -101,6 +107,12 @@ public sealed class AppConfig
         if (GoogleClientId?.Length > 200 || GoogleClientSecret?.Length > 200)
         {
             throw new InvalidDataException("The Google client settings are too long.");
+        }
+
+        if (GeocoderBaseUrl is null || GeocoderBaseUrl.Length > 200 ||
+            !Uri.TryCreate(GeocoderBaseUrl, UriKind.Absolute, out var geocoderUri) || geocoderUri.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new InvalidDataException("The geocoder address must be an absolute https URL of at most 200 characters.");
         }
 
         if (Theme is not ("system" or "light" or "dark"))

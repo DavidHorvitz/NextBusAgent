@@ -5,10 +5,11 @@ using BusPulse.Configuration;
 using BusPulse.Infrastructure;
 using BusPulse.Services;
 using BusPulse.Services.Calendar;
-using BusPulse.Services.Secrets;
+using BusPulse.Services.Geocoding;
 using BusPulse.Services.LiveData;
 using BusPulse.Services.Notifications;
 using BusPulse.Services.Location;
+using BusPulse.Services.Secrets;
 using BusPulse.Services.Stops;
 using BusPulse.Services.Trips;
 using BusPulse.ViewModels;
@@ -52,6 +53,9 @@ internal static class Program
                 {
                     AllowAutoRedirect = false
                 });
+                services.AddSingleton<IGeocoder, NominatimGeocoder>();
+                services.AddHttpClient(NominatimGeocoder.ClientName, client => client.Timeout = TimeSpan.FromSeconds(15))
+                    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
                 services.AddSingleton<IDispatcher, WpfDispatcher>();
                 services.AddSingleton(InfisicalOptions.FromEnvironment());
                 services.AddHttpClient(InfisicalSecretProvider.ClientName, client => client.Timeout = TimeSpan.FromSeconds(15))

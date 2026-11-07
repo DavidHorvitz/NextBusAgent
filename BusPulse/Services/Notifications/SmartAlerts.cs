@@ -131,13 +131,16 @@ public sealed class SmartAlertEngine(ILocalizer localizer)
         return new AlertMessage(AlertKind.Missed, message, StopLine(missed), AlertUrgency.Normal);
     }
 
-    /// <summary>"5 min walk + 1 min wait = 6 min before departure", then how long until it is time to go.</summary>
+    /// <summary>
+    /// Plain words: "Leave in 10 min: 5 min walk to Stop for line 77". Arguments: 0 walk, 1 wait, 2 walk + wait, 3 leave in
+    /// (all minutes), 4 stop name, 5 line. The walk comes from the origin point, so it fits an address or home as well.
+    /// </summary>
     private string WalkDetail(TripOption option, TimeSpan timeToLeave)
     {
         var walk = Math.Max(1, (int)Math.Round(option.WalkToStop.TotalMinutes));
         var wait = Math.Max(0, (int)Math.Round((option.BusDeparture - option.WalkToStop - option.LeaveBy).TotalMinutes));
         var leaveIn = Math.Max(0, (int)Math.Ceiling(timeToLeave.TotalMinutes));
-        return string.Format(CultureInfo.CurrentCulture, localizer.Get("AlertWalkDetail"), walk, wait, walk + wait, leaveIn);
+        return string.Format(CultureInfo.CurrentCulture, localizer.Get("AlertWalkDetail"), walk, wait, walk + wait, leaveIn, option.OriginStop.Name, option.Line);
     }
 
     private string StopLine(TripOption option) =>

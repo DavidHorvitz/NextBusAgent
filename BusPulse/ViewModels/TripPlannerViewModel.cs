@@ -6,6 +6,7 @@ using BusPulse.Configuration;
 using BusPulse.Infrastructure;
 using BusPulse.Services;
 using BusPulse.Services.Calendar;
+using BusPulse.Services.Geocoding;
 using BusPulse.Services.Location;
 using BusPulse.Services.Stops;
 using BusPulse.Services.Trips;
@@ -15,14 +16,25 @@ using Microsoft.Extensions.Logging;
 
 namespace BusPulse.ViewModels;
 
-/// <summary>An origin or destination: the user's current location, a saved place, or a specific stop.</summary>
+public enum LocationChoiceKind
+{
+    MyLocation,
+    Place,
+    Stop,
+
+    /// <summary>An ad-hoc address found by the address search: coordinates and a label, nothing else.</summary>
+    Address
+}
+
+/// <summary>An origin or destination: the user's current location, a saved place, a specific stop or a searched address.</summary>
 public sealed partial class LocationChoice : ObservableObject
 {
-    public LocationChoice(string displayName, SavedPlace? place = null, Stop? stop = null)
+    public LocationChoice(string displayName, SavedPlace? place = null, Stop? stop = null, GeocodedPlace? address = null)
     {
         _displayName = displayName;
         Place = place;
         Stop = stop;
+        Address = address;
     }
 
     [ObservableProperty]
@@ -32,7 +44,17 @@ public sealed partial class LocationChoice : ObservableObject
 
     public Stop? Stop { get; }
 
-    public bool IsMyLocation => Place is null && Stop is null;
+    public GeocodedPlace? Address { get; }
+
+    public bool IsMyLocation => Place is null && Stop is null && Address is null;
+
+    public LocationChoiceKind Kind => Place is not null ? LocationChoiceKind.Place
+        : Stop is not null ? LocationChoiceKind.Stop
+        : Address is not null ? LocationChoiceKind.Address
+        : LocationChoiceKind.MyLocation;
+
+    /// <summary>Stops and addresses can be kept as a saved place; the rest already are, or have no fixed point.</summary>
+    public bool CanSave => Kind is LocationChoiceKind.Stop or LocationChoiceKind.Address;
 }
 
 /// <summary>A calendar event that matched a saved place, ready to show as a one-click trip.</summary>
@@ -113,6 +135,9 @@ public sealed partial class TripOptionViewModel : ObservableObject
 
     public string Tooltip { get; private set; } = string.Empty;
 
+    /// <summary>"Timetable for Mon 9 Nov" when the bus leaves on a day after today; empty for today. Never live.</summary>
+    public string DateText { get; private set; } = string.Empty;
+
     public void Update(TripOption option, double bearingDegrees, DateTimeOffset now)
     {
         Option = option;
@@ -141,6 +166,11 @@ public sealed partial class TripOptionViewModel : ObservableObject
     /// <summary>Recomputes the "leave in" countdown and freshness from the clock without touching the network.</summary>
     public void Refresh(DateTimeOffset now)
     {
+        var departureDay = TripTime.TodayIn(Option.BusDeparture, TripTime.IsraelZone);
+        DateText = departureDay > TripTime.TodayIn(now, TripTime.IsraelZone)
+            ? string.Format(CultureInfo.CurrentCulture, _localizer.Get("PlannedForDate"), TripPlannerViewModel.FormatDate(departureDay))
+            : string.Empty;
+        OnPropertyChanged(nameof(DateText));
         var minutes = (int)Math.Ceiling((Option.LeaveBy - now).TotalMinutes);
         LeaveText = minutes <= 0
             ? _localizer.Get("LeaveNow")
@@ -165,6 +195,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     private readonly IDepartureReminder _reminder;
     private readonly INotifier _notifier;
     private readonly ICalendarService _calendar;
+    private readonly IGeocoder? _geocoder;
+    private CancellationTokenSource? _originSuggestCts;
     private DateTimeOffset _lastPromptAt = DateTimeOffset.MinValue;
     private readonly IClock _clock;
     private readonly IDispatcher _dispatcher;
@@ -198,6 +230,25 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     [ObservableProperty]
     private string _destinationQuery = string.Empty;
 
+    [ObservableProperty]
+    private string _originQuery = string.Empty;
+
+    /// <summary>The Israel-local calendar day the trip is planned for (time of day comes from <see cref="TargetTime"/>).</summary>
+    [ObservableProperty]
+    private DateTime? _targetDate;
+
+    /// <summary>Outcome of the last address search started from the destination box (empty when none).</summary>
+    [ObservableProperty]
+    private string _destinationSearchMessage = string.Empty;
+
+    /// <summary>Outcome of the last address search started from the origin box (empty when none).</summary>
+    [ObservableProperty]
+    private string _originSearchMessage = string.Empty;
+
+    /// <summary>Shown when the chosen time has already passed today, so the jump to tomorrow is never silent.</summary>
+    [ObservableProperty]
+    private string _dateNotice = string.Empty;
+
     public TripPlannerViewModel(
         ISettingsService settings,
         SavedPlaceCollection places,
@@ -211,9 +262,11 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         IClock clock,
         IDispatcher dispatcher,
         ILogger<TripPlannerViewModel> logger,
-        ICalendarService calendar)
+        ICalendarService calendar,
+        IGeocoder? geocoder = null)
     {
         _calendar = calendar;
+        _geocoder = geocoder;
         _settings = settings;
         _places = places;
         _localizer = localizer;
@@ -239,6 +292,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         _lineName = settings.Config.LineName ?? string.Empty;
         _statusText = _hintText;
         _targetTime = TimeSpan.FromHours(DateTime.Now.Hour).Add(TimeSpan.FromMinutes(DateTime.Now.Minute));
+        _targetDate = Today.ToDateTime(TimeOnly.MinValue);
         reminder.Changed += (_, _) => _dispatcher.Post(SyncWatched);
     }
 
@@ -247,6 +301,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     public ObservableCollection<LocationChoice> Choices { get; } = [];
 
     public ObservableCollection<LocationChoice> Suggestions { get; } = [];
+
+    public ObservableCollection<LocationChoice> OriginSuggestions { get; } = [];
 
     public ObservableCollection<TripOptionViewModel> Options { get; } = [];
 
@@ -268,18 +324,48 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     public bool IsTimeSelectable => Mode != TripTimeMode.Now;
 
+    /// <summary>The date selector is shown with the time selector ("Now" is always today, with live data).</summary>
+    public bool IsDateSelectable => IsTimeSelectable;
+
+    /// <summary>Today's date in Israel, from the injected clock.</summary>
+    public DateOnly Today => TripTime.TodayIn(_clock.UtcNow, TripTime.IsraelZone);
+
+    /// <summary>First selectable day for the date picker.</summary>
+    public DateTime MinDate => Today.ToDateTime(TimeOnly.MinValue);
+
+    /// <summary>Last selectable day for the date picker (today plus <see cref="TripTime.MaxDaysAhead"/> days).</summary>
+    public DateTime MaxDate => Today.AddDays(TripTime.MaxDaysAhead).ToDateTime(TimeOnly.MinValue);
+
+    public bool HasDateNotice => DateNotice.Length > 0;
+
+    public bool IsAddressSearchEnabled => _settings.Config.AddressSearchEnabled;
+
+    public bool CanSaveOrigin => SelectedOrigin.CanSave;
+
+    public bool CanSaveDestination => SelectedDestination?.CanSave == true;
+
     public string RouteSummary => SelectedDestination is null
         ? _localizer.Get("WaitingForRoute")
         : $"{SelectedOrigin.DisplayName} → {SelectedDestination.DisplayName}";
 
-    partial void OnSelectedOriginChanged(LocationChoice value) => OnPropertyChanged(nameof(RouteSummary));
+    partial void OnSelectedOriginChanged(LocationChoice value)
+    {
+        OnPropertyChanged(nameof(RouteSummary));
+        OnPropertyChanged(nameof(CanSaveOrigin));
+    }
 
-    partial void OnSelectedDestinationChanged(LocationChoice? value) => OnPropertyChanged(nameof(RouteSummary));
+    partial void OnSelectedDestinationChanged(LocationChoice? value)
+    {
+        OnPropertyChanged(nameof(RouteSummary));
+        OnPropertyChanged(nameof(CanSaveDestination));
+    }
 
     partial void OnSelectedModeIndexChanged(int value)
     {
         OnPropertyChanged(nameof(Mode));
         OnPropertyChanged(nameof(IsTimeSelectable));
+        OnPropertyChanged(nameof(IsDateSelectable));
+        UpdateDateNotice();
         if (Mode != TripTimeMode.Now)
         {
             PromptForRoute("PromptSelectRoute");
@@ -288,11 +374,42 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     partial void OnTargetTimeChanged(TimeSpan value)
     {
+        UpdateDateNotice();
         if (Mode != TripTimeMode.Now)
         {
             PromptForRoute("PromptSelectRoute");
         }
     }
+
+    partial void OnTargetDateChanged(DateTime? value) => UpdateDateNotice();
+
+    partial void OnDateNoticeChanged(string value) => OnPropertyChanged(nameof(HasDateNotice));
+
+    [RelayCommand]
+    private void SelectToday() => TargetDate = Today.ToDateTime(TimeOnly.MinValue);
+
+    [RelayCommand]
+    private void SelectTomorrow() => TargetDate = Today.AddDays(1).ToDateTime(TimeOnly.MinValue);
+
+    /// <summary>The chosen day, kept within today..today+60 days.</summary>
+    private DateOnly SelectedDay()
+    {
+        var today = Today;
+        var day = TargetDate is { } picked ? DateOnly.FromDateTime(picked) : today;
+        return day < today ? today : day > today.AddDays(TripTime.MaxDaysAhead) ? today.AddDays(TripTime.MaxDaysAhead) : day;
+    }
+
+    /// <summary>Tells the user, in words and with the date, when today's chosen time has already gone by.</summary>
+    private void UpdateDateNotice()
+    {
+        var now = _clock.UtcNow;
+        DateNotice = Mode != TripTimeMode.Now && SelectedDay() == Today && TripTime.HasPassed(now, Today, TargetTime, TripTime.IsraelZone)
+            ? string.Format(CultureInfo.CurrentCulture, _localizer.Get("TimePassedTomorrow"), FormatDate(Today.AddDays(1)))
+            : string.Empty;
+    }
+
+    internal static string FormatDate(DateOnly date) =>
+        date.ToDateTime(TimeOnly.MinValue).ToString("ddd d MMM", CultureInfo.CurrentCulture);
 
     /// <summary>Reminds the user that alerts need a selected route; at most once a minute and never while one is selected.</summary>
     private void PromptForRoute(string key)
@@ -321,6 +438,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
         _hintText = newHint;
         OnPropertyChanged(nameof(RouteSummary));
+        UpdateDateNotice();
         var rtl = _settings.Config.Language == "he";
         var now = _clock.UtcNow;
         foreach (var option in Options)
@@ -343,6 +461,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
             _tickerCts = null;
             return;
         }
+        // The Settings switch may have changed while another tab was showing.
+        OnPropertyChanged(nameof(IsAddressSearchEnabled));
 
         if (_tickerCts is not null)
         {
@@ -401,6 +521,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         SetDestination(choice);
         SelectedModeIndex = 2;
         var local = TimeZoneInfo.ConvertTime(item.Suggestion.Event.Start, TripTime.IsraelZone);
+        // The event's own day and time: the date selector shows it and the request carries its full instant.
+        TargetDate = local.Date;
         TargetTime = local.TimeOfDay;
         await PlanCommand.ExecuteAsync(null);
     }
@@ -416,6 +538,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         SelectedDestination = choice;
         DestinationQuery = string.Empty;
         Suggestions.Clear();
+        DestinationSearchMessage = string.Empty;
     }
 
     public void SetOrigin(Stop stop)
@@ -428,6 +551,20 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         }
 
         SelectedOrigin = choice;
+    }
+
+    /// <summary>Picks any choice (saved place, stop or searched address) as the origin and closes the origin suggestions.</summary>
+    public void SetOrigin(LocationChoice choice)
+    {
+        if (!Choices.Contains(choice))
+        {
+            Choices.Add(choice);
+        }
+
+        SelectedOrigin = choice;
+        OriginQuery = string.Empty;
+        OriginSuggestions.Clear();
+        OriginSearchMessage = string.Empty;
     }
 
     /// <summary>Finds the rebuilt choice for a previous selection: the same saved place, my location, or a kept stop.</summary>
@@ -499,6 +636,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     {
         DestinationQuery = string.Empty;
         Suggestions.Clear();
+        DestinationSearchMessage = string.Empty;
     }
 
     private const int MaxSuggestions = 10;
@@ -555,29 +693,263 @@ public sealed partial class TripPlannerViewModel : ObservableObject
                 return;
             }
 
-            var recentIds = _history.Recent.Select(entry => entry.PlaceId).ToList();
-            var matches = Choices
-                .Where(choice => choice.Place is not null &&
-                    choice.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase))
-                .OrderBy(choice => recentIds.IndexOf(choice.Place!.Id) is var index && index < 0 ? int.MaxValue : index)
-                .ThenBy(choice => choice.DisplayName, StringComparer.CurrentCultureIgnoreCase)
-                .Take(6)
-                .ToList();
-            foreach (var match in matches)
+            foreach (var choice in LocalMatches(query))
             {
-                Suggestions.Add(match);
-            }
-
-            // Any stop by name (for example "אסף הרופא"), searched in the local stop list: nothing is sent anywhere.
-            foreach (var stop in FindStopsByName(query, MaxSuggestions - matches.Count))
-            {
-                Suggestions.Add(new LocationChoice(StopLabel(stop), stop: stop));
+                Suggestions.Add(choice);
             }
         }
         catch (OperationCanceledException)
         {
         }
     }
+
+    /// <summary>Saved places first (recent ones leading), then stops by name. Searched locally: nothing is sent anywhere.</summary>
+    private List<LocationChoice> LocalMatches(string query)
+    {
+        var recentIds = _history.Recent.Select(entry => entry.PlaceId).ToList();
+        var matches = Choices
+            .Where(choice => choice.Place is not null &&
+                choice.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase))
+            .OrderBy(choice => recentIds.IndexOf(choice.Place!.Id) is var index && index < 0 ? int.MaxValue : index)
+            .ThenBy(choice => choice.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+            .Take(6)
+            .ToList();
+        var result = new List<LocationChoice>(matches);
+
+        // Any stop by name (for example "אסף הרופא"), searched in the local stop list.
+        foreach (var stop in FindStopsByName(query, MaxSuggestions - matches.Count))
+        {
+            result.Add(new LocationChoice(StopLabel(stop), stop: stop));
+        }
+
+        return result;
+    }
+
+    partial void OnOriginQueryChanged(string value) => _ = UpdateOriginSuggestionsAsync();
+
+    /// <summary>The origin box filters the same way as the destination box (debounced, local only).</summary>
+    public async Task UpdateOriginSuggestionsAsync()
+    {
+        _originSuggestCts?.Cancel();
+        var cts = _originSuggestCts = new CancellationTokenSource();
+        try
+        {
+            if (DebounceDelay > TimeSpan.Zero)
+            {
+                await Task.Delay(DebounceDelay, cts.Token);
+            }
+
+            var query = OriginQuery.Trim();
+            OriginSuggestions.Clear();
+            OriginSearchMessage = string.Empty;
+            if (query.Length == 0)
+            {
+                return;
+            }
+
+            foreach (var choice in LocalMatches(query))
+            {
+                OriginSuggestions.Add(choice);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    [RelayCommand]
+    private void ChooseOriginSuggestion(LocationChoice? choice)
+    {
+        if (choice is not null)
+        {
+            SetOrigin(choice);
+        }
+    }
+
+    [RelayCommand]
+    private void ClearOriginSuggestions()
+    {
+        OriginQuery = string.Empty;
+        OriginSuggestions.Clear();
+        OriginSearchMessage = string.Empty;
+    }
+
+    /// <summary>
+    /// Looks the typed text up as an address. Runs only from this command (button or Enter), never while typing and never on
+    /// a timer. Results replace the suggestion list; nothing is written to the history.
+    /// </summary>
+    [RelayCommand]
+    private Task SearchDestinationAddressAsync(CancellationToken cancellationToken) =>
+        SearchAddressAsync(DestinationQuery, Suggestions, message => DestinationSearchMessage = message, LocalMatches, cancellationToken);
+
+    [RelayCommand]
+    private Task SearchOriginAddressAsync(CancellationToken cancellationToken) =>
+        SearchAddressAsync(OriginQuery, OriginSuggestions, message => OriginSearchMessage = message, LocalMatches, cancellationToken);
+
+    private async Task SearchAddressAsync(
+        string text,
+        ObservableCollection<LocationChoice> target,
+        Action<string> setMessage,
+        Func<string, List<LocationChoice>> localMatches,
+        CancellationToken cancellationToken)
+    {
+        var query = text.Trim();
+        setMessage(string.Empty);
+        if (_geocoder is null)
+        {
+            setMessage(_localizer.Get("GeocodeUnavailable"));
+            return;
+        }
+
+        GeocodeResult result;
+        try
+        {
+            result = await _geocoder.SearchAsync(query, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (result.Status != GeocodeStatus.Ok || result.Places.Count == 0)
+        {
+            setMessage(_localizer.Get(result.Status switch
+            {
+                GeocodeStatus.Disabled => "GeocodeDisabled",
+                GeocodeStatus.Unavailable => "GeocodeUnavailable",
+                GeocodeStatus.TooShort => "GeocodeTooShort",
+                _ => "GeocodeNoResults"
+            }));
+            return;
+        }
+
+        target.Clear();
+        if (query.Length > 0)
+        {
+            foreach (var local in localMatches(query).Take(MaxSuggestions - MaxAddressResults))
+            {
+                target.Add(local);
+            }
+        }
+
+        foreach (var place in result.Places.Take(MaxAddressResults))
+        {
+            target.Add(new LocationChoice(place.Label, address: place));
+        }
+
+        setMessage(_localizer.Get("GeocodeResults"));
+    }
+
+    private const int MaxAddressResults = 5;
+
+    /// <summary>
+    /// Keeps a chosen stop or address as a saved place. <paramref name="slot"/> is "home", "work" or null for a plain place.
+    /// The place lives in the encrypted config only (never in the history), within the 30-place limit and with a unique name.
+    /// </summary>
+    public async Task SavePlaceAsync(LocationChoice? choice, string? slot)
+    {
+        if (choice is not { CanSave: true })
+        {
+            return;
+        }
+
+        if (_places.Items.Count >= MaxSavedPlaces)
+        {
+            StatusText = _localizer.Get("PlaceLimitReached");
+            return;
+        }
+
+        var baseName = slot switch
+        {
+            "home" => _localizer.Get("HomeName"),
+            "work" => _localizer.Get("PlaceNameWork"),
+            _ => SuggestName(choice)
+        };
+        var place = new SavedPlace { Name = UniqueName(baseName) };
+        if (choice.Address is { } address)
+        {
+            place.Latitude = address.Latitude;
+            place.Longitude = address.Longitude;
+            place.Address = Truncate(address.Label, 200);
+        }
+        else if (choice.Stop is { } stop)
+        {
+            place.StopCode = stop.Code;
+        }
+
+        var config = _settings.Config;
+        var previousHome = config.HomePlaceId;
+        var previousWork = config.WorkPlaceId;
+        if (slot == "home")
+        {
+            config.HomePlaceId = place.Id;
+        }
+        else if (slot == "work")
+        {
+            config.WorkPlaceId = place.Id;
+        }
+
+        _places.Items.Add(place);
+        _places.SyncToConfig();
+        if (!await _settings.SaveAsync())
+        {
+            // Keep memory and disk in step: undo the in-memory change when the encrypted config could not be written.
+            _places.Items.Remove(place);
+            _places.SyncToConfig();
+            config.HomePlaceId = previousHome;
+            config.WorkPlaceId = previousWork;
+            OnPropertyChanged(nameof(HasHome));
+            OnPropertyChanged(nameof(HasWork));
+            StatusText = _localizer.Get("PlaceSaveFailed");
+            return;
+        }
+
+        // Show the saved place (not the ad-hoc choice) from now on.
+        var saved = Choices.FirstOrDefault(c => c.Place?.Id == place.Id);
+        if (saved is not null)
+        {
+            if (ReferenceEquals(choice, SelectedOrigin))
+            {
+                SelectedOrigin = saved;
+            }
+
+            if (ReferenceEquals(choice, SelectedDestination))
+            {
+                SelectedDestination = saved;
+            }
+        }
+
+        StatusText = string.Format(CultureInfo.CurrentCulture, _localizer.Get("PlaceSavedNamed"), place.Name);
+    }
+
+    private const int MaxSavedPlaces = 30;
+
+    [RelayCommand]
+    private Task SaveOriginAsync(string? slot) => SavePlaceAsync(SelectedOrigin, slot);
+
+    [RelayCommand]
+    private Task SaveDestinationAsync(string? slot) => SavePlaceAsync(SelectedDestination, slot);
+
+    /// <summary>A short name from the label: the part before the first comma, trimmed to 40 characters.</summary>
+    private static string SuggestName(LocationChoice choice)
+    {
+        var label = choice.Address?.Label ?? choice.Stop?.Name ?? choice.DisplayName;
+        var first = label.Split(',')[0].Trim();
+        return Truncate(first.Length == 0 ? label.Trim() : first, 40);
+    }
+
+    private string UniqueName(string name)
+    {
+        var candidate = name;
+        for (var suffix = 2; _places.Items.Any(p => string.Equals(p.Name, candidate, StringComparison.CurrentCultureIgnoreCase)); suffix++)
+        {
+            candidate = $"{name} {suffix}";
+        }
+
+        return candidate;
+    }
+
+    private static string Truncate(string text, int length) => text.Length <= length ? text : text[..length];
 
     [RelayCommand]
     private async Task PlanAsync(CancellationToken cancellationToken)
@@ -592,6 +964,19 @@ public sealed partial class TripPlannerViewModel : ObservableObject
             {
                 SetDestination(best);
             }
+        }
+
+        // The same for a typed start: use the best local match instead of silently planning from "my location".
+        if (OriginQuery.Trim().Length > 0)
+        {
+            var origins = LocalMatches(OriginQuery.Trim());
+            if (origins.Count == 0)
+            {
+                StatusText = _localizer.Get("GeocodeNoResults");
+                return;
+            }
+
+            SetOrigin(origins[0]);
         }
 
         if (SelectedDestination is null)
@@ -712,6 +1097,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
             TripPlanStatus.Ok => string.Empty,
             TripPlanStatus.NoStopsNearOrigin => _localizer.Get("PlanNoStopsNearOrigin"),
             TripPlanStatus.NoStopsNearDestination => _localizer.Get("PlanNoStopsNearDestination"),
+            TripPlanStatus.NoScheduleForDate => _localizer.Get("PlanNoScheduleForDate"),
             _ => _localizer.Get("PlanNoOptions")
         };
     }
@@ -755,7 +1141,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         var config = _settings.Config;
         config.DestinationPlaceId = SelectedDestination?.Place?.Id;
         config.LineName = string.IsNullOrWhiteSpace(LineName) ? null : LineName.Trim();
-        if (SelectedDestination?.Place is { } place)
+        // user_history.json is not encrypted: places defined by an address stay out of it (they live in the encrypted config only).
+        if (SelectedDestination?.Place is { } place && string.IsNullOrWhiteSpace(place.Address))
         {
             _history.Record(place.Id, place.Name);
         }
@@ -763,8 +1150,27 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         await _settings.SaveAsync();
     }
 
-    /// <summary>Time-of-day targets mean today, or tomorrow when that time has already passed.</summary>
-    private DateTimeOffset ResolveTarget(DateTimeOffset now) => TripTime.Resolve(now, TargetTime, TripTime.IsraelZone);
+    /// <summary>
+    /// The absolute instant of the chosen date and time. When the time has already passed today the plan moves to tomorrow
+    /// and the date selector and notice show it, so the jump is never silent.
+    /// </summary>
+    private DateTimeOffset ResolveTarget(DateTimeOffset now)
+    {
+        var zone = TripTime.IsraelZone;
+        var day = SelectedDay();
+        if (day == Today && TripTime.HasPassed(now, day, TargetTime, zone))
+        {
+            day = day.AddDays(1);
+            TargetDate = day.ToDateTime(TimeOnly.MinValue);
+            DateNotice = string.Format(CultureInfo.CurrentCulture, _localizer.Get("TimePassedTomorrow"), FormatDate(day));
+        }
+        else if (TargetDate is null || DateOnly.FromDateTime(TargetDate.Value) != day)
+        {
+            TargetDate = day.ToDateTime(TimeOnly.MinValue);
+        }
+
+        return TripTime.Resolve(day, TargetTime, zone);
+    }
 
     private async Task<(double Latitude, double Longitude, string? Failure)> ResolveAsync(
         LocationChoice choice,
@@ -774,6 +1180,11 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         if (choice.Stop is { } stop)
         {
             return (stop.Latitude, stop.Longitude, null);
+        }
+
+        if (choice.Address is { } address)
+        {
+            return (address.Latitude, address.Longitude, null);
         }
 
         if (choice.Place is { } place)

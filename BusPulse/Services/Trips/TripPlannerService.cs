@@ -16,7 +16,10 @@ public enum TripPlanStatus
     Ok,
     NoStopsNearOrigin,
     NoStopsNearDestination,
-    NoOptions
+    NoOptions,
+
+    /// <summary>A date after today was asked for and the timetable source has no departures for it yet.</summary>
+    NoScheduleForDate
 }
 
 public sealed record TripRequest(
@@ -116,6 +119,8 @@ public sealed class TripPlannerService(
         }
 
         var target = request.TargetTime;
+        var futureDate = request.Mode != TripTimeMode.Now && target is not null &&
+            TripTime.TodayIn(target.Value, TripTime.IsraelZone) > TripTime.TodayIn(now, TripTime.IsraelZone);
         var leaveEarliest = request.Mode == TripTimeMode.DepartAt && target is not null && target > now ? target.Value : now;
         var (from, to) = request.Mode switch
         {
@@ -142,6 +147,12 @@ public sealed class TripPlannerService(
                 .Select(departure => (departure, origin)));
         }
 
+        if (futureDate && perStop.All(stop => stop.Departures.Count == 0))
+        {
+            // The source (Stride) only holds timetables up to today: say so instead of claiming there are no trips.
+            return new TripPlan(TripPlanStatus.NoScheduleForDate, []);
+        }
+
         if (candidates.Count == 0)
         {
             return new TripPlan(TripPlanStatus.NoOptions, []);
@@ -155,7 +166,8 @@ public sealed class TripPlannerService(
             destinationRows.AddRange(await schedule.GetRideStopsAtAsync(batch, destinationStopIds, departuresFrom, to + RideLookAhead, cancellationToken));
         }
 
-        var live = request.Mode == TripTimeMode.Now || watchRide is not null
+        // Live arrivals describe today's buses; a ride on a later date is never matched to them or labelled live.
+        var live = !futureDate && (request.Mode == TripTimeMode.Now || watchRide is not null)
             ? await LoadLiveAsync(originStops, cancellationToken)
             : new Dictionary<string, List<Arrival>>();
         var liveMatches = MatchLive(live, candidates);

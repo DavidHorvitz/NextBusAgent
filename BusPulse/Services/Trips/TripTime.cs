@@ -1,11 +1,18 @@
 namespace BusPulse.Services.Trips;
 
-/// <summary>Turns a time of day chosen in the planner into an absolute instant, honouring daylight-saving changes.</summary>
+/// <summary>Turns a date and time of day chosen in the planner into an absolute instant, honouring daylight-saving changes.</summary>
 public static class TripTime
 {
     private const string IsraelZoneId = "Israel Standard Time";
 
+    /// <summary>How many days ahead the planner lets the user pick a date (today included).</summary>
+    public const int MaxDaysAhead = 60;
+
     public static TimeZoneInfo IsraelZone { get; } = FindZone();
+
+    /// <summary>The calendar date of <paramref name="now"/> in <paramref name="zone"/>.</summary>
+    public static DateOnly TodayIn(DateTimeOffset now, TimeZoneInfo zone) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, zone).DateTime);
 
     /// <summary>
     /// Today at <paramref name="timeOfDay"/> (local to <paramref name="zone"/>), or tomorrow when that time has already passed.
@@ -14,15 +21,22 @@ public static class TripTime
     /// </summary>
     public static DateTimeOffset Resolve(DateTimeOffset now, TimeSpan timeOfDay, TimeZoneInfo zone)
     {
-        var local = TimeZoneInfo.ConvertTime(now, zone).DateTime;
-        var candidate = local.Date + timeOfDay;
-        if (candidate < local - TimeSpan.FromMinutes(1))
-        {
-            candidate = candidate.AddDays(1);
-        }
-
-        return ToInstant(candidate, zone);
+        var today = TodayIn(now, zone);
+        var date = HasPassed(now, today, timeOfDay, zone) ? today.AddDays(1) : today;
+        return Resolve(date, timeOfDay, zone);
     }
+
+    /// <summary>
+    /// The instant of <paramref name="timeOfDay"/> on the explicit Israel-local calendar <paramref name="date"/>. Never rolls
+    /// to another day: the caller decides what to do with a time that has passed. A time skipped by a spring-forward
+    /// change is moved one hour later; an ambiguous autumn time takes the standard-time reading.
+    /// </summary>
+    public static DateTimeOffset Resolve(DateOnly date, TimeSpan timeOfDay, TimeZoneInfo zone) =>
+        ToInstant(date.ToDateTime(TimeOnly.MinValue) + timeOfDay, zone);
+
+    /// <summary>True when the wall-clock time on <paramref name="date"/> is more than a minute in the past.</summary>
+    public static bool HasPassed(DateTimeOffset now, DateOnly date, TimeSpan timeOfDay, TimeZoneInfo zone) =>
+        Resolve(date, timeOfDay, zone) < now - TimeSpan.FromMinutes(1);
 
     private static DateTimeOffset ToInstant(DateTime wallClock, TimeZoneInfo zone)
     {

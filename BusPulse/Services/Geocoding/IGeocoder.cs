@@ -16,7 +16,11 @@ public enum GeocodeStatus
 }
 
 /// <summary>A short, human-readable <paramref name="Label"/> and the coordinates of one address search hit.</summary>
-public sealed record GeocodedPlace(string Label, double Latitude, double Longitude);
+public sealed record GeocodedPlace(string Label, double Latitude, double Longitude)
+{
+    /// <summary>The label only: a list item is named by this text for a screen reader, and a logged value must not carry coordinates.</summary>
+    public override string ToString() => Label;
+}
 
 public sealed record GeocodeResult(GeocodeStatus Status, IReadOnlyList<GeocodedPlace> Places)
 {

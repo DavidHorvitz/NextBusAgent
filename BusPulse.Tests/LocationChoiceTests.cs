@@ -16,4 +16,13 @@ public sealed class LocationChoiceTests
         choice.DisplayName = "Herzl 10, Tel Aviv";
         Assert.Equal("Herzl 10, Tel Aviv", choice.ToString());
     }
+
+    [Fact]
+    public void GeocodedPlace_ToString_IsTheLabelOnly_NeverTheCoordinates()
+    {
+        var place = new GeocodedPlace("דיזנגוף 50, תל־אביב–יפו", 32.075508, 34.7755361);
+
+        Assert.Equal("דיזנגוף 50, תל־אביב–יפו", place.ToString());
+        Assert.DoesNotContain("32.07", place.ToString());
+    }
 }

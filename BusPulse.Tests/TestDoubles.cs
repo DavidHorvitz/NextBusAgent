@@ -64,6 +64,7 @@ internal sealed class TemplateLocalizer : ILocalizer
         ["LocationAccuracy"] = "accuracy {0}",
         ["LocationFromPlace"] = "near {0}",
         ["LeaveInMinutes"] = "leave in {0}m",
+        ["LeaveAtClock"] = "leave at {0}",
         ["LeaveNow"] = "leave now",
         ["BusAt"] = "bus {0}",
         ["ArriveAt"] = "arrive {0}",

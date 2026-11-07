@@ -113,6 +113,7 @@
   <sys:String x:Key="PlanNoOptions" xmlns:sys="clr-namespace:System;assembly=mscorlib">No direct trips found. Try another time or remove the preferred line.</sys:String>
   <sys:String x:Key="LeaveNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">Leave now</sys:String>
   <sys:String x:Key="LeaveInMinutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">Leave in {0} min</sys:String>
+  <sys:String x:Key="LeaveAtClock" xmlns:sys="clr-namespace:System;assembly=mscorlib">Leave at {0}</sys:String>
   <sys:String x:Key="WalkTo" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} min walk to {1}</sys:String>
   <sys:String x:Key="BusAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">Bus {0}</sys:String>
   <sys:String x:Key="ArriveAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">Arrive {0}</sys:String>

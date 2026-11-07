@@ -113,6 +113,7 @@
   <sys:String x:Key="PlanNoOptions" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא נמצאו נסיעות ישירות. נסו שעה אחרת או הסירו את הקו המועדף.</sys:String>
   <sys:String x:Key="LeaveNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">צאו עכשיו</sys:String>
   <sys:String x:Key="LeaveInMinutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">צאו בעוד {0} דק׳</sys:String>
+  <sys:String x:Key="LeaveAtClock" xmlns:sys="clr-namespace:System;assembly=mscorlib">צאו ב־{0}</sys:String>
   <sys:String x:Key="WalkTo" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} דק׳ הליכה אל {1}</sys:String>
   <sys:String x:Key="BusAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">אוטובוס {0}</sys:String>
   <sys:String x:Key="ArriveAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">הגעה {0}</sys:String>

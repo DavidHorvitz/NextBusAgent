@@ -76,6 +76,9 @@ public sealed class CalendarSuggestionItem(CalendarSuggestion suggestion)
 public sealed partial class TripOptionViewModel : ObservableObject
 {
     private static readonly TimeSpan StaleAfter = TimeSpan.FromSeconds(120);
+
+    /// <summary>From this many minutes away a departure is shown by its clock time rather than a countdown.</summary>
+    private const int DistantDepartureMinutes = 180;
     private readonly ILocalizer _localizer;
 
     [ObservableProperty]
@@ -175,9 +178,12 @@ public sealed partial class TripOptionViewModel : ObservableObject
             : string.Empty;
         OnPropertyChanged(nameof(DateText));
         var minutes = (int)Math.Ceiling((Option.LeaveBy - now).TotalMinutes);
+        // "Leave in 1441 minutes" is unreadable: a distant departure (tomorrow, or hours away) names its clock time instead.
         LeaveText = minutes <= 0
             ? _localizer.Get("LeaveNow")
-            : string.Format(CultureInfo.CurrentCulture, _localizer.Get("LeaveInMinutes"), minutes);
+            : minutes >= DistantDepartureMinutes
+                ? string.Format(CultureInfo.CurrentCulture, _localizer.Get("LeaveAtClock"), LeaveAtText)
+                : string.Format(CultureInfo.CurrentCulture, _localizer.Get("LeaveInMinutes"), minutes);
         var age = now - Option.ObservedAt;
         IsStale = Option.IsLive && age > StaleAfter;
         Tooltip = $"{_localizer.Get("SourceLabel")}: {_localizer.Get("Provider" + Option.Source)} · " +

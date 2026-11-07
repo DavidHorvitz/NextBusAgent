@@ -730,6 +730,24 @@ public sealed class TripPlannerViewModelTests
         Assert.Equal("leave now", f.Vm.Options[0].LeaveText);
     }
 
+    [Theory]
+    [InlineData(120, "leave in 120m")]
+    [InlineData(179, "leave in 179m")]
+    [InlineData(180, "leave at {0}")]
+    [InlineData(1441, "leave at {0}")]
+    public async Task LeaveText_ForADistantDeparture_NamesTheClockTimeInsteadOfThousandsOfMinutes(int leaveInMinutes, string expected)
+    {
+        var f = new Fixture();
+        f.Location.Result = new LocationResult(LocationStatus.Ok, 32.09, 34.79, 20);
+        f.Vm.SetDestination(f.Choice("Work"));
+        f.Planner.Plan = new TripPlan(TripPlanStatus.Ok, [Option(10, leaveInMinutes)]);
+
+        await f.Vm.PlanCommand.ExecuteAsync(null);
+
+        var clock = Now.AddMinutes(leaveInMinutes).ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(expected.Replace("{0}", clock), f.Vm.Options[0].LeaveText);
+    }
+
     [Fact]
     public async Task ToggleReminder_WatchesThenCancelsTheOption_AndMarksTheRow()
     {

@@ -204,6 +204,18 @@ public sealed class DepartureReminderService(
         return message;
     }
 
+    /// <summary>How far apart two departures may be for them to count as the same trip under another ride id.</summary>
+    private static readonly TimeSpan ReidentifyTolerance = TimeSpan.FromMinutes(10);
+
+    /// <summary>Finds the watched trip under a different ride id: same line and origin stop, closest departure.</summary>
+    private static TripOption? Reidentify(IReadOnlyList<TripOption> options, TripOption watched) =>
+        options
+            .Where(option => option.Line == watched.Line &&
+                option.OriginStop.Code == watched.OriginStop.Code &&
+                (option.BusDeparture - watched.BusDeparture).Duration() <= ReidentifyTolerance)
+            .OrderBy(option => (option.BusDeparture - watched.BusDeparture).Duration())
+            .FirstOrDefault();
+
     /// <summary>Runs unobserved in the background, so it handles every failure itself.</summary>
     private async Task RefreshAsync(TripRequest request, TripOption watched, DateTimeOffset now, CancellationToken watchToken, CancellationToken cancellationToken)
     {
@@ -228,8 +240,18 @@ public sealed class DepartureReminderService(
         }
 
         var current = plan.Options.FirstOrDefault(option => option.RideId == watched.RideId);
+        var adopted = false;
+        if (current is null)
+        {
+            // The planner may have switched feeds (for example at midnight a later date moves from the official
+            // timetable to Stride), which gives the same physical trip a different ride id.
+            current = Reidentify(plan.Options, watched);
+            adopted = current is not null;
+        }
+
+        var excludedId = current?.RideId ?? watched.RideId;
         var next = plan.Options
-            .Where(option => option.RideId != watched.RideId && option.BusDeparture > now)
+            .Where(option => option.RideId != watched.RideId && option.RideId != excludedId && option.BusDeparture > now)
             .OrderBy(option => option.BusDeparture)
             .FirstOrDefault();
         lock (_gate)
@@ -241,6 +263,11 @@ public sealed class DepartureReminderService(
 
             // Keep the last known times if the ride dropped out of the plan (for example after it departed).
             Watched = current ?? watched;
+            if (adopted && _request is not null)
+            {
+                _request = _request with { WatchRideId = current!.RideId };
+            }
+
             _next = next;
         }
 

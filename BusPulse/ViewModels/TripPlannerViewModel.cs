@@ -383,6 +383,13 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     partial void OnTargetTimeChanged(TimeSpan value)
     {
+        // The date was only moved to tomorrow automatically and the new time is still ahead today: go back to today.
+        if (_dateRolledAutomatically && Mode != TripTimeMode.Now && Today.AddDays(1) == SelectedDay() &&
+            !TripTime.HasPassed(_clock.UtcNow, Today, value, TripTime.IsraelZone))
+        {
+            SetTargetDateAutomatically(Today);
+        }
+
         UpdateDateNotice();
         if (Mode != TripTimeMode.Now)
         {
@@ -390,15 +397,49 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         }
     }
 
-    partial void OnTargetDateChanged(DateTime? value) => UpdateDateNotice();
+    partial void OnTargetDateChanged(DateTime? value)
+    {
+        if (!_settingDateAutomatically)
+        {
+            // A date picked by the user (buttons, date picker, calendar suggestion) is never changed automatically.
+            _dateRolledAutomatically = false;
+        }
+
+        UpdateDateNotice();
+    }
+
+    private bool _dateRolledAutomatically;
+    private bool _settingDateAutomatically;
+
+    private void SetTargetDateAutomatically(DateOnly day)
+    {
+        _settingDateAutomatically = true;
+        try
+        {
+            TargetDate = day.ToDateTime(TimeOnly.MinValue);
+        }
+        finally
+        {
+            _settingDateAutomatically = false;
+        }
+
+        _dateRolledAutomatically = day != Today;
+    }
 
     partial void OnDateNoticeChanged(string value) => OnPropertyChanged(nameof(HasDateNotice));
 
     [RelayCommand]
-    private void SelectToday() => TargetDate = Today.ToDateTime(TimeOnly.MinValue);
+    private void SelectToday() => PickDate(Today);
 
     [RelayCommand]
-    private void SelectTomorrow() => TargetDate = Today.AddDays(1).ToDateTime(TimeOnly.MinValue);
+    private void SelectTomorrow() => PickDate(Today.AddDays(1));
+
+    private void PickDate(DateOnly day)
+    {
+        // An explicit choice, even of the date that is already set, is never undone automatically.
+        _dateRolledAutomatically = false;
+        TargetDate = day.ToDateTime(TimeOnly.MinValue);
+    }
 
     /// <summary>The chosen day, kept within today..today+60 days.</summary>
     private DateOnly SelectedDay()
@@ -789,17 +830,18 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     /// </summary>
     [RelayCommand]
     private Task SearchDestinationAddressAsync(CancellationToken cancellationToken) =>
-        SearchAddressAsync(DestinationQuery, Suggestions, message => DestinationSearchMessage = message, LocalMatches, cancellationToken);
+        SearchAddressAsync(DestinationQuery, Suggestions, message => DestinationSearchMessage = message, LocalMatches, query => _destinationAddressQuery = query, cancellationToken);
 
     [RelayCommand]
     private Task SearchOriginAddressAsync(CancellationToken cancellationToken) =>
-        SearchAddressAsync(OriginQuery, OriginSuggestions, message => OriginSearchMessage = message, LocalMatches, cancellationToken);
+        SearchAddressAsync(OriginQuery, OriginSuggestions, message => OriginSearchMessage = message, LocalMatches, query => _originAddressQuery = query, cancellationToken);
 
     private async Task SearchAddressAsync(
         string text,
         ObservableCollection<LocationChoice> target,
         Action<string> setMessage,
         Func<string, List<LocationChoice>> localMatches,
+        Action<string> rememberSearched,
         CancellationToken cancellationToken)
     {
         var query = text.Trim();
@@ -833,6 +875,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         }
 
         target.Clear();
+        rememberSearched(query);
         if (query.Length > 0)
         {
             foreach (var local in localMatches(query).Take(MaxSuggestions - MaxAddressResults))
@@ -850,6 +893,15 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     }
 
     private const int MaxAddressResults = 5;
+
+    private string _destinationAddressQuery = string.Empty;
+    private string _originAddressQuery = string.Empty;
+
+    /// <summary>The first address result on screen, provided it was searched for exactly the text that is in the box now.</summary>
+    private static LocationChoice? AddressResultFor(string currentText, ObservableCollection<LocationChoice> list, string searchedText) =>
+        searchedText.Length > 0 && string.Equals(currentText.Trim(), searchedText, StringComparison.Ordinal)
+            ? list.FirstOrDefault(choice => choice.Address is not null)
+            : null;
 
     /// <summary>
     /// Keeps a chosen stop or address as a saved place. <paramref name="slot"/> is "home", "work" or null for a plain place.
@@ -966,19 +1018,29 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         // Typed a name and pressed "Find trips" without picking from the list: take the best match.
         if (SelectedDestination is null && DestinationQuery.Trim().Length > 0)
         {
-            // Always recompute: the list may be stale when the text changed within the debounce window.
-            await UpdateSuggestionsNowAsync();
-
-            if (Suggestions.FirstOrDefault() is { } best)
+            if (AddressResultFor(DestinationQuery, Suggestions, _destinationAddressQuery) is { } searched)
             {
-                SetDestination(best);
+                // The user just searched this text as an address and sees the results: use the first of them.
+                SetDestination(searched);
+            }
+            else
+            {
+                // Always recompute: the list may be stale when the text changed within the debounce window.
+                await UpdateSuggestionsNowAsync();
+
+                if (Suggestions.FirstOrDefault() is { } best)
+                {
+                    SetDestination(best);
+                }
             }
         }
 
         // The same for a typed start: use the best local match instead of silently planning from "my location".
         if (OriginQuery.Trim().Length > 0)
         {
-            var origins = LocalMatches(OriginQuery.Trim());
+            var origins = AddressResultFor(OriginQuery, OriginSuggestions, _originAddressQuery) is { } searchedOrigin
+                ? [searchedOrigin]
+                : LocalMatches(OriginQuery.Trim());
             if (origins.Count == 0)
             {
                 StatusText = _localizer.Get("GeocodeNoResults");
@@ -1171,12 +1233,14 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         if (day == Today && TripTime.HasPassed(now, day, TargetTime, zone))
         {
             day = day.AddDays(1);
-            TargetDate = day.ToDateTime(TimeOnly.MinValue);
+            SetTargetDateAutomatically(day);
             DateNotice = string.Format(CultureInfo.CurrentCulture, _localizer.Get("TimePassedTomorrow"), FormatDate(day));
         }
         else if (TargetDate is null || DateOnly.FromDateTime(TargetDate.Value) != day)
         {
-            TargetDate = day.ToDateTime(TimeOnly.MinValue);
+            var rolled = _dateRolledAutomatically;
+            SetTargetDateAutomatically(day);
+            _dateRolledAutomatically = rolled && day != Today;
         }
 
         return TripTime.Resolve(day, TargetTime, zone);

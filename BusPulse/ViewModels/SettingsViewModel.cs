@@ -550,7 +550,15 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         Places.Add(place);
         _places.SyncToConfig();
-        return (await _settings.SaveAsync() ? _localizer.Get("PlaceSaved") : _localizer.Get("PlaceSaveFailed"), true);
+        if (!await _settings.SaveAsync())
+        {
+            // Not persisted: take it back so a later unrelated save cannot write it, and keep the form for a retry.
+            Places.Remove(place);
+            _places.SyncToConfig();
+            return (_localizer.Get("PlaceSaveFailed"), false);
+        }
+
+        return (_localizer.Get("PlaceSaved"), true);
     }
 
     private static string Truncate(string value, int length) => value.Length <= length ? value : value[..length];

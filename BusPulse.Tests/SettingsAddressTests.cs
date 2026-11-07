@@ -166,7 +166,7 @@ public sealed class SettingsAddressTests
     }
 
     [Fact]
-    public async Task Add_ReportsASaveFailureButKeepsThePlaceForThisSession()
+    public async Task Add_ReportsASaveFailureAndDoesNotKeepThePlace()
     {
         var f = new Fixture();
         f.Settings.SaveSucceeds = false;
@@ -176,7 +176,7 @@ public sealed class SettingsAddressTests
 
         await f.Vm.AddAddressPlaceCommand.ExecuteAsync(null);
 
-        Assert.Single(f.Vm.Places);
+        Assert.Empty(f.Vm.Places);
         Assert.Equal("PlaceSaveFailed", f.Vm.AddressStatus);
     }
 

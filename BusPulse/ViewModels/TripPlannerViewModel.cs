@@ -55,6 +55,9 @@ public sealed partial class LocationChoice : ObservableObject
 
     /// <summary>Stops and addresses can be kept as a saved place; the rest already are, or have no fixed point.</summary>
     public bool CanSave => Kind is LocationChoiceKind.Stop or LocationChoiceKind.Address;
+
+    /// <summary>The list boxes show <see cref="DisplayName"/>, and a screen reader names an item by its text.</summary>
+    public override string ToString() => DisplayName;
 }
 
 /// <summary>A calendar event that matched a saved place, ready to show as a one-click trip.</summary>

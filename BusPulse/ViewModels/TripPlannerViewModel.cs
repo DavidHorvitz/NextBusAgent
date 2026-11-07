@@ -778,10 +778,9 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
         if (choice.Place is { } place)
         {
-            var found = stops.FirstOrDefault(candidate => candidate.Code == place.StopCode);
-            return found is null
-                ? (0, 0, _localizer.Get("PlaceNotFound"))
-                : (found.Latitude, found.Longitude, null);
+            return PlacePoint.Resolve(place, stops) is { } point
+                ? (point.Latitude, point.Longitude, null)
+                : (0, 0, _localizer.Get("PlaceNotFound"));
         }
 
         var result = await _location.GetCurrentAsync(cancellationToken);

@@ -459,15 +459,14 @@ public sealed partial class StopsViewModel : ObservableObject
             return false;
         }
 
-        var stop = stops.FirstOrDefault(candidate => candidate.Code == SelectedAnchor.StopCode);
-        if (stop is null)
+        if (PlacePoint.Resolve(SelectedAnchor, stops) is not { } point)
         {
             failure = _localizer.Get("PlaceNotFound");
             return true;
         }
 
-        latitude = stop.Latitude;
-        longitude = stop.Longitude;
+        latitude = point.Latitude;
+        longitude = point.Longitude;
         originText = string.Format(CultureInfo.CurrentCulture, _localizer.Get("LocationFromPlace"), SelectedAnchor.Name);
         return true;
     }

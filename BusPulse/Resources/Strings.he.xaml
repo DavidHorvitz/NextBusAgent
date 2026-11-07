@@ -86,6 +86,25 @@
   <sys:String x:Key="PlanHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">בחרו יעד כדי לראות נסיעות ישירות מהמיקום הנוכחי שלכם.</sys:String>
   <sys:String x:Key="SetDestinationFirst" xmlns:sys="clr-namespace:System;assembly=mscorlib">בחרו קודם יעד.</sys:String>
   <sys:String x:Key="SameOriginDestination" xmlns:sys="clr-namespace:System;assembly=mscorlib">המוצא והיעד זהים.</sys:String>
+  <sys:String x:Key="OriginSearch" xmlns:sys="clr-namespace:System;assembly=mscorlib">חיפוש מוצא</sys:String>
+  <sys:String x:Key="SearchAddress" xmlns:sys="clr-namespace:System;assembly=mscorlib">חפש כתובת</sys:String>
+  <sys:String x:Key="SearchAddressHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">חיפוש כתובת שולח את הטקסט שהקלדתם ל־OpenStreetMap. שום דבר לא נשלח בזמן ההקלדה.</sys:String>
+  <sys:String x:Key="GeocodeDisabled" xmlns:sys="clr-namespace:System;assembly=mscorlib">חיפוש כתובת כבוי בהגדרות.</sys:String>
+  <sys:String x:Key="GeocodeUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">שירות הכתובות אינו זמין כרגע. נסו שוב מאוחר יותר.</sys:String>
+  <sys:String x:Key="GeocodeNoResults" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא נמצאה כתובת. נסו רחוב, מספר ועיר.</sys:String>
+  <sys:String x:Key="GeocodeTooShort" xmlns:sys="clr-namespace:System;assembly=mscorlib">הקלידו לפחות 3 תווים כדי לחפש כתובת.</sys:String>
+  <sys:String x:Key="GeocodeResults" xmlns:sys="clr-namespace:System;assembly=mscorlib">נמצאו כתובות: בחרו אחת מהרשימה.</sys:String>
+  <sys:String x:Key="SaveAsHome" xmlns:sys="clr-namespace:System;assembly=mscorlib">שמור כבית</sys:String>
+  <sys:String x:Key="SaveAsWork" xmlns:sys="clr-namespace:System;assembly=mscorlib">שמור כעבודה</sys:String>
+  <sys:String x:Key="PlaceNameWork" xmlns:sys="clr-namespace:System;assembly=mscorlib">עבודה</sys:String>
+  <sys:String x:Key="PlaceSavedNamed" xmlns:sys="clr-namespace:System;assembly=mscorlib">"{0}" נשמר במקומות שלכם.</sys:String>
+  <sys:String x:Key="PlaceLimitReached" xmlns:sys="clr-namespace:System;assembly=mscorlib">אפשר לשמור עד 30 מקומות. הסירו אחד בהגדרות קודם.</sys:String>
+  <sys:String x:Key="DateLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">תאריך</sys:String>
+  <sys:String x:Key="DateToday" xmlns:sys="clr-namespace:System;assembly=mscorlib">היום</sys:String>
+  <sys:String x:Key="DateTomorrow" xmlns:sys="clr-namespace:System;assembly=mscorlib">מחר</sys:String>
+  <sys:String x:Key="TimePassedTomorrow" xmlns:sys="clr-namespace:System;assembly=mscorlib">השעה הזו כבר עברה היום, ולכן הנסיעות מתוכננות למחר, {0}.</sys:String>
+  <sys:String x:Key="PlanNoScheduleForDate" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין עדיין לוח זמנים לתאריך הזה. לוחות הזמנים מתפרסמים רק עד היום, נסו שוב קרוב יותר למועד.</sys:String>
+  <sys:String x:Key="PlannedForDate" xmlns:sys="clr-namespace:System;assembly=mscorlib">לוח זמנים ל־{0}</sys:String>
   <sys:String x:Key="Planning" xmlns:sys="clr-namespace:System;assembly=mscorlib">מתכנן...</sys:String>
   <sys:String x:Key="PlanFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא ניתן לתכנן את הנסיעה. לחצו על חיפוש נסיעות לניסיון חוזר.</sys:String>
   <sys:String x:Key="PlanNoStopsNearOrigin" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין תחנות במרחק הליכה מהמוצא.</sys:String>
@@ -124,7 +143,7 @@
   <sys:String x:Key="AlertLate" xmlns:sys="clr-namespace:System;assembly=mscorlib">🔴 אתם מאחרים — קו {0} יוצא בעוד {1} שניות. מהרו!</sys:String>
   <sys:String x:Key="AlertMissed" xmlns:sys="clr-namespace:System;assembly=mscorlib">פספסתם את קו {0}.</sys:String>
   <sys:String x:Key="AlertMissedNext" xmlns:sys="clr-namespace:System;assembly=mscorlib">פספסתם את קו {0}. האפשרות הבאה: קו {1} בעוד {2} דק׳</sys:String>
-  <sys:String x:Key="AlertWalkDetail" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} דק׳ הליכה + {1} דק׳ המתנה = {2} דק׳ לפני היציאה · צאו בעוד {3} דק׳</sys:String>
+  <sys:String x:Key="AlertWalkDetail" xmlns:sys="clr-namespace:System;assembly=mscorlib">צאו בעוד {3} דק׳: {0} דק׳ הליכה אל {4} לקו {5}</sys:String>
   <sys:String x:Key="AlertAtStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">תחנה: {0}</sys:String>
   <sys:String x:Key="DismissAlert" xmlns:sys="clr-namespace:System;assembly=mscorlib">סגירה</sys:String>
   <sys:String x:Key="PromptSelectRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">בחרו מסלול כדי לראות זמנים מדויקים</sys:String>

@@ -86,6 +86,25 @@
   <sys:String x:Key="PlanHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pick a destination to see direct trips from your current location.</sys:String>
   <sys:String x:Key="SetDestinationFirst" xmlns:sys="clr-namespace:System;assembly=mscorlib">Choose a destination first.</sys:String>
   <sys:String x:Key="SameOriginDestination" xmlns:sys="clr-namespace:System;assembly=mscorlib">Origin and destination are the same.</sys:String>
+  <sys:String x:Key="OriginSearch" xmlns:sys="clr-namespace:System;assembly=mscorlib">Search start</sys:String>
+  <sys:String x:Key="SearchAddress" xmlns:sys="clr-namespace:System;assembly=mscorlib">Search address</sys:String>
+  <sys:String x:Key="SearchAddressHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">Search address sends the text you typed to OpenStreetMap. Nothing is sent while you type.</sys:String>
+  <sys:String x:Key="GeocodeDisabled" xmlns:sys="clr-namespace:System;assembly=mscorlib">Address search is switched off in Settings.</sys:String>
+  <sys:String x:Key="GeocodeUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">The address service is not available right now. Try again later.</sys:String>
+  <sys:String x:Key="GeocodeNoResults" xmlns:sys="clr-namespace:System;assembly=mscorlib">No address found. Try the street, number and city.</sys:String>
+  <sys:String x:Key="GeocodeTooShort" xmlns:sys="clr-namespace:System;assembly=mscorlib">Type at least 3 characters to search for an address.</sys:String>
+  <sys:String x:Key="GeocodeResults" xmlns:sys="clr-namespace:System;assembly=mscorlib">Addresses found: choose one from the list.</sys:String>
+  <sys:String x:Key="SaveAsHome" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save as Home</sys:String>
+  <sys:String x:Key="SaveAsWork" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save as Work</sys:String>
+  <sys:String x:Key="PlaceNameWork" xmlns:sys="clr-namespace:System;assembly=mscorlib">Work</sys:String>
+  <sys:String x:Key="PlaceSavedNamed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Saved "{0}" to your places.</sys:String>
+  <sys:String x:Key="PlaceLimitReached" xmlns:sys="clr-namespace:System;assembly=mscorlib">You can keep up to 30 saved places. Remove one in Settings first.</sys:String>
+  <sys:String x:Key="DateLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Date</sys:String>
+  <sys:String x:Key="DateToday" xmlns:sys="clr-namespace:System;assembly=mscorlib">Today</sys:String>
+  <sys:String x:Key="DateTomorrow" xmlns:sys="clr-namespace:System;assembly=mscorlib">Tomorrow</sys:String>
+  <sys:String x:Key="TimePassedTomorrow" xmlns:sys="clr-namespace:System;assembly=mscorlib">That time has already passed today, so trips are planned for tomorrow, {0}.</sys:String>
+  <sys:String x:Key="PlanNoScheduleForDate" xmlns:sys="clr-namespace:System;assembly=mscorlib">No timetable for this date yet. Timetables are published only up to today, so try again closer to the date.</sys:String>
+  <sys:String x:Key="PlannedForDate" xmlns:sys="clr-namespace:System;assembly=mscorlib">Timetable for {0}</sys:String>
   <sys:String x:Key="Planning" xmlns:sys="clr-namespace:System;assembly=mscorlib">Planning...</sys:String>
   <sys:String x:Key="PlanFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Could not plan the trip. Press Find trips to retry.</sys:String>
   <sys:String x:Key="PlanNoStopsNearOrigin" xmlns:sys="clr-namespace:System;assembly=mscorlib">No stops within walking distance of the origin.</sys:String>
@@ -124,7 +143,7 @@
   <sys:String x:Key="AlertLate" xmlns:sys="clr-namespace:System;assembly=mscorlib">🔴 You are LATE — Line {0} departs in {1} seconds. HURRY!</sys:String>
   <sys:String x:Key="AlertMissed" xmlns:sys="clr-namespace:System;assembly=mscorlib">You missed Line {0}.</sys:String>
   <sys:String x:Key="AlertMissedNext" xmlns:sys="clr-namespace:System;assembly=mscorlib">You missed Line {0}. Next option: Line {1} in {2} min</sys:String>
-  <sys:String x:Key="AlertWalkDetail" xmlns:sys="clr-namespace:System;assembly=mscorlib">{0} min walk + {1} min wait = {2} min before departure · leave in {3} min</sys:String>
+  <sys:String x:Key="AlertWalkDetail" xmlns:sys="clr-namespace:System;assembly=mscorlib">Leave in {3} min: {0} min walk to {4} for line {5}</sys:String>
   <sys:String x:Key="AlertAtStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">Stop: {0}</sys:String>
   <sys:String x:Key="DismissAlert" xmlns:sys="clr-namespace:System;assembly=mscorlib">Dismiss</sys:String>
   <sys:String x:Key="PromptSelectRoute" xmlns:sys="clr-namespace:System;assembly=mscorlib">Select a route to see exact times</sys:String>

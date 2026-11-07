@@ -11,6 +11,15 @@ public sealed partial record InfisicalOptions(
     string Path,
     Uri BaseUri)
 {
+    /// <summary>Keeps the machine-identity secret out of the generated ToString (logs, debugger displays).</summary>
+    private bool PrintMembers(System.Text.StringBuilder builder)
+    {
+        builder.Append("ClientId = ").Append(ClientId).Append(", ClientSecret = ").Append(ClientSecret is null ? "" : "***");
+        builder.Append(", ProjectId = ").Append(ProjectId).Append(", Environment = ").Append(Environment);
+        builder.Append(", Path = ").Append(Path).Append(", BaseUri = ").Append(BaseUri);
+        return true;
+    }
+
     public const string DefaultUrl = "https://app.infisical.com";
 
     public bool IsConfigured =>

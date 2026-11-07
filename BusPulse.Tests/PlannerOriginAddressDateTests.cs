@@ -546,11 +546,11 @@ public sealed class TripTimeDateTests
     }
 
     [Fact]
-    public void An_ambiguous_autumn_time_resolves_to_one_of_its_two_instants()
+    public void An_ambiguous_autumn_time_resolves_to_its_first_occurrence()
     {
         var instant = TripTime.Resolve(new DateOnly(2026, 10, 25), new TimeSpan(1, 30, 0), Zone);
 
-        Assert.Contains(instant, new[] { DateTimeOffset.Parse("2026-10-24T22:30:00+00:00"), DateTimeOffset.Parse("2026-10-24T23:30:00+00:00") });
+        Assert.Equal(DateTimeOffset.Parse("2026-10-24T22:30:00+00:00"), instant);   // first occurrence, summer offset
     }
 
     [Fact]

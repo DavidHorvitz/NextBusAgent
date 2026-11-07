@@ -29,7 +29,7 @@ public static class TripTime
     /// <summary>
     /// The instant of <paramref name="timeOfDay"/> on the explicit Israel-local calendar <paramref name="date"/>. Never rolls
     /// to another day: the caller decides what to do with a time that has passed. A time skipped by a spring-forward
-    /// change is moved one hour later; an ambiguous autumn time takes the standard-time reading.
+    /// change is moved one hour later; an ambiguous autumn time takes its first occurrence (summer offset, the earlier instant), the same rule as GtfsTime.At.
     /// </summary>
     public static DateTimeOffset Resolve(DateOnly date, TimeSpan timeOfDay, TimeZoneInfo zone) =>
         ToInstant(date.ToDateTime(TimeOnly.MinValue) + timeOfDay, zone);
@@ -41,15 +41,15 @@ public static class TripTime
     private static DateTimeOffset ToInstant(DateTime wallClock, TimeZoneInfo zone)
     {
         var unspecified = DateTime.SpecifyKind(wallClock, DateTimeKind.Unspecified);
-        try
-        {
-            return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(unspecified, zone), TimeSpan.Zero);
-        }
-        catch (ArgumentException)
+        if (zone.IsInvalidTime(unspecified))
         {
             // The wall-clock time does not exist on that day (spring-forward gap); use the first valid time after it.
             return ToInstant(wallClock.AddHours(1), zone);
         }
+
+        // An ambiguous fall-back time occurs twice; take the first (summer offset, earlier instant), as GtfsTime.At does.
+        var offset = zone.IsAmbiguousTime(unspecified) ? zone.GetAmbiguousTimeOffsets(unspecified).Max() : zone.GetUtcOffset(unspecified);
+        return new DateTimeOffset(unspecified, offset).ToUniversalTime();
     }
 
     private static TimeZoneInfo FindZone()

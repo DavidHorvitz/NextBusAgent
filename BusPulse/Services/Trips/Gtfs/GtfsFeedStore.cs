@@ -12,7 +12,7 @@ public sealed class GtfsFeedException(string message, Exception? inner = null) :
 /// <summary>
 /// Keeps one local copy of the Ministry of Transport GTFS zip under the cache directory as gtfs-yyyy-MM-dd.zip.
 /// The download is HTTPS only from a fixed host (redirects are off in the named client), size-capped, written to a temp
-/// file and moved into place only after the zip passes validation. A copy younger than 24 hours is reused; when a
+/// file and moved into place only after the zip passes validation. A copy younger than 24 hours is reused, an older one is served while a background refresh runs; when a
 /// refresh fails the previous copy is kept and used. Files older than 3 days are deleted. One download runs at a time
 /// and concurrent callers share it.
 /// </summary>
@@ -28,6 +28,16 @@ internal sealed class GtfsFeedStore(IHttpClientFactory httpClientFactory, IClock
 
     private readonly object _gate = new();
     private Task<string>? _inflight;
+    private DateTimeOffset? _failedAt;
+
+    /// <summary>The download is abandoned when no bytes arrive for this long (a half-open connection never errors on its own).</summary>
+    internal TimeSpan IdleReadTimeout { get; set; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>Hard cap on one whole download.</summary>
+    internal TimeSpan OverallTimeout { get; set; } = TimeSpan.FromMinutes(20);
+
+    /// <summary>After a failed refresh no new download starts for this long while a usable copy exists.</summary>
+    internal TimeSpan FailureBackoff { get; set; } = TimeSpan.FromHours(1);
 
     public bool IsDownloading
     {
@@ -40,29 +50,68 @@ internal sealed class GtfsFeedStore(IHttpClientFactory httpClientFactory, IClock
         }
     }
 
-    /// <summary>Path of a fresh, validated feed zip, downloading it first when needed.</summary>
+    /// <summary>
+    /// Path of a usable, validated feed zip. A copy under 24 hours old is returned as is. An older copy still inside the
+    /// 3-day retention is returned immediately while a refresh runs in the background (unless a refresh failed within the
+    /// backoff window). Only when no usable copy exists does the caller wait for the download.
+    /// </summary>
     public async Task<string> EnsureFreshAsync(IProgress<string>? progress, CancellationToken cancellationToken)
     {
-        Task<string> task;
-        lock (_gate)
+        var existing = await Task.Run(() =>
         {
-            _inflight = task = _inflight is { IsCompleted: false } running ? running : Task.Run(() => RefreshAsync(progress), CancellationToken.None);
+            Directory.CreateDirectory(cacheDirectory);
+            return Cached().FirstOrDefault(IsValidZip);
+        }, CancellationToken.None).WaitAsync(cancellationToken);
+
+        var now = clock.UtcNow;
+        if (existing is not null)
+        {
+            var age = now - File.GetLastWriteTimeUtc(existing);
+            if (age < FreshFor)
+            {
+                Cleanup(existing);
+                return existing;
+            }
+
+            if (InBackoff(now))
+            {
+                return existing;
+            }
+
+            if (age < KeepFor)
+            {
+                var background = StartRefresh(null, existing);
+                _ = background.ContinueWith(
+                    finished => logger.LogDebug(finished.Exception, "GTFS background refresh ended unexpectedly."),
+                    CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted,
+                    TaskScheduler.Default);
+                return existing;
+            }
         }
 
-        return await task.WaitAsync(cancellationToken);
+        return await StartRefresh(progress, existing).WaitAsync(cancellationToken);
     }
 
-    private async Task<string> RefreshAsync(IProgress<string>? progress)
+    private bool InBackoff(DateTimeOffset now)
     {
-        Directory.CreateDirectory(cacheDirectory);
-        var existing = Cached().Where(IsValidZip).ToList();
-        var now = clock.UtcNow;
-        if (existing.Count > 0 && now - File.GetLastWriteTimeUtc(existing[0]) < FreshFor)
+        lock (_gate)
         {
-            Cleanup(existing[0]);
-            return existing[0];
+            return _failedAt is { } failed && now - failed < FailureBackoff;
         }
+    }
 
+    private Task<string> StartRefresh(IProgress<string>? progress, string? existing)
+    {
+        lock (_gate)
+        {
+            return _inflight = _inflight is { IsCompleted: false } running ? running : Task.Run(() => RefreshAsync(progress, existing), CancellationToken.None);
+        }
+    }
+
+    private async Task<string> RefreshAsync(IProgress<string>? progress, string? existing)
+    {
+        var now = clock.UtcNow;
         var israelToday = GtfsTime.LocalDate(now);
         var target = Path.Combine(cacheDirectory, $"gtfs-{israelToday.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.zip");
         var temp = Path.Combine(cacheDirectory, $"gtfs-download-{Guid.NewGuid():N}.tmp");
@@ -76,16 +125,26 @@ internal sealed class GtfsFeedStore(IHttpClientFactory httpClientFactory, IClock
 
             File.Move(temp, target, overwrite: true);
             File.SetLastWriteTimeUtc(target, now.UtcDateTime);
+            lock (_gate)
+            {
+                _failedAt = null;
+            }
+
             Cleanup(target);
             return target;
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or TaskCanceledException or GtfsFeedException or InvalidDataException)
+        catch (Exception exception) when (exception is HttpRequestException or IOException or OperationCanceledException or GtfsFeedException or InvalidDataException)
         {
             TryDelete(temp);
-            if (existing.Count > 0)
+            lock (_gate)
             {
-                logger.LogWarning(exception, "GTFS feed refresh failed; keeping {Path}.", existing[0]);
-                return existing[0];
+                _failedAt = clock.UtcNow;
+            }
+
+            if (existing is not null)
+            {
+                logger.LogWarning(exception, "GTFS feed refresh failed; keeping {Path}.", existing);
+                return existing;
             }
 
             throw exception as GtfsFeedException ?? new GtfsFeedException($"The timetable could not be downloaded: {exception.Message}", exception);
@@ -94,38 +153,50 @@ internal sealed class GtfsFeedStore(IHttpClientFactory httpClientFactory, IClock
 
     private async Task DownloadAsync(string temp, IProgress<string>? progress)
     {
+        using var overall = new CancellationTokenSource(OverallTimeout);
+        using var idle = CancellationTokenSource.CreateLinkedTokenSource(overall.Token);
+        var token = idle.Token;
+        idle.CancelAfter(IdleReadTimeout);
         var client = httpClientFactory.CreateClient(ClientName);
-        using var response = await client.GetAsync(FeedUri, HttpCompletionOption.ResponseHeadersRead);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            throw new GtfsFeedException($"The timetable server answered {(int)response.StatusCode}.");
-        }
+            using var response = await client.GetAsync(FeedUri, HttpCompletionOption.ResponseHeadersRead, token);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new GtfsFeedException($"The timetable server answered {(int)response.StatusCode}.");
+            }
 
-        if (response.Content.Headers.ContentLength is > MaxDownloadBytes)
-        {
-            throw new GtfsFeedException("The timetable file is larger than the allowed size.");
-        }
-
-        await using var source = await response.Content.ReadAsStreamAsync();
-        await using var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-        var buffer = new byte[81920];
-        long total = 0;
-        long reportedAt = 0;
-        int read;
-        while ((read = await source.ReadAsync(buffer)) > 0)
-        {
-            total += read;
-            if (total > MaxDownloadBytes)
+            if (response.Content.Headers.ContentLength is > MaxDownloadBytes)
             {
                 throw new GtfsFeedException("The timetable file is larger than the allowed size.");
             }
 
-            await output.WriteAsync(buffer.AsMemory(0, read));
-            if (total - reportedAt >= 10 * 1024 * 1024)
+            await using var source = await response.Content.ReadAsStreamAsync(token);
+            await using var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+            var buffer = new byte[81920];
+            long total = 0;
+            long reportedAt = 0;
+            int read;
+            while ((read = await source.ReadAsync(buffer, token)) > 0)
             {
-                reportedAt = total;
-                progress?.Report($"Downloading the timetable: {total / (1024 * 1024)} MB");
+                idle.CancelAfter(IdleReadTimeout);
+                total += read;
+                if (total > MaxDownloadBytes)
+                {
+                    throw new GtfsFeedException("The timetable file is larger than the allowed size.");
+                }
+
+                await output.WriteAsync(buffer.AsMemory(0, read), token);
+                if (total - reportedAt >= 10 * 1024 * 1024)
+                {
+                    reportedAt = total;
+                    progress?.Report($"Downloading the timetable: {total / (1024 * 1024)} MB");
+                }
             }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw new GtfsFeedException("The timetable download stalled or took too long.");
         }
     }
 

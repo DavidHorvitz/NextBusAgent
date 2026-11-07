@@ -1,5 +1,6 @@
 using BusPulse.Services.LiveData;
 using BusPulse.Services.Stops;
+using BusPulse.Services.Trips.Gtfs;
 using Microsoft.Extensions.Logging;
 
 namespace BusPulse.Services.Trips;
@@ -19,7 +20,10 @@ public enum TripPlanStatus
     NoOptions,
 
     /// <summary>A date after today was asked for and the timetable source has no departures for it yet.</summary>
-    NoScheduleForDate
+    NoScheduleForDate,
+
+    /// <summary>The timetable for a later date could not be prepared (download or read failed); trying again may work.</summary>
+    ScheduleUnavailable
 }
 
 public sealed record TripRequest(
@@ -79,7 +83,8 @@ public sealed class TripPlannerService(
     IRideScheduleSource schedule,
     ILiveDataAggregator aggregator,
     IClock clock,
-    ILogger<TripPlannerService> logger) : ITripPlannerService
+    ILogger<TripPlannerService> logger,
+    IFutureScheduleSource? futureSchedule = null) : ITripPlannerService
 {
     public const double MaxWalkMeters = 800;
     private const int OriginStopCount = 5;
@@ -101,26 +106,44 @@ public sealed class TripPlannerService(
     public async Task<TripPlan> PlanAsync(TripRequest request, CancellationToken cancellationToken = default)
     {
         var now = clock.UtcNow;
+        var target = request.TargetTime;
+        var futureDate = request.Mode != TripTimeMode.Now && target is not null &&
+            TripTime.TodayIn(target.Value, TripTime.IsraelZone) > TripTime.TodayIn(now, TripTime.IsraelZone);
+
+        // Stride only holds timetables up to today. A later date comes from the official Ministry of Transport feed when
+        // it is available; its stop ids are stop codes, and nothing on it is ever live.
+        IRideScheduleSource source = schedule;
+        if (futureDate && futureSchedule is not null)
+        {
+            var availability = await futureSchedule.PrepareAsync(TripTime.TodayIn(target!.Value, TripTime.IsraelZone), null, cancellationToken);
+            if (availability.State is FeedState.DateOutsideFeed or FeedState.NoServiceOnDate)
+            {
+                return new TripPlan(TripPlanStatus.NoScheduleForDate, []);
+            }
+
+            if (availability.State != FeedState.Ready)
+            {
+                logger.LogWarning("The timetable feed is not ready for the requested date: {State} {Reason}", availability.State, availability.Reason);
+                return new TripPlan(TripPlanStatus.ScheduleUnavailable, []);
+            }
+
+            source = futureSchedule;
+        }
+
+        var byStopCode = !ReferenceEquals(source, schedule);
         var stops = await catalog.GetStopsAsync(cancellationToken);
-        var originStops = await WithCurrentIdsAsync(
-            Geo.FindNearby(stops.Where(stop => stop.Id > 0), request.OriginLatitude, request.OriginLongitude, OriginStopCount, MaxWalkMeters),
-            cancellationToken);
+        var originStops = await NearbyAsync(stops, request.OriginLatitude, request.OriginLongitude, OriginStopCount, byStopCode, cancellationToken);
         if (originStops.Count == 0)
         {
             return new TripPlan(TripPlanStatus.NoStopsNearOrigin, []);
         }
 
-        var destinationStops = await WithCurrentIdsAsync(
-            Geo.FindNearby(stops.Where(stop => stop.Id > 0), request.DestinationLatitude, request.DestinationLongitude, DestinationStopCount, MaxWalkMeters),
-            cancellationToken);
+        var destinationStops = await NearbyAsync(stops, request.DestinationLatitude, request.DestinationLongitude, DestinationStopCount, byStopCode, cancellationToken);
         if (destinationStops.Count == 0)
         {
             return new TripPlan(TripPlanStatus.NoStopsNearDestination, []);
         }
 
-        var target = request.TargetTime;
-        var futureDate = request.Mode != TripTimeMode.Now && target is not null &&
-            TripTime.TodayIn(target.Value, TripTime.IsraelZone) > TripTime.TodayIn(now, TripTime.IsraelZone);
         var leaveEarliest = request.Mode == TripTimeMode.DepartAt && target is not null && target > now ? target.Value : now;
         var (from, to) = request.Mode switch
         {
@@ -138,7 +161,7 @@ public sealed class TripPlannerService(
         // number of rows, so arrive-by asks for the latest departures first: those are the ones closest to the target.
         var latestFirst = request.Mode == TripTimeMode.ArriveBy && target is not null;
         var perStop = await Task.WhenAll(originStops.Select(async origin =>
-            (Origin: origin, Departures: await schedule.GetStopDeparturesAsync(origin.Stop.Id, departuresFrom, to, cancellationToken, latestFirst))));
+            (Origin: origin, Departures: await source.GetStopDeparturesAsync(origin.Stop.Id, departuresFrom, to, cancellationToken, latestFirst))));
         foreach (var (origin, departures) in perStop)
         {
             candidates.AddRange(departures
@@ -147,9 +170,10 @@ public sealed class TripPlannerService(
                 .Select(departure => (departure, origin)));
         }
 
-        if (futureDate && perStop.All(stop => stop.Departures.Count == 0))
+        if (futureDate && !byStopCode && perStop.All(stop => stop.Departures.Count == 0))
         {
-            // The source (Stride) only holds timetables up to today: say so instead of claiming there are no trips.
+            // Stride only holds timetables up to today: say so instead of claiming there are no trips. (A ready official
+            // feed that has no departures nearby does mean there are no trips.)
             return new TripPlan(TripPlanStatus.NoScheduleForDate, []);
         }
 
@@ -163,7 +187,7 @@ public sealed class TripPlannerService(
         var destinationRows = new List<RideStop>();
         foreach (var batch in rideIds.Chunk(RideIdBatch))
         {
-            destinationRows.AddRange(await schedule.GetRideStopsAtAsync(batch, destinationStopIds, departuresFrom, to + RideLookAhead, cancellationToken));
+            destinationRows.AddRange(await source.GetRideStopsAtAsync(batch, destinationStopIds, departuresFrom, to + RideLookAhead, cancellationToken));
         }
 
         // Live arrivals describe today's buses; a ride on a later date is never matched to them or labelled live.
@@ -252,6 +276,24 @@ public sealed class TripPlannerService(
     }
 
     private static DateTimeOffset Max(DateTimeOffset a, DateTimeOffset b) => a > b ? a : b;
+
+    private async Task<IReadOnlyList<NearbyStop>> NearbyAsync(
+        IReadOnlyList<Stop> stops, double latitude, double longitude, int count, bool byStopCode, CancellationToken cancellationToken)
+    {
+        if (!byStopCode)
+        {
+            return await WithCurrentIdsAsync(
+                Geo.FindNearby(stops.Where(stop => stop.Id > 0), latitude, longitude, count, MaxWalkMeters), cancellationToken);
+        }
+
+        // The official feed knows a stop by the number on its sign, not by Stride's per-day id.
+        return Geo.FindNearby(stops, latitude, longitude, count, MaxWalkMeters)
+            .Select(nearby => long.TryParse(nearby.Stop.Code, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var code)
+                ? nearby with { Stop = nearby.Stop with { Id = code } }
+                : null)
+            .OfType<NearbyStop>()
+            .ToArray();
+    }
 
     private async Task<IReadOnlyList<NearbyStop>> WithCurrentIdsAsync(IReadOnlyList<NearbyStop> nearby, CancellationToken cancellationToken)
     {

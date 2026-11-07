@@ -1101,6 +1101,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
             TripPlanStatus.NoStopsNearOrigin => _localizer.Get("PlanNoStopsNearOrigin"),
             TripPlanStatus.NoStopsNearDestination => _localizer.Get("PlanNoStopsNearDestination"),
             TripPlanStatus.NoScheduleForDate => _localizer.Get("PlanNoScheduleForDate"),
+            TripPlanStatus.ScheduleUnavailable => _localizer.Get("PlanScheduleUnavailable"),
             _ => _localizer.Get("PlanNoOptions")
         };
     }

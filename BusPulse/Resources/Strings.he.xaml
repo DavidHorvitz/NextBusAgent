@@ -103,7 +103,8 @@
   <sys:String x:Key="DateToday" xmlns:sys="clr-namespace:System;assembly=mscorlib">היום</sys:String>
   <sys:String x:Key="DateTomorrow" xmlns:sys="clr-namespace:System;assembly=mscorlib">מחר</sys:String>
   <sys:String x:Key="TimePassedTomorrow" xmlns:sys="clr-namespace:System;assembly=mscorlib">השעה הזו כבר עברה היום, ולכן הנסיעות מתוכננות למחר, {0}.</sys:String>
-  <sys:String x:Key="PlanNoScheduleForDate" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין עדיין לוח זמנים לתאריך הזה. לוחות הזמנים מתפרסמים רק עד היום, נסו שוב קרוב יותר למועד.</sys:String>
+  <sys:String x:Key="PlanNoScheduleForDate" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין לוח זמנים לתאריך הזה. הלוח הרשמי מכסה כ־30 יום קדימה, בחרו תאריך קרוב יותר.</sys:String>
+  <sys:String x:Key="PlanScheduleUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא הצלחנו להכין את לוח הזמנים לתאריך הזה (ההורדה נכשלה). לחצו על חיפוש נסיעות לניסיון חוזר.</sys:String>
   <sys:String x:Key="PlannedForDate" xmlns:sys="clr-namespace:System;assembly=mscorlib">לוח זמנים ל־{0}</sys:String>
   <sys:String x:Key="Planning" xmlns:sys="clr-namespace:System;assembly=mscorlib">מתכנן...</sys:String>
   <sys:String x:Key="PlanFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא ניתן לתכנן את הנסיעה. לחצו על חיפוש נסיעות לניסיון חוזר.</sys:String>

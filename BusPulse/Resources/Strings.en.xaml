@@ -103,7 +103,8 @@
   <sys:String x:Key="DateToday" xmlns:sys="clr-namespace:System;assembly=mscorlib">Today</sys:String>
   <sys:String x:Key="DateTomorrow" xmlns:sys="clr-namespace:System;assembly=mscorlib">Tomorrow</sys:String>
   <sys:String x:Key="TimePassedTomorrow" xmlns:sys="clr-namespace:System;assembly=mscorlib">That time has already passed today, so trips are planned for tomorrow, {0}.</sys:String>
-  <sys:String x:Key="PlanNoScheduleForDate" xmlns:sys="clr-namespace:System;assembly=mscorlib">No timetable for this date yet. Timetables are published only up to today, so try again closer to the date.</sys:String>
+  <sys:String x:Key="PlanNoScheduleForDate" xmlns:sys="clr-namespace:System;assembly=mscorlib">No timetable for this date. The official timetable covers about 30 days ahead, so pick a nearer date.</sys:String>
+  <sys:String x:Key="PlanScheduleUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">Could not prepare the timetable for this date (the download failed). Press Find trips to try again.</sys:String>
   <sys:String x:Key="PlannedForDate" xmlns:sys="clr-namespace:System;assembly=mscorlib">Timetable for {0}</sys:String>
   <sys:String x:Key="Planning" xmlns:sys="clr-namespace:System;assembly=mscorlib">Planning...</sys:String>
   <sys:String x:Key="PlanFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Could not plan the trip. Press Find trips to retry.</sys:String>

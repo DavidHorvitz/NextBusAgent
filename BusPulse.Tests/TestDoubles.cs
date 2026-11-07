@@ -225,3 +225,17 @@ internal sealed class FakeCalendar : BusPulse.Services.Calendar.ICalendarService
         IsConnected = false;
     }
 }
+
+/// <summary>Address search without the network: returns <see cref="Result"/> and records every query it was asked.</summary>
+internal sealed class FakeGeocoder : BusPulse.Services.Geocoding.IGeocoder
+{
+    public BusPulse.Services.Geocoding.GeocodeResult Result { get; set; } = BusPulse.Services.Geocoding.GeocodeResult.Of(BusPulse.Services.Geocoding.GeocodeStatus.NoResults);
+
+    public List<string> Queries { get; } = [];
+
+    public Task<BusPulse.Services.Geocoding.GeocodeResult> SearchAsync(string query, CancellationToken cancellationToken = default)
+    {
+        Queries.Add(query);
+        return Task.FromResult(Result);
+    }
+}

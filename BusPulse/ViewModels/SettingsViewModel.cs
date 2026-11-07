@@ -95,6 +95,21 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool IsCalendarConfigured => _calendar.IsConfigured;
 
+    /// <summary>Looks the Google client id and secret up (Infisical, then environment) and updates the calendar card.</summary>
+    public async Task RefreshCalendarConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        await _calendar.RefreshConfigurationAsync(cancellationToken);
+        OnPropertyChanged(nameof(IsCalendarConfigured));
+        if (!_calendar.IsConfigured)
+        {
+            SetCalendarStatus("CalendarNotConfigured");
+        }
+        else if (_calendarStatusKey == "CalendarNotConfigured")
+        {
+            SetCalendarStatus(_calendar.IsConnected ? "CalendarConnected" : "CalendarReady");
+        }
+    }
+
     [ObservableProperty]
     private string _saveStatus = string.Empty;
 
@@ -147,6 +162,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         };
         SetCalendarStatus(calendar.IsConfigured ? (calendar.IsConnected ? "CalendarConnected" : "CalendarReady") : "CalendarNotConfigured");
         localizer.LanguageChanged += (_, _) => { if (_calendarStatusKey is not null) CalendarStatus = localizer.Get(_calendarStatusKey); };
+        _ = RefreshCalendarConfigurationAsync();
         _loading = false;
     }
 
@@ -207,9 +223,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task ConnectCalendarAsync(CancellationToken cancellationToken)
     {
+        await RefreshCalendarConfigurationAsync(cancellationToken);
         if (!_calendar.IsConfigured)
         {
-            SetCalendarStatus("CalendarNotConfigured");
             return;
         }
 

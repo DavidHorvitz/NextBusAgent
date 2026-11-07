@@ -177,7 +177,7 @@
   <sys:String x:Key="CalendarLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">יומן Google</sys:String>
   <sys:String x:Key="CalendarConnect" xmlns:sys="clr-namespace:System;assembly=mscorlib">חיבור יומן Google</sys:String>
   <sys:String x:Key="CalendarDisconnect" xmlns:sys="clr-namespace:System;assembly=mscorlib">ניתוק</sys:String>
-  <sys:String x:Key="CalendarNotConfigured" xmlns:sys="clr-namespace:System;assembly=mscorlib">עדיין לא הוגדר: הגדירו את משתני הסביבה BUSPULSE_GOOGLE_CLIENT_ID ו-BUSPULSE_GOOGLE_CLIENT_SECRET, ואז הפעילו מחדש את האפליקציה.</sys:String>
+  <sys:String x:Key="CalendarNotConfigured" xmlns:sys="clr-namespace:System;assembly=mscorlib">מזהה הלקוח והסוד של Google חסרים. הוסיפו אותם ל-Infisical או למשתני הסביבה.</sys:String>
   <sys:String x:Key="CalendarReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא מחובר. גישה לקריאה בלבד ליומן שלכם.</sys:String>
   <sys:String x:Key="CalendarConnected" xmlns:sys="clr-namespace:System;assembly=mscorlib">מחובר. אפשר להציע נסיעות מתוך האירועים שלכם.</sys:String>
   <sys:String x:Key="CalendarWaiting" xmlns:sys="clr-namespace:System;assembly=mscorlib">ממתין לאישור שלכם בדפדפן...</sys:String>

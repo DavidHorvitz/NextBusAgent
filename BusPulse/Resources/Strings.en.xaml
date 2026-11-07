@@ -177,7 +177,7 @@
   <sys:String x:Key="CalendarLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Google Calendar</sys:String>
   <sys:String x:Key="CalendarConnect" xmlns:sys="clr-namespace:System;assembly=mscorlib">Connect Google Calendar</sys:String>
   <sys:String x:Key="CalendarDisconnect" xmlns:sys="clr-namespace:System;assembly=mscorlib">Disconnect</sys:String>
-  <sys:String x:Key="CalendarNotConfigured" xmlns:sys="clr-namespace:System;assembly=mscorlib">Not set up yet: set the BUSPULSE_GOOGLE_CLIENT_ID and BUSPULSE_GOOGLE_CLIENT_SECRET environment variables, then restart the app.</sys:String>
+  <sys:String x:Key="CalendarNotConfigured" xmlns:sys="clr-namespace:System;assembly=mscorlib">Google client id and secret are missing. Add them to Infisical or to the environment variables.</sys:String>
   <sys:String x:Key="CalendarReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">Not connected. Read-only access to your events.</sys:String>
   <sys:String x:Key="CalendarConnected" xmlns:sys="clr-namespace:System;assembly=mscorlib">Connected. Trips can be suggested from your events.</sys:String>
   <sys:String x:Key="CalendarWaiting" xmlns:sys="clr-namespace:System;assembly=mscorlib">Waiting for you to approve in the browser...</sys:String>

@@ -15,10 +15,17 @@ public sealed class AppConfigStore
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
     };
 
-    private readonly string _configPath = Path.Combine(
+    private readonly string _configPath;
+
+    public AppConfigStore() : this(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "BusPulse",
-        "settings.dpapi");
+        "settings.dpapi"))
+    {
+    }
+
+    /// <summary>For tests: store the encrypted configuration at another path.</summary>
+    public AppConfigStore(string configPath) => _configPath = configPath;
 
     public async Task<AppConfig> LoadAsync(CancellationToken cancellationToken = default)
     {

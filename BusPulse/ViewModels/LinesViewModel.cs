@@ -307,6 +307,17 @@ public sealed partial class LinesViewModel : ObservableObject
 
         if (SelectedOrigin.Place is { } place)
         {
+            if (place.Latitude is not null && place.Longitude is not null)
+            {
+                var nearestToPoint = PlacePoint.NearestStop(place, stops);
+                if (nearestToPoint is null)
+                {
+                    StatusText = _localizer.Get("NoStopsNearby");
+                }
+
+                return nearestToPoint;
+            }
+
             var found = stops.FirstOrDefault(candidate => candidate.Code == place.StopCode);
             if (found is null)
             {
@@ -339,7 +350,7 @@ public sealed partial class LinesViewModel : ObservableObject
         {
             var from = direction.Departure - BeforeDeparture;
             var rows = await _schedule.GetRideStopsAsync(direction.RideId, from, direction.Departure + AfterDeparture);
-            var origin = SelectedOrigin.Stop?.Code ?? SelectedOrigin.Place?.StopCode;
+            var origin = SelectedOrigin.Stop?.Code ?? (SelectedOrigin.Place?.StopCode is { Length: > 0 } placeCode ? placeCode : null);
             Stops.Clear();
             foreach (var row in rows.OrderBy(row => row.Sequence))
             {

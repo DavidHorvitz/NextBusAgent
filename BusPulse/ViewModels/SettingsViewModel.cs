@@ -375,7 +375,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task CheckConnectionAsync(CancellationToken cancellationToken)
     {
-        var stopCode = Places.FirstOrDefault()?.StopCode;
+        var stopCode = Places.FirstOrDefault(place => place.StopCode.Length > 0)?.StopCode;
         ProviderStatuses.Clear();
         if (stopCode is null)
         {

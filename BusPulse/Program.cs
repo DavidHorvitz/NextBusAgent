@@ -82,12 +82,15 @@ internal static class Program
                 {
                     client.Timeout = TimeSpan.FromSeconds(120);
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("BusPulseApp/1.0");
-                }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+                }).AddHttpMessageHandler(() => new TransientRetryHandler())
+                    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+                // Stride returns sporadic 500/503 under load (seen 2026-11-07), so these calls retry transient failures.
                 services.AddHttpClient("TransitApi", client =>
                 {
                     client.Timeout = TimeSpan.FromSeconds(45);
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("BusPulseApp/1.0");
-                }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                }).AddHttpMessageHandler(() => new TransientRetryHandler())
+                    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
                 {
                     AllowAutoRedirect = false,
                     SslOptions = new SslClientAuthenticationOptions

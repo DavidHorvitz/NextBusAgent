@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -63,12 +64,33 @@ public sealed class StrideStopCatalog(
             return stops;
         }
 
-        // Each lookup can take many seconds, so the stops are resolved together.
-        var ids = await Task.WhenAll(stops.Select(stop => CurrentIdAsync(stop.Code, date, cancellationToken)));
+        // Each lookup can take many seconds, so the stops are resolved together. One stop whose lookup fails is left out
+        // (the others still give a plan); only when every lookup fails is the failure reported to the caller.
+        var lookups = await Task.WhenAll(stops.Select(stop => TryCurrentIdAsync(stop.Code, date, cancellationToken)));
+        if (lookups.Length > 0 && lookups.All(lookup => lookup.Failure is not null))
+        {
+            ExceptionDispatchInfo.Capture(lookups[0].Failure!).Throw();
+        }
+
         return stops
-            .Zip(ids, (stop, id) => id is null ? null : stop with { Id = id.Value })
+            .Zip(lookups, (stop, lookup) => lookup.Id is null ? null : stop with { Id = lookup.Id.Value })
             .OfType<Stop>()
             .ToArray();
+    }
+
+    private async Task<(long? Id, Exception? Failure)> TryCurrentIdAsync(string code, string date, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (await CurrentIdAsync(code, date, cancellationToken), null);
+        }
+        catch (Exception exception) when (
+            exception is HttpRequestException or IOException or JsonException or InvalidDataException ||
+            (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            logger.LogWarning(exception, "Could not look up today's Stride id for stop {Code}; leaving it out.", code);
+            return (null, exception);
+        }
     }
 
     private async Task<long?> CurrentIdAsync(string code, string date, CancellationToken cancellationToken)

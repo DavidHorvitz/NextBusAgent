@@ -137,7 +137,7 @@
                     AutomationProperties.Name="{DynamicResource DateToday}" />
             <Button Content="{DynamicResource DateTomorrow}" Command="{Binding SelectTomorrowCommand}" Padding="12,5" Margin="0,0,8,0"
                     AutomationProperties.Name="{DynamicResource DateTomorrow}" />
-            <DatePicker DisplayDateStart="{Binding MinDate}" DisplayDateEnd="{Binding MaxDate}" SelectedDate="{Binding TargetDate, Mode=TwoWay}"
+            <DatePicker DisplayDateStart="{Binding MinDate, Mode=OneWay}" DisplayDateEnd="{Binding MaxDate, Mode=OneWay}" SelectedDate="{Binding TargetDate, Mode=TwoWay}"
                         MinWidth="140" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource DateLabel}" />
           </StackPanel>
           <TextBlock Text="{Binding DateNotice}" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"

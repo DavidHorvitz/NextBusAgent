@@ -98,7 +98,7 @@
   <sys:String x:Key="SaveAsWork" xmlns:sys="clr-namespace:System;assembly=mscorlib">שמור כעבודה</sys:String>
   <sys:String x:Key="PlaceNameWork" xmlns:sys="clr-namespace:System;assembly=mscorlib">עבודה</sys:String>
   <sys:String x:Key="PlaceSavedNamed" xmlns:sys="clr-namespace:System;assembly=mscorlib">"{0}" נשמר במקומות שלכם.</sys:String>
-  <sys:String x:Key="PlaceLimitReached" xmlns:sys="clr-namespace:System;assembly=mscorlib">אפשר לשמור עד 30 מקומות. הסירו אחד בהגדרות קודם.</sys:String>
+  <sys:String x:Key="PlaceLimitReached" xmlns:sys="clr-namespace:System;assembly=mscorlib">אפשר לשמור עד 30 מקומות. הסירו אחד קודם.</sys:String>
   <sys:String x:Key="DateLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">תאריך</sys:String>
   <sys:String x:Key="DateToday" xmlns:sys="clr-namespace:System;assembly=mscorlib">היום</sys:String>
   <sys:String x:Key="DateTomorrow" xmlns:sys="clr-namespace:System;assembly=mscorlib">מחר</sys:String>
@@ -217,8 +217,6 @@
   <sys:String x:Key="AddressTooShort" xmlns:sys="clr-namespace:System;assembly=mscorlib">הקלידו לפחות 3 תווים ואז לחצו על חיפוש או Enter.</sys:String>
   <sys:String x:Key="AddressUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">שירות הכתובות אינו זמין כרגע. נסו שוב מאוחר יותר.</sys:String>
   <sys:String x:Key="AdvancedStopCodeTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">מתקדם: הוספה לפי קוד תחנה</sys:String>
-  <sys:String x:Key="PlaceLimitReached" xmlns:sys="clr-namespace:System;assembly=mscorlib">הגעתם למגבלה של 30 מקומות שמורים.</sys:String>
-  <sys:String x:Key="SearchAddress" xmlns:sys="clr-namespace:System;assembly=mscorlib">חפש כתובת</sys:String>
   <sys:String x:Key="SecretsSourceEnvironment" xmlns:sys="clr-namespace:System;assembly=mscorlib">מקור פרטי הגישה של Google: משתני סביבה.</sys:String>
   <sys:String x:Key="SecretsSourceInfisical" xmlns:sys="clr-namespace:System;assembly=mscorlib">מקור פרטי הגישה של Google: Infisical (משתני סביבה כגיבוי).</sys:String>
   <sys:String x:Key="SecretsSourceNone" xmlns:sys="clr-namespace:System;assembly=mscorlib">מקור פרטי הגישה של Google: לא הוגדר.</sys:String>

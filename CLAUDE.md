@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-Windows-only WPF app (`net8.0-windows10.0.19041.0`). Solution: `BusPulse.sln` with `BusPulse/` (app) and `BusPulse.Tests/` (xUnit).
+Windows-only WPF app (`net10.0-windows10.0.19041.0`). Solution: `BusPulse.sln` with `BusPulse/` (app) and `BusPulse.Tests/` (xUnit).
 
 ```powershell
 dotnet build .\BusPulse.sln -c Release

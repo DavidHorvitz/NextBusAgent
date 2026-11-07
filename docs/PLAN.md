@@ -4,7 +4,7 @@ Single source of truth for scope, decisions, status and next steps. It merges th
 
 ## 1. Product
 
-BusPulse is a WPF desktop app (.NET 8, Windows 10+) that lives in the notification area and shows Israeli public-transport arrivals, so the user does not need a phone during work. All user-facing text is Hebrew with right-to-left layout (English is supported); code, comments, logs and commit messages are English.
+BusPulse is a WPF desktop app (.NET 10, Windows 10+) that lives in the notification area and shows Israeli public-transport arrivals, so the user does not need a phone during work. All user-facing text is Hebrew with right-to-left layout (English is supported); code, comments, logs and commit messages are English.
 
 Non-negotiables: **secure**, **interactive**, **real live data**. Nothing scheduled is ever shown as live; when no real source has data, the UI says so.
 
@@ -128,7 +128,7 @@ Planner upgrade (dates, origin search, saved places, address search): prepared, 
 4. Replace the single connection probe with retry plus exponential backoff, adopt `Microsoft.Extensions.Http.Resilience`, and pause polling when the machine is idle or locked.
 5. Official data access (maintainer action): apply for Ministry of Transport SIRI access, which also gives an official live bus source to replace Curlbus, and optionally contact Israel Railways. Then implement the rail client, the disruptions provider, `StrideSiriProvider` and the config-only `MotSiriProvider` with `docs/live-data.md`.
 6. Design polish (Phase 5): Hebrew font, states, motion, accessibility.
-7. Packaging: per-user installer, AUMID and Start Menu shortcut for toasts, signing, .NET 8 end-of-support (2026-11-10) upgrade plan.
+7. Packaging: per-user installer, AUMID and Start Menu shortcut for toasts, signing.
 
 ## 7. Definition of done
 

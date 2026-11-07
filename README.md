@@ -36,7 +36,7 @@ flowchart LR
 ## Prerequisites
 
 - Windows 10 (build 19041) or 11 x64. Network access uses the operating system's default TLS (1.2 or later).
-- .NET 8 SDK and Windows Desktop Runtime. .NET 8 support ends November 10, 2026; plan a supported-runtime upgrade before then.
+- .NET 10 SDK and Windows Desktop Runtime (.NET 10 is the current LTS, supported until November 2028).
 - Visual Studio 2022 with the .NET desktop workload, or VS Code with C# Dev Kit and the .NET SDK.
 - Internet access. No API key is needed for the current sources. Saved places need a stop code.
 - Human decisions: provider and feed terms, supported service area, stop/route UX, notification policy, supported Windows versions, and signing/installer identity.
@@ -46,7 +46,7 @@ No credentials are needed to build the current scaffold. Do not place credential
 
 ## Build and Run
 
-From the repository root on Windows with the .NET 8 SDK installed:
+From the repository root on Windows with the .NET 10 SDK installed:
 
 ```powershell
 dotnet restore .\BusPulse.sln
@@ -63,7 +63,7 @@ To publish a per-user, framework-dependent build:
 dotnet publish .\BusPulse\BusPulse.csproj -c Release -r win-x64 --self-contained false
 ```
 
-The project builds successfully in this environment using .NET SDK 10.0.401 while targeting `net8.0-windows10.0.19041.0`.
+The project builds in this environment with .NET SDK 10.0.401, targeting `net10.0-windows10.0.19041.0`.
 
 ## Security Notes
 

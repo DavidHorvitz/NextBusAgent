@@ -106,4 +106,4 @@ Still open:
 3. Add transfers to the planner, or state clearly in the UI that only direct trips are searched.
 4. Decide on a live vehicle source (Curlbus does not expose one), or keep the Lines tab schedule-only.
 5. Apply for official Ministry of Transport access (see PLAN.md).
-6. AUMID and Start Menu shortcut for toasts, installer, .NET 8 end of support (2026-11-10).
+6. AUMID and Start Menu shortcut for toasts, installer.

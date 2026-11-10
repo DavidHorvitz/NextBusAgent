@@ -55,7 +55,8 @@ public sealed record TripOption(
     DateTimeOffset ArriveAt,
     bool IsLive,
     ArrivalSource Source,
-    DateTimeOffset ObservedAt);
+    DateTimeOffset ObservedAt,
+    string? RouteColor = null);
 
 public sealed record TripPlan(TripPlanStatus Status, IReadOnlyList<TripOption> Options);
 
@@ -84,7 +85,8 @@ public sealed class TripPlannerService(
     ILiveDataAggregator aggregator,
     IClock clock,
     ILogger<TripPlannerService> logger,
-    IFutureScheduleSource? futureSchedule = null) : ITripPlannerService
+    IFutureScheduleSource? futureSchedule = null,
+    IRouteColors? routeColors = null) : ITripPlannerService
 {
     public const double MaxWalkMeters = 800;
     private const int OriginStopCount = 5;
@@ -254,7 +256,8 @@ public sealed class TripPlannerService(
                 arriveAt,
                 liveMatch is not null,
                 liveMatch?.Source ?? ArrivalSource.Schedule,
-                liveMatch?.ObservedAt ?? now));
+                liveMatch?.ObservedAt ?? now,
+                routeColors?.Find(departure.Line, departure.Agency)));
         }
 
         // One option per ride: keep the one that gets there soonest.

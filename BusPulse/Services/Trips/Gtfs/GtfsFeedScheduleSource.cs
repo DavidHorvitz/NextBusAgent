@@ -54,6 +54,8 @@ public sealed class GtfsFeedScheduleSource : IFutureScheduleSource, IDisposable
     private static readonly TimeSpan IdleLimit = TimeSpan.FromMinutes(15);
 
     private readonly GtfsFeedStore _store;
+    private readonly RouteColorCatalog? _routeColors;
+    private string? _colorsFeed;
     private readonly IClock _clock;
     private readonly ILogger<GtfsFeedScheduleSource> _logger;
     private readonly object _gate = new();
@@ -74,8 +76,10 @@ public sealed class GtfsFeedScheduleSource : IFutureScheduleSource, IDisposable
         IHttpClientFactory httpClientFactory,
         IClock clock,
         ILogger<GtfsFeedScheduleSource> logger,
-        string? cacheDirectory = null)
+        string? cacheDirectory = null,
+        RouteColorCatalog? routeColors = null)
     {
+        _routeColors = routeColors;
         _clock = clock;
         _logger = logger;
         _store = new GtfsFeedStore(httpClientFactory, clock, logger, cacheDirectory ?? Path.Combine(
@@ -269,6 +273,13 @@ public sealed class GtfsFeedScheduleSource : IFutureScheduleSource, IDisposable
         }
 
         var path = await _store.EnsureFreshAsync(progress, cancellationToken);
+        if (_routeColors is not null && !string.Equals(_colorsFeed, path, StringComparison.OrdinalIgnoreCase))
+        {
+            // Small (routes and agency only); refreshed once per feed file.
+            _colorsFeed = path;
+            _ = Task.Run(() => _routeColors.RefreshFromZip(path), CancellationToken.None);
+        }
+
         lock (_gate)
         {
             _lastFeed = (path, _clock.UtcNow);

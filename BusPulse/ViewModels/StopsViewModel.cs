@@ -60,6 +60,8 @@ public sealed partial class ArrivalRowViewModel : ObservableObject
 
     public string? OperatorName => _arrival.OperatorName;
 
+    public string? RouteColor => _arrival.RouteColor;
+
     public bool IsLive => _arrival.IsLive;
 
     public DepartureStatus Status => IsStale ? DepartureStatus.Stale : _arrival.IsLive ? DepartureStatus.Live : DepartureStatus.Scheduled;
@@ -83,6 +85,7 @@ public sealed partial class ArrivalRowViewModel : ObservableObject
         OnPropertyChanged(nameof(LineName));
         OnPropertyChanged(nameof(Destination));
         OnPropertyChanged(nameof(OperatorName));
+        OnPropertyChanged(nameof(RouteColor));
         OnPropertyChanged(nameof(IsLive));
         OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(BadgeText));

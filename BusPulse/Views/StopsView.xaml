@@ -205,7 +205,7 @@
                                 <ColumnDefinition Width="Auto" SharedSizeGroup="Status" />
                                 <ColumnDefinition Width="{StaticResource Bp.EtaColumnWidth}" />
                               </Grid.ColumnDefinitions>
-                              <controls:LineBadge LineName="{Binding LineName}" OperatorName="{Binding OperatorName}" />
+                              <controls:LineBadge LineName="{Binding LineName}" OperatorName="{Binding OperatorName}" RouteColor="{Binding RouteColor}" />
                               <TextBlock Grid.Column="1" Text="{Binding Destination}" Style="{StaticResource Bp.Type.Body}"
                                          TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="16,0,8,0" />
                               <controls:StatusChip Grid.Column="2" Status="{Binding Status}" Text="{Binding BadgeText}" HorizontalAlignment="Left" />

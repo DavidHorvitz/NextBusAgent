@@ -8,7 +8,6 @@
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     <views:IndexToBoolConverter x:Key="IndexToBool" />
     <views:CountToVisibilityConverter x:Key="CountToVisibility" />
-    <views:OperatorBrushConverter x:Key="OperatorBrush" />
     <!-- A suggestion list is a plain stack of rows under its box: no border or card of its own. -->
     <Style x:Key="SuggestionList" TargetType="ListBox">
       <Setter Property="Background" Value="Transparent" />
@@ -219,10 +218,7 @@
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,14,0">
-                  <Border CornerRadius="12" Padding="10,3" HorizontalAlignment="Left" Background="{Binding Operator, Converter={StaticResource OperatorBrush}}">
-                    <TextBlock Text="{Binding Line}" Foreground="White" FontWeight="Bold" FontSize="16" />
-                  </Border>
-                  <TextBlock Text="{Binding Operator}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,4,0,0" />
+                  <controls:LineBadge LineName="{Binding Line}" OperatorName="{Binding Operator}" RouteColor="{Binding RouteColor}" HorizontalAlignment="Left" />
                 </StackPanel>
                 <StackPanel Grid.Column="1">
                   <StackPanel Orientation="Horizontal">

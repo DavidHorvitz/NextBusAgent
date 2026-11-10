@@ -39,6 +39,8 @@ internal static class Program
                 services.AddSingleton<ILocationService, WindowsLocationService>();
                 services.AddSingleton<IStopCatalog, StrideStopCatalog>();
                 services.AddSingleton<IRideScheduleSource, StrideRideScheduleSource>();
+                services.AddSingleton<RouteColorCatalog>();
+                services.AddSingleton<IRouteColors>(provider => provider.GetRequiredService<RouteColorCatalog>());
                 services.AddSingleton<GtfsFeedScheduleSource>();
                 services.AddSingleton<IFutureScheduleSource>(provider => provider.GetRequiredService<GtfsFeedScheduleSource>());
                 // The Ministry of Transport feed is about 150 MB; HTTPS from one fixed host, no redirects.

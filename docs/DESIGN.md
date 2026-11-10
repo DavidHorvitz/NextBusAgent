@@ -321,6 +321,10 @@ Measured in `Rtl_SymbolIconsAreNotMirrored_ButPathsAre`:
 
 Checked by hand in this session (screenshots in `docs/screens/session-0/` and two launches of the real app): the Stops tab in Hebrew and English, light and dark (the running app was seen in Hebrew only); `TabControl` headers; the WPF-UI `ListBox` and `ScrollViewer`; our buttons, chips, badges, toggle chips, text box, suggestion rows, banners and skeleton in Hebrew.
 
+### Line name order (owner decision, 2026-11-10)
+
+Line names always read digits first, "54א", in both languages. Applied in `LineBadge` only (`FlowDirection="LeftToRight"` on the number text). Other text keeps the Unicode bidi behaviour.
+
 ## 8. Do not
 
 - **No raw colours in views.** No hex values, no `White`/`Black`/named colours, no `SystemColors`. Use `{DynamicResource Bp.*}`. `RebuiltViews_UseNoRawColours` enforces it for rebuilt views; add each view to it when it is rebuilt.

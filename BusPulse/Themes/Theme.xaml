@@ -499,7 +499,8 @@
             <Border x:Name="Pill" MinWidth="40" Height="28" CornerRadius="14" Padding="8,0" BorderThickness="1"
                     Background="{TemplateBinding Fill}" BorderBrush="{TemplateBinding Fill}">
               <TextBlock x:Name="Number" Text="{TemplateBinding LineName}" Foreground="{TemplateBinding TextBrush}" FontWeight="Bold"
-                         FontSize="{StaticResource Bp.FontSize.Body}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                         FontSize="{StaticResource Bp.FontSize.Body}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         FlowDirection="LeftToRight" />
             </Border>
             <TextBlock x:Name="Operator" Text="{TemplateBinding OperatorName}" Style="{StaticResource Bp.Type.Caption}"
                        Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />

@@ -121,6 +121,8 @@ public sealed partial class TripOptionViewModel : ObservableObject
 
     public string? Operator => Option.Operator;
 
+    public string? RouteColor => Option.RouteColor;
+
     public bool IsLive => Option.IsLive;
 
     public string BadgeText => _localizer.Get(Option.IsLive ? "LiveBadge" : "ScheduledBadge");
@@ -160,7 +162,7 @@ public sealed partial class TripOptionViewModel : ObservableObject
         Option = option;
         BearingDegrees = bearingDegrees;
         OnPropertyChanged(nameof(BearingDegrees));
-        foreach (var name in new[] { nameof(Line), nameof(Operator), nameof(IsLive), nameof(BadgeText), nameof(RouteText), nameof(LeaveAtText), nameof(BusText), nameof(ArriveText), nameof(WalkText) })
+        foreach (var name in new[] { nameof(Line), nameof(Operator), nameof(RouteColor), nameof(IsLive), nameof(BadgeText), nameof(RouteText), nameof(LeaveAtText), nameof(BusText), nameof(ArriveText), nameof(WalkText) })
         {
             OnPropertyChanged(name);
         }

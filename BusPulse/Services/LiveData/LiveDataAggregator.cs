@@ -19,7 +19,8 @@ public sealed class LiveDataAggregator(
     IEnumerable<ILiveArrivalsProvider> providers,
     IScheduleProvider? scheduleProvider,
     IClock clock,
-    ILogger<LiveDataAggregator> logger) : ILiveDataAggregator
+    ILogger<LiveDataAggregator> logger,
+    BusPulse.Services.Trips.Gtfs.IRouteColors? routeColors = null) : ILiveDataAggregator
 {
     private static readonly TimeSpan MaxLiveAge = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan PastTolerance = TimeSpan.FromMinutes(1);
@@ -59,7 +60,14 @@ public sealed class LiveDataAggregator(
             live.Count,
             arrivals.Count - live.Count,
             stopCode);
-        return new AggregatedArrivals(arrivals.OrderBy(arrival => arrival.Eta).ToArray(), statuses);
+        return new AggregatedArrivals(
+            arrivals
+                .Select(arrival => arrival.RouteColor is null && routeColors?.Find(arrival.LineName, arrival.OperatorName) is { } color
+                    ? arrival with { RouteColor = color }
+                    : arrival)
+                .OrderBy(arrival => arrival.Eta)
+                .ToArray(),
+            statuses);
     }
 
     private static List<Arrival> PickFreshestPerLine(List<Arrival> candidates)

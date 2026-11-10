@@ -56,7 +56,9 @@ public sealed record TripOption(
     bool IsLive,
     ArrivalSource Source,
     DateTimeOffset ObservedAt,
-    string? RouteColor = null);
+    string? RouteColor = null,
+    bool WalkToIsEstimate = true,
+    bool WalkFromIsEstimate = true);
 
 public sealed record TripPlan(TripPlanStatus Status, IReadOnlyList<TripOption> Options);
 
@@ -68,11 +70,19 @@ public interface ITripPlannerService
 public static class Walking
 {
     private const double SpeedMetersPerSecond = 1.25;
-    private const double DetourFactor = 1.25;
+
+    /// <summary>Streets are not straight: the walk is the straight line times this when no route is known.</summary>
+    public const double DetourFactor = 1.3;
 
     /// <summary>Walking time for a straight-line distance, allowing for streets not being straight.</summary>
-    public static TimeSpan Estimate(double straightLineMeters) =>
-        TimeSpan.FromSeconds(Math.Max(0, straightLineMeters) * DetourFactor / SpeedMetersPerSecond);
+    public static TimeSpan Estimate(double straightLineMeters) => TimeFor(Math.Max(0, straightLineMeters) * DetourFactor);
+
+    /// <summary>Time to walk a real distance at 4.5 km/h.</summary>
+    public static TimeSpan TimeFor(double meters) => TimeSpan.FromSeconds(Math.Max(0, meters) / SpeedMetersPerSecond);
+
+    /// <summary>An estimate from the straight-line distance, flagged so the UI can say "estimated".</summary>
+    public static WalkRoute Fallback(double straightLineMeters) =>
+        new(Math.Max(0, straightLineMeters) * DetourFactor, Estimate(straightLineMeters), IsEstimate: true);
 }
 
 /// <summary>
@@ -86,12 +96,13 @@ public sealed class TripPlannerService(
     IClock clock,
     ILogger<TripPlannerService> logger,
     IFutureScheduleSource? futureSchedule = null,
-    IRouteColors? routeColors = null) : ITripPlannerService
+    IRouteColors? routeColors = null,
+    IWalkingRouter? walkingRouter = null) : ITripPlannerService
 {
     public const double MaxWalkMeters = 800;
     private const int OriginStopCount = 5;
     private const int DestinationStopCount = 6;
-    private const int MaxOptions = 8;
+    private const int MaxOptions = 5;
     private static readonly TimeSpan SearchWindow = TimeSpan.FromMinutes(90);
     private static readonly TimeSpan RideLookAhead = TimeSpan.FromHours(3);
     private static readonly TimeSpan LiveMatchTolerance = TimeSpan.FromMinutes(15);
@@ -245,10 +256,10 @@ public sealed class TripPlannerService(
                 RouteEndpoints.Origin(departure.RouteLongName),
                 RouteEndpoints.Destination(departure.RouteLongName),
                 origin.Stop,
-                origin.DistanceMeters,
+                origin.DistanceMeters * Walking.DetourFactor,
                 walkToStop,
                 destination.Stop,
-                destination.DistanceMeters,
+                destination.DistanceMeters * Walking.DetourFactor,
                 walkFromStop,
                 busDeparture,
                 busArrival,
@@ -268,6 +279,14 @@ public sealed class TripPlannerService(
             ? best.OrderByDescending(option => option.LeaveBy)
             : best.OrderBy(option => option.ArriveAt);
         var result = ordered.Take(MaxOptions).ToList();
+        if (walkingRouter is not null)
+        {
+            result = await RefineWalksAsync(result, request, leaveEarliest, watchRide, buffer, cancellationToken);
+            result = (request.Mode == TripTimeMode.ArriveBy
+                ? result.OrderByDescending(option => option.LeaveBy)
+                : result.OrderBy(option => option.ArriveAt)).ToList();
+        }
+
         if (watchRide is not null && result.All(option => option.RideId != watchRide) &&
             best.FirstOrDefault(option => option.RideId == watchRide) is { } watched)
         {
@@ -279,6 +298,57 @@ public sealed class TripPlannerService(
     }
 
     private static DateTimeOffset Max(DateTimeOffset a, DateTimeOffset b) => a > b ? a : b;
+
+    /// <summary>
+    /// Replaces the straight-line walk estimates of the chosen options with routed walks (one call per distinct stop; the
+    /// router caches and falls back to an estimate on its own). Options that can no longer be caught are dropped.
+    /// </summary>
+    private async Task<List<TripOption>> RefineWalksAsync(
+        List<TripOption> options, TripRequest request, DateTimeOffset leaveEarliest, long? watchRide, TimeSpan buffer, CancellationToken cancellationToken)
+    {
+        var toStops = new Dictionary<string, WalkRoute>(StringComparer.Ordinal);
+        var fromStops = new Dictionary<string, WalkRoute>(StringComparer.Ordinal);
+        foreach (var option in options)
+        {
+            if (!toStops.ContainsKey(option.OriginStop.Code))
+            {
+                toStops[option.OriginStop.Code] = await walkingRouter!.GetWalkAsync(
+                    request.OriginLatitude, request.OriginLongitude, option.OriginStop.Latitude, option.OriginStop.Longitude, cancellationToken);
+            }
+
+            if (!fromStops.ContainsKey(option.DestinationStop.Code))
+            {
+                fromStops[option.DestinationStop.Code] = await walkingRouter!.GetWalkAsync(
+                    option.DestinationStop.Latitude, option.DestinationStop.Longitude, request.DestinationLatitude, request.DestinationLongitude, cancellationToken);
+            }
+        }
+
+        var refined = new List<TripOption>();
+        foreach (var option in options)
+        {
+            var to = toStops[option.OriginStop.Code];
+            var from = fromStops[option.DestinationStop.Code];
+            var leaveBy = option.BusDeparture - to.Duration - buffer;
+            if (option.RideId != watchRide && leaveBy < leaveEarliest - TimeSpan.FromSeconds(30))
+            {
+                continue;
+            }
+
+            refined.Add(option with
+            {
+                WalkToStopMeters = to.Meters,
+                WalkToStop = to.Duration,
+                WalkFromStopMeters = from.Meters,
+                WalkFromStop = from.Duration,
+                LeaveBy = leaveBy,
+                ArriveAt = option.BusArrival + from.Duration,
+                WalkToIsEstimate = to.IsEstimate,
+                WalkFromIsEstimate = from.IsEstimate
+            });
+        }
+
+        return refined;
+    }
 
     private async Task<IReadOnlyList<NearbyStop>> NearbyAsync(
         IReadOnlyList<Stop> stops, double latitude, double longitude, int count, bool byStopCode, CancellationToken cancellationToken)

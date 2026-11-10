@@ -121,7 +121,7 @@ public sealed class Banner : Control
     public string Text { get => (string)GetValue(TextProperty); set => SetValue(TextProperty, value); }
 }
 
-/// <summary>Text that cross-fades when it changes (200 ms), for countdowns. Instant when motion is reduced.</summary>
+/// <summary>Text that cross-fades when it changes (150 ms), for countdowns. Instant when motion is reduced.</summary>
 [TemplatePart(Name = "PART_Front", Type = typeof(TextBlock))]
 [TemplatePart(Name = "PART_Back", Type = typeof(TextBlock))]
 public sealed class TickerText : Control
@@ -173,8 +173,8 @@ public sealed class TickerText : Control
         }
 
         ticker._back.Text = old;
-        ticker._back.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0, Motion.Standard));
-        ticker._front.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, Motion.Standard));
+        ticker._back.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0, Motion.Quick));
+        ticker._front.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, Motion.Quick));
     }
 }
 
@@ -185,6 +185,9 @@ public sealed class TickerText : Control
 public static class Motion
 {
     public static readonly Duration Standard = new(TimeSpan.FromMilliseconds(200));
+
+    /// <summary>The 150 ms cross-fade of changing values (countdowns, time fields).</summary>
+    public static readonly Duration Quick = new(TimeSpan.FromMilliseconds(150));
 
     public static readonly DependencyProperty FadeInOnShowProperty = DependencyProperty.RegisterAttached(
         "FadeInOnShow", typeof(bool), typeof(Motion), new PropertyMetadata(false, OnFadeInOnShowChanged));

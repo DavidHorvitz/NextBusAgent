@@ -238,4 +238,21 @@
   <sys:String x:Key="OriginPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">From where? Street, place or business</sys:String>
   <sys:String x:Key="DestinationPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">To where? Street, place or business</sys:String>
   <sys:String x:Key="SearchingAddress" xmlns:sys="clr-namespace:System;assembly=mscorlib">Searching for an address</sys:String>
+  <sys:String x:Key="LeaveByAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">Leave by {0}</sys:String>
+  <sys:String x:Key="WalkLeg" xmlns:sys="clr-namespace:System;assembly=mscorlib">Walk {0} min ({1} m)</sys:String>
+  <sys:String x:Key="WalkLegShort" xmlns:sys="clr-namespace:System;assembly=mscorlib">Walk under 1 min ({0} m)</sys:String>
+  <sys:String x:Key="WalkEstimated" xmlns:sys="clr-namespace:System;assembly=mscorlib">estimated</sys:String>
+  <sys:String x:Key="NoDataForLine" xmlns:sys="clr-namespace:System;assembly=mscorlib">No data for this line</sys:String>
+  <sys:String x:Key="RefreshNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">Refresh</sys:String>
+  <sys:String x:Key="QuickPlusMinutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">+{0} min</sys:String>
+  <sys:String x:Key="DatePick" xmlns:sys="clr-namespace:System;assembly=mscorlib">Pick a date</sys:String>
+  <sys:String x:Key="TimeHourField" xmlns:sys="clr-namespace:System;assembly=mscorlib">Hours</sys:String>
+  <sys:String x:Key="TimeMinuteField" xmlns:sys="clr-namespace:System;assembly=mscorlib">Minutes</sys:String>
+  <sys:String x:Key="TimeHourUp" xmlns:sys="clr-namespace:System;assembly=mscorlib">Hour forward</sys:String>
+  <sys:String x:Key="TimeHourDown" xmlns:sys="clr-namespace:System;assembly=mscorlib">Hour back</sys:String>
+  <sys:String x:Key="TimeMinuteUp" xmlns:sys="clr-namespace:System;assembly=mscorlib">5 minutes forward</sys:String>
+  <sys:String x:Key="TimeMinuteDown" xmlns:sys="clr-namespace:System;assembly=mscorlib">5 minutes back</sys:String>
+  <sys:String x:Key="LinesFoundLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Lines found</sys:String>
+  <sys:String x:Key="TimeQuickLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">In</sys:String>
+  <sys:String x:Key="BoardAtStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">Board at {0}</sys:String>
 </ResourceDictionary>

@@ -49,6 +49,9 @@ internal static class Program
                     client.Timeout = TimeSpan.FromMinutes(15);
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("BusPulseApp/1.0");
                 }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+                services.AddSingleton<IWalkingRouter, OsrmWalkingRouter>();
+                services.AddHttpClient(OsrmWalkingRouter.ClientName, client => client.Timeout = TimeSpan.FromSeconds(10))
+                    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
                 services.AddSingleton<ITripPlannerService, TripPlannerService>();
                 services.AddSingleton<IHistoryService, HistoryService>();
                 services.AddSingleton<IAlertPresenter, WindowsAlertPresenter>();

@@ -294,6 +294,7 @@ public sealed class DesignSystemTests
     [InlineData("StopsView.xaml")]
     [InlineData("ShellView.xaml")]
     [InlineData("SettingsView.xaml")]
+    [InlineData("TripPlannerView.xaml")]
     public void RebuiltViews_UseNoRawColours(string view)
     {
         var xaml = File.ReadAllText(Wpf.RepoFile("BusPulse", "Views", view));

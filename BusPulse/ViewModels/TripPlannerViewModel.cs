@@ -104,6 +104,18 @@ public sealed partial class TripOptionViewModel : ObservableObject
     [ObservableProperty]
     private bool _isWatched;
 
+    /// <summary>Minutes to the bus departure, the hero number of the row ("7"), or the word for now, or a clock time when far away.</summary>
+    [ObservableProperty]
+    private string _etaValue = string.Empty;
+
+    /// <summary>"min" next to <see cref="EtaValue"/>; empty for the word for now or a clock time.</summary>
+    [ObservableProperty]
+    private string _etaUnit = string.Empty;
+
+    /// <summary>"Leave by 14:32", or the word for now once that time has come.</summary>
+    [ObservableProperty]
+    private string _leaveByText = string.Empty;
+
     public TripOptionViewModel(TripOption option, double bearingDegrees, bool rtl, ILocalizer localizer, DateTimeOffset now)
     {
         _option = option;
@@ -125,7 +137,26 @@ public sealed partial class TripOptionViewModel : ObservableObject
 
     public bool IsLive => Option.IsLive;
 
-    public string BadgeText => _localizer.Get(Option.IsLive ? "LiveBadge" : "ScheduledBadge");
+    public string BadgeText => _localizer.Get(IsStale ? "StaleBadge" : Option.IsLive ? "LiveBadge" : "ScheduledBadge");
+
+    public DepartureStatus Status => IsStale ? DepartureStatus.Stale : Option.IsLive ? DepartureStatus.Live : DepartureStatus.Scheduled;
+
+    public string BoardingStop => Option.OriginStop.Name;
+
+    /// <summary>"Walk 4 min (320 m)" from the start to the boarding stop, with "estimated" when no route was found.</summary>
+    public string WalkToLegText => WalkLeg(Option.WalkToStop, Option.WalkToStopMeters, Option.WalkToIsEstimate);
+
+    /// <summary>The last stop and the walk from it to the destination.</summary>
+    public string WalkFromLegText => $"{Option.DestinationStop.Name} · {WalkLeg(Option.WalkFromStop, Option.WalkFromStopMeters, Option.WalkFromIsEstimate)}";
+
+    private string WalkLeg(TimeSpan time, double meters, bool estimate)
+    {
+        var rounded = (int)Math.Round(Math.Max(0, meters), MidpointRounding.AwayFromZero);
+        var text = time < TimeSpan.FromSeconds(30)
+            ? string.Format(CultureInfo.CurrentCulture, _localizer.Get("WalkLegShort"), rounded)
+            : string.Format(CultureInfo.CurrentCulture, _localizer.Get("WalkLeg"), (int)Math.Round(time.TotalMinutes, MidpointRounding.AwayFromZero), rounded);
+        return estimate ? $"{text} · {_localizer.Get("WalkEstimated")}" : text;
+    }
 
     /// <summary>"Origin ◄ Destination" reading in the layout direction.</summary>
     public string RouteText
@@ -162,7 +193,7 @@ public sealed partial class TripOptionViewModel : ObservableObject
         Option = option;
         BearingDegrees = bearingDegrees;
         OnPropertyChanged(nameof(BearingDegrees));
-        foreach (var name in new[] { nameof(Line), nameof(Operator), nameof(RouteColor), nameof(IsLive), nameof(BadgeText), nameof(RouteText), nameof(LeaveAtText), nameof(BusText), nameof(ArriveText), nameof(WalkText) })
+        foreach (var name in new[] { nameof(Line), nameof(Operator), nameof(RouteColor), nameof(IsLive), nameof(BadgeText), nameof(Status), nameof(BoardingStop), nameof(WalkToLegText), nameof(WalkFromLegText), nameof(RouteText), nameof(LeaveAtText), nameof(BusText), nameof(ArriveText), nameof(WalkText) })
         {
             OnPropertyChanged(name);
         }
@@ -174,7 +205,7 @@ public sealed partial class TripOptionViewModel : ObservableObject
     public void RefreshLanguage(bool rtl, DateTimeOffset now)
     {
         Rtl = rtl;
-        foreach (var name in new[] { nameof(Rtl), nameof(BadgeText), nameof(RouteText), nameof(BusText), nameof(ArriveText), nameof(WalkText) })
+        foreach (var name in new[] { nameof(Rtl), nameof(BadgeText), nameof(WalkToLegText), nameof(WalkFromLegText), nameof(RouteText), nameof(BusText), nameof(ArriveText), nameof(WalkText) })
         {
             OnPropertyChanged(name);
         }
@@ -197,8 +228,18 @@ public sealed partial class TripOptionViewModel : ObservableObject
             : minutes >= DistantDepartureMinutes
                 ? string.Format(CultureInfo.CurrentCulture, _localizer.Get("LeaveAtClock"), LeaveAtText)
                 : string.Format(CultureInfo.CurrentCulture, _localizer.Get("LeaveInMinutes"), minutes);
+        var busMinutes = (int)Math.Ceiling((Option.BusDeparture - now).TotalMinutes);
+        EtaValue = busMinutes <= 0
+            ? _localizer.Get("EtaNow")
+            : busMinutes >= DistantDepartureMinutes ? Option.BusDeparture.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture) : busMinutes.ToString(CultureInfo.CurrentCulture);
+        EtaUnit = busMinutes is <= 0 or >= DistantDepartureMinutes ? string.Empty : _localizer.Get("EtaUnitMinutes");
+        LeaveByText = minutes <= 0
+            ? _localizer.Get("LeaveNow")
+            : string.Format(CultureInfo.CurrentCulture, _localizer.Get("LeaveByAt"), LeaveAtText);
         var age = now - Option.ObservedAt;
         IsStale = Option.IsLive && age > StaleAfter;
+        OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(BadgeText));
         Tooltip = $"{_localizer.Get("SourceLabel")}: {_localizer.Get("Provider" + Option.Source)} · " +
             string.Format(CultureInfo.CurrentCulture, _localizer.Get("UpdatedAgo"), Math.Max(0, (int)age.TotalSeconds));
         OnPropertyChanged(nameof(Tooltip));
@@ -230,6 +271,14 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     private readonly ILogger<TripPlannerViewModel> _logger;
     private CancellationTokenSource? _tickerCts;
     private TripRequest? _lastRequest;
+    private DateTimeOffset? _lastUpdatedAt;
+    private readonly HashSet<string> _knownLines = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The trip list refreshes this often while the panel is visible (the reminder polls a watched route by itself).</summary>
+    public static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(30);
+
+    /// <summary>After this long without a successful refresh the "updated ... ago" line carries a warning icon.</summary>
+    public static readonly TimeSpan StaleUpdateAfter = TimeSpan.FromSeconds(90);
     private string _hintText;
 
     [ObservableProperty]
@@ -291,6 +340,20 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _destinationNoResults;
+
+    /// <summary>"Updated 12 seconds ago", empty until the first plan arrives.</summary>
+    [ObservableProperty]
+    private string _updatedAgoText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isUpdateStale;
+
+    /// <summary>The planning progress bar: true only when a plan has been running for <see cref="SpinnerDelay"/>.</summary>
+    [ObservableProperty]
+    private bool _showProgress;
+
+    /// <summary>Lines already seen in results that start with what is typed in the line filter; local data, no network.</summary>
+    public ObservableCollection<string> LineSuggestions { get; } = [];
 
     /// <summary>Shown when the chosen time has already passed today, so the jump to tomorrow is never silent.</summary>
     [ObservableProperty]
@@ -473,6 +536,10 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     partial void OnTargetDateChanged(DateTime? value)
     {
+        OnPropertyChanged(nameof(IsTodaySelected));
+        OnPropertyChanged(nameof(IsTomorrowSelected));
+        OnPropertyChanged(nameof(IsOtherDateSelected));
+        OnPropertyChanged(nameof(DatePickText));
         if (!_settingDateAutomatically)
         {
             // A date picked by the user (buttons, date picker, calendar suggestion) is never changed automatically.
@@ -502,6 +569,69 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     partial void OnDateNoticeChanged(string value) => OnPropertyChanged(nameof(HasDateNotice));
 
+    /// <summary>Quick chips (+10, +20, +30, +60): leave at now plus that many minutes. From "now" the mode becomes "depart at".</summary>
+    [RelayCommand]
+    private void AddMinutes(string? minutesText)
+    {
+        if (!int.TryParse(minutesText, NumberStyles.None, CultureInfo.InvariantCulture, out var minutes))
+        {
+            return;
+        }
+
+        var local = TimeZoneInfo.ConvertTime(_clock.UtcNow, TripTime.IsraelZone).AddMinutes(Math.Clamp(minutes, 0, 600));
+        if (Mode == TripTimeMode.Now)
+        {
+            SelectedModeIndex = 1;
+        }
+
+        PickDate(DateOnly.FromDateTime(local.DateTime));
+        TargetTime = new TimeSpan(local.Hour, local.Minute, 0);
+    }
+
+    // The date chips are toggle buttons bound two-way: a click on the chip that is already on sets false, which is ignored,
+    // and the change notification puts the check back.
+    public bool IsTodaySelected
+    {
+        get => SelectedDay() == Today;
+        set
+        {
+            if (value)
+            {
+                SelectToday();
+            }
+
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsTomorrowSelected
+    {
+        get => SelectedDay() == Today.AddDays(1);
+        set
+        {
+            if (value)
+            {
+                SelectTomorrow();
+            }
+
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>The third chip: a later date, or the open date picker.</summary>
+    public bool IsOtherDateSelected => SelectedDay() > Today.AddDays(1) || IsDatePickerOpen;
+
+    /// <summary>"Pick a date", or the chosen day when it is neither today nor tomorrow.</summary>
+    public string DatePickText => SelectedDay() > Today.AddDays(1) ? FormatDate(SelectedDay()) : _localizer.Get("DatePick");
+
+    [ObservableProperty]
+    private bool _isDatePickerOpen;
+
+    partial void OnIsDatePickerOpenChanged(bool value) => OnPropertyChanged(nameof(IsOtherDateSelected));
+
+    [RelayCommand]
+    private void ToggleDatePicker() => IsDatePickerOpen = !IsDatePickerOpen;
+
     [RelayCommand]
     private void SelectToday() => PickDate(Today);
 
@@ -510,6 +640,11 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     private void PickDate(DateOnly day)
     {
+        if (day <= Today.AddDays(1))
+        {
+            IsDatePickerOpen = false;
+        }
+
         // An explicit choice, even of the date that is already set, is never undone automatically.
         _dateRolledAutomatically = false;
         TargetDate = day.ToDateTime(TimeOnly.MinValue);
@@ -1493,6 +1628,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         }
 
         IsBusy = true;
+        using var progressCts = new CancellationTokenSource();
+        _ = ShowProgressLaterAsync(progressCts.Token);
         try
         {
             StatusText = _localizer.Get("Planning");
@@ -1533,7 +1670,67 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         }
         finally
         {
+            await progressCts.CancelAsync();
+            ShowProgress = false;
             IsBusy = false;
+        }
+    }
+
+    /// <summary>The progress bar belongs to a real request and appears only when it has taken longer than <see cref="SpinnerDelay"/>.</summary>
+    private async Task ShowProgressLaterAsync(CancellationToken token)
+    {
+        try
+        {
+            if (SpinnerDelay > TimeSpan.Zero)
+            {
+                await Task.Delay(SpinnerDelay, token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        if (!token.IsCancellationRequested && IsBusy)
+        {
+            ShowProgress = true;
+        }
+    }
+
+    /// <summary>The refresh button and F5: plans again now instead of waiting for the next 30 s tick.</summary>
+    [RelayCommand]
+    private Task RefreshNowAsync(CancellationToken cancellationToken) => RefreshAsync(cancellationToken);
+
+    partial void OnLineNameChanged(string value) => UpdateLineSuggestions();
+
+    private void UpdateLineSuggestions()
+    {
+        var typed = (LineName ?? string.Empty).Trim();
+        var matches = _knownLines
+            .Where(line => !string.Equals(line, typed, StringComparison.OrdinalIgnoreCase) &&
+                (typed.Length == 0 || line.StartsWith(typed, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(line => line.Length)
+            .ThenBy(line => line, StringComparer.CurrentCultureIgnoreCase)
+            .Take(8)
+            .ToList();
+        if (LineSuggestions.SequenceEqual(matches))
+        {
+            return;
+        }
+
+        LineSuggestions.Clear();
+        foreach (var line in matches)
+        {
+            LineSuggestions.Add(line);
+        }
+    }
+
+    [RelayCommand]
+    private void UseLine(string? line)
+    {
+        if (!string.IsNullOrWhiteSpace(line))
+        {
+            LineName = line;
         }
     }
 
@@ -1580,6 +1777,22 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         {
             option.Refresh(now);
         }
+
+        UpdateUpdatedAgo(now);
+    }
+
+    private void UpdateUpdatedAgo(DateTimeOffset now)
+    {
+        if (_lastUpdatedAt is not { } updated)
+        {
+            UpdatedAgoText = string.Empty;
+            IsUpdateStale = false;
+            return;
+        }
+
+        var age = now - updated;
+        UpdatedAgoText = string.Format(CultureInfo.CurrentCulture, _localizer.Get("UpdatedAgo"), Math.Max(0, (int)age.TotalSeconds));
+        IsUpdateStale = age > StaleUpdateAfter;
     }
 
     private async Task RunPlanAsync(TripRequest request, CancellationToken cancellationToken)
@@ -1593,6 +1806,14 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         }
 
         Reconcile(plan.Options, request);
+        _lastUpdatedAt = _clock.UtcNow;
+        UpdateUpdatedAgo(_clock.UtcNow);
+        foreach (var option in plan.Options)
+        {
+            _knownLines.Add(option.Line);
+        }
+
+        UpdateLineSuggestions();
         StatusText = plan.Status switch
         {
             TripPlanStatus.Ok => string.Empty,
@@ -1600,6 +1821,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
             TripPlanStatus.NoStopsNearDestination => _localizer.Get("PlanNoStopsNearDestination"),
             TripPlanStatus.NoScheduleForDate => _localizer.Get("PlanNoScheduleForDate"),
             TripPlanStatus.ScheduleUnavailable => _localizer.Get("PlanScheduleUnavailable"),
+            _ when !string.IsNullOrWhiteSpace(request.PreferredLine) => _localizer.Get("NoDataForLine"),
             _ => _localizer.Get("PlanNoOptions")
         };
     }
@@ -1609,15 +1831,37 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         var now = _clock.UtcNow;
         var rtl = _settings.Config.Language == "he";
         var bearing = Geo.BearingDegrees(request.OriginLatitude, request.OriginLongitude, request.DestinationLatitude, request.DestinationLongitude);
+        // A row keeps its identity while its ride is in the results: rows are updated and moved, never rebuilt, so the
+        // scroll position and the hover state stay put when the order changes.
         for (var i = 0; i < options.Count; i++)
         {
-            if (i < Options.Count)
+            var existing = -1;
+            for (var j = i; j < Options.Count; j++)
             {
+                if (Options[j].Option.RideId == options[i].RideId)
+                {
+                    existing = j;
+                    break;
+                }
+            }
+
+            if (existing >= 0)
+            {
+                if (existing != i)
+                {
+                    Options.Move(existing, i);
+                }
+
+                Options[i].Update(options[i], bearing, now);
+            }
+            else if (i < Options.Count && !options.Skip(i + 1).Any(option => option.RideId == Options[i].Option.RideId))
+            {
+                // The ride at this position left the results and nothing later reuses it: its row takes the new ride.
                 Options[i].Update(options[i], bearing, now);
             }
             else
             {
-                Options.Add(new TripOptionViewModel(options[i], bearing, rtl, _localizer, now));
+                Options.Insert(i, new TripOptionViewModel(options[i], bearing, rtl, _localizer, now));
             }
         }
 
@@ -1734,7 +1978,7 @@ public sealed partial class TripPlannerViewModel : ObservableObject
             {
                 sinceRefresh += TimeSpan.FromSeconds(1);
                 _dispatcher.Post(Tick);
-                if (sinceRefresh >= TimeSpan.FromSeconds(Math.Clamp(_settings.Config.PollingSeconds, 15, 60)))
+                if (sinceRefresh >= RefreshInterval)
                 {
                     sinceRefresh = TimeSpan.Zero;
                     try

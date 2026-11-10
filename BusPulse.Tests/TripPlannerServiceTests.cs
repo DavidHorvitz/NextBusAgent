@@ -270,7 +270,7 @@ public sealed class TripPlannerServiceTests
     }
 
     [Fact]
-    public async Task WatchedRide_IsKeptEvenBeyondTheTopEightOptions()
+    public async Task WatchedRide_IsKeptEvenBeyondTheTopFiveOptions()
     {
         var f = new Fixture();
         f.Schedule.Departures[1] = Enumerable.Range(1, 12).Select(i => Departure(i, 5 + i, 2)).ToArray();
@@ -279,13 +279,13 @@ public sealed class TripPlannerServiceTests
         var plan = await f.Planner.PlanAsync(Request() with { WatchRideId = 12 });
 
         Assert.Contains(plan.Options, option => option.RideId == 12);
-        Assert.Equal(9, plan.Options.Count);
+        Assert.Equal(6, plan.Options.Count);
     }
 
     [Fact]
     public void Walking_Estimate_UsesDetourFactorAndSpeed()
     {
-        Assert.Equal(TimeSpan.FromSeconds(400), Walking.Estimate(400));
+        Assert.Equal(TimeSpan.FromSeconds(416), Walking.Estimate(400));
         Assert.Equal(TimeSpan.Zero, Walking.Estimate(-5));
     }
 

@@ -1,0 +1,50 @@
+<UserControl x:Class="BusPulse.Views.Controls.TimeFieldPicker"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             Focusable="False" FlowDirection="LeftToRight"
+             AutomationProperties.Name="{DynamicResource TimePickerLabel}">
+  <!-- Hour and minute fields. Times read left to right in both languages. Type digits, Up/Down step by 1, the buttons step the
+       minute by 5 and the hour by 1. -->
+  <UserControl.Resources>
+    <Style x:Key="TimeBox" TargetType="TextBox" BasedOn="{StaticResource Bp.TextBox}">
+      <Setter Property="Width" Value="56" />
+      <Setter Property="Height" Value="44" />
+      <Setter Property="FontSize" Value="{StaticResource Bp.FontSize.Title}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="MaxLength" Value="2" />
+      <Setter Property="InputMethod.IsInputMethodEnabled" Value="False" />
+    </Style>
+  </UserControl.Resources>
+  <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+    <StackPanel>
+      <Button x:Name="HourUp" Style="{StaticResource Bp.Button.Icon}" Click="OnHourUp" HorizontalAlignment="Center"
+              AutomationProperties.Name="{DynamicResource TimeHourUp}" ToolTip="{DynamicResource TimeHourUp}">
+        <ui:SymbolIcon Symbol="ChevronUp24" />
+      </Button>
+      <TextBox x:Name="HourBox" Style="{StaticResource TimeBox}" AutomationProperties.Name="{DynamicResource TimeHourField}"
+               PreviewTextInput="OnDigitsOnly" TextChanged="OnTextChanged" PreviewKeyDown="OnBoxKeyDown" GotKeyboardFocus="OnBoxFocus" LostKeyboardFocus="OnBoxLostFocus"
+               DataObject.Pasting="OnPaste" />
+      <Button x:Name="HourDown" Style="{StaticResource Bp.Button.Icon}" Click="OnHourDown" HorizontalAlignment="Center"
+              AutomationProperties.Name="{DynamicResource TimeHourDown}" ToolTip="{DynamicResource TimeHourDown}">
+        <ui:SymbolIcon Symbol="ChevronDown24" />
+      </Button>
+    </StackPanel>
+    <TextBlock Text=":" Style="{StaticResource Bp.Type.Title}" VerticalAlignment="Center" Margin="6,0" />
+    <StackPanel>
+      <Button x:Name="MinuteUp" Style="{StaticResource Bp.Button.Icon}" Click="OnMinuteUp" HorizontalAlignment="Center"
+              AutomationProperties.Name="{DynamicResource TimeMinuteUp}" ToolTip="{DynamicResource TimeMinuteUp}">
+        <ui:SymbolIcon Symbol="ChevronUp24" />
+      </Button>
+      <TextBox x:Name="MinuteBox" Style="{StaticResource TimeBox}" AutomationProperties.Name="{DynamicResource TimeMinuteField}"
+               PreviewTextInput="OnDigitsOnly" TextChanged="OnTextChanged" PreviewKeyDown="OnBoxKeyDown" GotKeyboardFocus="OnBoxFocus" LostKeyboardFocus="OnBoxLostFocus"
+               DataObject.Pasting="OnPaste" />
+      <Button x:Name="MinuteDown" Style="{StaticResource Bp.Button.Icon}" Click="OnMinuteDown" HorizontalAlignment="Center"
+              AutomationProperties.Name="{DynamicResource TimeMinuteDown}" ToolTip="{DynamicResource TimeMinuteDown}">
+        <ui:SymbolIcon Symbol="ChevronDown24" />
+      </Button>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

@@ -3,7 +3,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:views="clr-namespace:BusPulse.Views"
-             xmlns:controls="clr-namespace:BusPulse.Views.Controls">
+             xmlns:controls="clr-namespace:BusPulse.Views.Controls"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib">
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefreshNowCommand}" />
+  </UserControl.InputBindings>
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     <views:IndexToBoolConverter x:Key="IndexToBool" />
@@ -29,7 +33,7 @@
       </Grid>
     </DataTemplate>
     <Style x:Key="HiddenWhenEmptyText" TargetType="TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Secondary}" />
       <Setter Property="TextWrapping" Value="Wrap" />
       <Setter Property="Margin" Value="0,6,0,0" />
       <Style.Triggers>
@@ -40,37 +44,34 @@
     </Style>
   </UserControl.Resources>
   <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel>
-      <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,12"
-              Visibility="{Binding CalendarSuggestions.Count, Converter={StaticResource CountToVisibility}}">
-        <StackPanel>
-          <TextBlock Text="{DynamicResource CalendarSuggestionsTitle}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" Margin="0,0,0,8" />
-          <ItemsControl ItemsSource="{Binding CalendarSuggestions}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Grid Margin="0,4">
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                  </Grid.ColumnDefinitions>
-                  <StackPanel>
-                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                    <StackPanel Orientation="Horizontal">
-                      <TextBlock Text="{Binding StartText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,0,8,0" />
-                      <TextBlock Text="{Binding PlaceName}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
+    <StackPanel Margin="8,0,16,16">
+      <!-- Calendar suggestions: a quiet block, no card of its own. -->
+      <StackPanel Margin="0,0,0,16" Visibility="{Binding CalendarSuggestions.Count, Converter={StaticResource CountToVisibility}}">
+        <TextBlock Text="{DynamicResource CalendarSuggestionsTitle}" Style="{StaticResource Bp.Type.BodyStrong}" Foreground="{DynamicResource Bp.Accent.11}" Margin="0,0,0,4" />
+        <ItemsControl ItemsSource="{Binding CalendarSuggestions}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid Margin="0,4">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Text="{Binding Title}" Style="{StaticResource Bp.Type.Body}" TextTrimming="CharacterEllipsis" />
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding StartText}" Style="{StaticResource Bp.Type.Caption}" Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding PlaceName}" Style="{StaticResource Bp.Type.Caption}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
-                  <Button Grid.Column="1" Content="{DynamicResource CalendarSuggestionUse}" Padding="12,5" Margin="12,0,0,0" VerticalAlignment="Center"
-                          Command="{Binding DataContext.UseCalendarSuggestionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                          CommandParameter="{Binding}" />
-                </Grid>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
-      </Border>
-      <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20" Margin="0,0,0,12">
-        <StackPanel>
+                </StackPanel>
+                <Button Grid.Column="1" Content="{DynamicResource CalendarSuggestionUse}" Style="{StaticResource Bp.Button.Secondary}" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Command="{Binding DataContext.UseCalendarSuggestionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        CommandParameter="{Binding}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+      <StackPanel>
           <!-- Origin: free text. Suggestions: my location, saved places, calendar, recent, stops, addresses (DESIGN.md, suggestion row). -->
           <Grid>
             <Grid.ColumnDefinitions>
@@ -167,103 +168,124 @@
           </StackPanel>
           <TextBlock Text="{Binding RouteSummary}" Style="{StaticResource Bp.Type.BodyStrong}" Margin="0,16,0,0" TextWrapping="Wrap" />
 
-          <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-            <RadioButton Content="{DynamicResource ModeNow}" GroupName="TripMode" Margin="0,0,16,0"
+          <!-- When: mode chips, quick chips, time fields, date chips. -->
+          <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+            <RadioButton Style="{StaticResource Bp.ToggleChip}" Content="{DynamicResource ModeNow}" GroupName="TripMode" Margin="0,0,8,0"
                          IsChecked="{Binding SelectedModeIndex, Converter={StaticResource IndexToBool}, ConverterParameter=0}" />
-            <RadioButton Content="{DynamicResource ModeDepartAt}" GroupName="TripMode" Margin="0,0,16,0"
+            <RadioButton Style="{StaticResource Bp.ToggleChip}" Content="{DynamicResource ModeDepartAt}" GroupName="TripMode" Margin="0,0,8,0"
                          IsChecked="{Binding SelectedModeIndex, Converter={StaticResource IndexToBool}, ConverterParameter=1}" />
-            <RadioButton Content="{DynamicResource ModeArriveBy}" GroupName="TripMode"
+            <RadioButton Style="{StaticResource Bp.ToggleChip}" Content="{DynamicResource ModeArriveBy}" GroupName="TripMode"
                          IsChecked="{Binding SelectedModeIndex, Converter={StaticResource IndexToBool}, ConverterParameter=2}" />
           </StackPanel>
-          <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
-                      Visibility="{Binding IsDateSelectable, Converter={StaticResource BoolToVisibility}}">
-            <TextBlock Text="{DynamicResource DateLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
-            <Button Content="{DynamicResource DateToday}" Command="{Binding SelectTodayCommand}" Padding="12,5" Margin="0,0,8,0"
-                    AutomationProperties.Name="{DynamicResource DateToday}" />
-            <Button Content="{DynamicResource DateTomorrow}" Command="{Binding SelectTomorrowCommand}" Padding="12,5" Margin="0,0,8,0"
-                    AutomationProperties.Name="{DynamicResource DateTomorrow}" />
-            <DatePicker DisplayDateStart="{Binding MinDate, Mode=OneWay}" DisplayDateEnd="{Binding MaxDate, Mode=OneWay}" SelectedDate="{Binding TargetDate, Mode=TwoWay}"
-                        MinWidth="140" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource DateLabel}" />
+          <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <TextBlock Text="{DynamicResource TimeQuickLabel}" Style="{StaticResource Bp.Type.Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <Button Style="{StaticResource Bp.Button.Secondary}" Command="{Binding AddMinutesCommand}" CommandParameter="10" Margin="0,0,8,0" Content="+10" AutomationProperties.Name="+10" />
+            <Button Style="{StaticResource Bp.Button.Secondary}" Command="{Binding AddMinutesCommand}" CommandParameter="20" Margin="0,0,8,0" Content="+20" AutomationProperties.Name="+20" />
+            <Button Style="{StaticResource Bp.Button.Secondary}" Command="{Binding AddMinutesCommand}" CommandParameter="30" Margin="0,0,8,0" Content="+30" AutomationProperties.Name="+30" />
+            <Button Style="{StaticResource Bp.Button.Secondary}" Command="{Binding AddMinutesCommand}" CommandParameter="60" Content="+60" AutomationProperties.Name="+60" />
           </StackPanel>
-          <TextBlock Text="{Binding DateNotice}" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"
-                     Visibility="{Binding HasDateNotice, Converter={StaticResource BoolToVisibility}}" />
-          <controls:TimeWheelPicker Value="{Binding TargetTime, Mode=TwoWay}" HorizontalAlignment="Left" Margin="0,10,0,0"
-                                    Visibility="{Binding IsTimeSelectable, Converter={StaticResource BoolToVisibility}}" />
-          <TextBlock Text="{DynamicResource PreferredLineLabel}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,12,0,4" />
-          <TextBox Text="{Binding LineName, UpdateSourceTrigger=PropertyChanged}" MaxLength="64" MinHeight="32" Width="160" HorizontalAlignment="Left"
-                   AutomationProperties.Name="{DynamicResource PreferredLineLabel}" />
-          <Button Content="{DynamicResource PlanTrip}" Command="{Binding PlanCommand}" HorizontalAlignment="Left" Padding="16,8" Margin="0,14,0,0" IsDefault="True" />
-          <ProgressBar IsIndeterminate="True" Height="3" Margin="0,8,0,0" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
-          <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,8,0,0" TextWrapping="Wrap" />
-        </StackPanel>
-      </Border>
+          <StackPanel Visibility="{Binding IsTimeSelectable, Converter={StaticResource BoolToVisibility}}" controls:Motion.FadeInOnShow="True">
+            <controls:TimeFieldPicker Value="{Binding TargetTime, Mode=TwoWay}" HorizontalAlignment="Left" Margin="0,12,0,0" />
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+              <ToggleButton Style="{StaticResource Bp.ToggleChip}" Content="{DynamicResource DateToday}" IsChecked="{Binding IsTodaySelected, Mode=TwoWay}" Margin="0,0,8,0"
+                            AutomationProperties.Name="{DynamicResource DateToday}" />
+              <ToggleButton Style="{StaticResource Bp.ToggleChip}" Content="{DynamicResource DateTomorrow}" IsChecked="{Binding IsTomorrowSelected, Mode=TwoWay}" Margin="0,0,8,0"
+                            AutomationProperties.Name="{DynamicResource DateTomorrow}" />
+              <ToggleButton Style="{StaticResource Bp.ToggleChip}" Content="{Binding DatePickText}" IsChecked="{Binding IsOtherDateSelected, Mode=OneWay}" Command="{Binding ToggleDatePickerCommand}"
+                            AutomationProperties.Name="{DynamicResource DatePick}" />
+            </StackPanel>
+            <DatePicker DisplayDateStart="{Binding MinDate, Mode=OneWay}" DisplayDateEnd="{Binding MaxDate, Mode=OneWay}" SelectedDate="{Binding TargetDate, Mode=TwoWay}"
+                        HorizontalAlignment="Left" MinWidth="160" Margin="0,8,0,0" AutomationProperties.Name="{DynamicResource DateLabel}"
+                        Visibility="{Binding IsDatePickerOpen, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{Binding DateNotice}" Style="{StaticResource Bp.Type.Hint}" Foreground="{DynamicResource Bp.Warning.11}" Margin="0,8,0,0"
+                       Visibility="{Binding HasDateNotice, Converter={StaticResource BoolToVisibility}}" />
+          </StackPanel>
 
-      <ItemsControl ItemsSource="{Binding Options}">
+          <!-- Optional line filter. Suggestions come from lines already seen: no network, no spinner. -->
+          <TextBlock Text="{DynamicResource PreferredLineLabel}" Style="{StaticResource Bp.Type.Caption}" Margin="0,16,0,4" />
+          <TextBox Style="{StaticResource Bp.TextBox}" Text="{Binding LineName, UpdateSourceTrigger=PropertyChanged}" MaxLength="64" Width="160" HorizontalAlignment="Left"
+                   Padding="8,4,8,4" AutomationProperties.Name="{DynamicResource PreferredLineLabel}" />
+          <StackPanel Margin="0,8,0,0" Visibility="{Binding LineSuggestions.Count, Converter={StaticResource CountToVisibility}}">
+            <TextBlock Text="{DynamicResource LinesFoundLabel}" Style="{StaticResource Bp.Type.Caption}" Margin="0,0,0,4" />
+            <ItemsControl ItemsSource="{Binding LineSuggestions}" Focusable="False">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Button Style="{StaticResource Bp.Button.Secondary}" Content="{Binding}" Margin="0,0,8,8"
+                          Command="{Binding DataContext.UseLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+
+          <Button Content="{DynamicResource PlanTrip}" Command="{Binding PlanCommand}" Style="{StaticResource Bp.Button.Primary}" HorizontalAlignment="Left" Margin="0,16,0,0" IsDefault="True" />
+          <ProgressBar IsIndeterminate="True" Height="2" Margin="0,8,0,0" Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}"
+                       AutomationProperties.Name="{DynamicResource Planning}" />
+          <TextBlock Text="{Binding StatusText}" Style="{StaticResource Bp.Type.Hint}" Margin="0,8,0,0" />
+      </StackPanel>
+
+      <!-- Results: one DepartureRow per direct trip. Rows are updated in place by the view model; nothing is rebuilt on a refresh. -->
+      <Grid Margin="0,16,0,4" Visibility="{Binding Options.Count, Converter={StaticResource CountToVisibility}}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <ui:SymbolIcon Symbol="Warning24" FontSize="14" Foreground="{DynamicResource Bp.Warning.11}" Margin="0,0,6,0" VerticalAlignment="Center"
+                         Visibility="{Binding IsUpdateStale, Converter={StaticResource BoolToVisibility}}" />
+          <TextBlock Text="{Binding UpdatedAgoText}" Style="{StaticResource Bp.Type.Caption}" VerticalAlignment="Center" />
+        </StackPanel>
+        <Button Grid.Column="1" Style="{StaticResource Bp.Button.Icon}" Command="{Binding RefreshNowCommand}"
+                ToolTip="{DynamicResource RefreshNow}" AutomationProperties.Name="{DynamicResource RefreshNow}">
+          <ui:SymbolIcon Symbol="ArrowClockwise24" />
+        </Button>
+      </Grid>
+      <ItemsControl ItemsSource="{Binding Options}" Focusable="False" Grid.IsSharedSizeScope="True" Margin="0,0,16,0">
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="16" Margin="0,0,0,8" ToolTip="{Binding Tooltip}">
-              <Border.Style>
-                <Style TargetType="Border">
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding IsStale}" Value="True">
-                      <Setter Property="Opacity" Value="0.55" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </Border.Style>
+            <Border Style="{StaticResource Bp.DepartureRow}" ToolTip="{Binding Tooltip}">
               <Grid>
                 <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" SharedSizeGroup="Badge" />
                   <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" SharedSizeGroup="Status" />
+                  <ColumnDefinition Width="{StaticResource Bp.EtaColumnWidth}" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,14,0">
-                  <controls:LineBadge LineName="{Binding Line}" OperatorName="{Binding Operator}" RouteColor="{Binding RouteColor}" HorizontalAlignment="Left" />
+                <controls:LineBadge LineName="{Binding Line}" OperatorName="{Binding Operator}" RouteColor="{Binding RouteColor}" VerticalAlignment="Top" Margin="0,4,0,0" />
+                <StackPanel Grid.Column="1" Margin="16,2,8,2" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding BoardingStop}" Style="{StaticResource Bp.Type.BodyStrong}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding LeaveByText}" Style="{StaticResource Bp.Type.Title}" Foreground="{DynamicResource Bp.Accent.11}" />
+                  <TextBlock Text="{Binding WalkToLegText}" Style="{StaticResource Bp.Type.Caption}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding WalkFromLegText}" Style="{StaticResource Bp.Type.Caption}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding ArriveText}" Style="{StaticResource Bp.Type.Caption}" />
+                  <TextBlock Text="{Binding DateText}" Style="{StaticResource HiddenWhenEmptyText}" Margin="0,2,0,0" />
                 </StackPanel>
-                <StackPanel Grid.Column="1">
-                  <StackPanel Orientation="Horizontal">
-                    <controls:DirectionArrow Bearing="{Binding BearingDegrees}" Margin="0,0,6,0" />
-                    <TextBlock Text="{Binding RouteText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                  </StackPanel>
-                  <TextBlock Text="{Binding WalkText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
-                  <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                    <TextBlock Text="{Binding BusText}" FontSize="12" Margin="0,0,12,0" />
-                    <TextBlock Text="{Binding ArriveText}" FontSize="12" />
-                  </StackPanel>
-                  <TextBlock Text="{Binding DateText}" FontSize="12" Style="{StaticResource HiddenWhenEmptyText}" Margin="0,2,0,0" />
-                </StackPanel>
-                <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                  <TextBlock Text="{Binding LeaveText}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Right" />
-                  <TextBlock Text="{Binding LeaveAtText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" HorizontalAlignment="Right" />
-                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
-                    <Border CornerRadius="8" Padding="8,2" Margin="0,0,6,0" VerticalAlignment="Center">
-                      <Border.Style>
-                        <Style TargetType="Border">
-                          <Setter Property="Background" Value="{DynamicResource ScheduledBadgeBrush}" />
-                          <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsLive}" Value="True">
-                              <Setter Property="Background" Value="{DynamicResource LiveBadgeBrush}" />
-                            </DataTrigger>
-                          </Style.Triggers>
-                        </Style>
-                      </Border.Style>
-                      <TextBlock Text="{Binding BadgeText}" FontSize="12" />
-                    </Border>
-                    <Button Padding="8,2" ToolTip="{DynamicResource RemindMe}" AutomationProperties.Name="{DynamicResource RemindMe}"
-                            Command="{Binding DataContext.ToggleReminderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            CommandParameter="{Binding}">
-                      <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                          <Setter Property="Content" Value="🔔" />
+                <StackPanel Grid.Column="2" VerticalAlignment="Top" Margin="0,4,0,0">
+                  <controls:StatusChip Status="{Binding Status}" Text="{Binding BadgeText}" HorizontalAlignment="Left" />
+                  <Button Style="{StaticResource Bp.Button.Quiet}" HorizontalAlignment="Left" Margin="0,4,0,0" ToolTip="{DynamicResource RemindMe}"
+                          AutomationProperties.Name="{DynamicResource RemindMe}"
+                          Command="{Binding DataContext.ToggleReminderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                    <ui:SymbolIcon FontSize="16">
+                      <ui:SymbolIcon.Style>
+                        <Style TargetType="ui:SymbolIcon">
+                          <Setter Property="Symbol" Value="Alert24" />
                           <Style.Triggers>
                             <DataTrigger Binding="{Binding IsWatched}" Value="True">
-                              <Setter Property="Content" Value="🔔 ✓" />
+                              <Setter Property="Symbol" Value="AlertOn24" />
                             </DataTrigger>
                           </Style.Triggers>
                         </Style>
-                      </Button.Style>
-                    </Button>
-                  </StackPanel>
+                      </ui:SymbolIcon.Style>
+                    </ui:SymbolIcon>
+                  </Button>
+                </StackPanel>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,0,0">
+                  <controls:TickerText Text="{Binding EtaValue}" Style="{StaticResource Bp.Eta.Number}" />
+                  <TextBlock Text="{Binding EtaUnit}" Style="{StaticResource Bp.Eta.Unit}" />
                 </StackPanel>
               </Grid>
             </Border>

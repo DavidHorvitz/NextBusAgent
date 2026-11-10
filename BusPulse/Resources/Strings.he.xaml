@@ -238,4 +238,21 @@
   <sys:String x:Key="OriginPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">מאיפה? רחוב, מקום או עסק</sys:String>
   <sys:String x:Key="DestinationPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">לאן? רחוב, מקום או עסק</sys:String>
   <sys:String x:Key="SearchingAddress" xmlns:sys="clr-namespace:System;assembly=mscorlib">מחפש כתובת</sys:String>
+  <sys:String x:Key="LeaveByAt" xmlns:sys="clr-namespace:System;assembly=mscorlib">צא ב-{0}</sys:String>
+  <sys:String x:Key="WalkLeg" xmlns:sys="clr-namespace:System;assembly=mscorlib">הליכה {0} דק׳ ({1} מ׳)</sys:String>
+  <sys:String x:Key="WalkLegShort" xmlns:sys="clr-namespace:System;assembly=mscorlib">הליכה פחות מדקה ({0} מ׳)</sys:String>
+  <sys:String x:Key="WalkEstimated" xmlns:sys="clr-namespace:System;assembly=mscorlib">משוער</sys:String>
+  <sys:String x:Key="NoDataForLine" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין נתונים לקו הזה</sys:String>
+  <sys:String x:Key="RefreshNow" xmlns:sys="clr-namespace:System;assembly=mscorlib">רענון</sys:String>
+  <sys:String x:Key="QuickPlusMinutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">+{0} דק׳</sys:String>
+  <sys:String x:Key="DatePick" xmlns:sys="clr-namespace:System;assembly=mscorlib">בחר תאריך</sys:String>
+  <sys:String x:Key="TimeHourField" xmlns:sys="clr-namespace:System;assembly=mscorlib">שעות</sys:String>
+  <sys:String x:Key="TimeMinuteField" xmlns:sys="clr-namespace:System;assembly=mscorlib">דקות</sys:String>
+  <sys:String x:Key="TimeHourUp" xmlns:sys="clr-namespace:System;assembly=mscorlib">שעה קדימה</sys:String>
+  <sys:String x:Key="TimeHourDown" xmlns:sys="clr-namespace:System;assembly=mscorlib">שעה אחורה</sys:String>
+  <sys:String x:Key="TimeMinuteUp" xmlns:sys="clr-namespace:System;assembly=mscorlib">5 דקות קדימה</sys:String>
+  <sys:String x:Key="TimeMinuteDown" xmlns:sys="clr-namespace:System;assembly=mscorlib">5 דקות אחורה</sys:String>
+  <sys:String x:Key="LinesFoundLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">קווים שנמצאו</sys:String>
+  <sys:String x:Key="TimeQuickLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">בעוד</sys:String>
+  <sys:String x:Key="BoardAtStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">עלייה ב{0}</sys:String>
 </ResourceDictionary>

@@ -81,7 +81,7 @@ public sealed class WpfAppCollection : ICollectionFixture<WpfAppFixture>
 [Collection(WpfAppCollection.Name)]
 public sealed class DesignRenderTests(WpfAppFixture app)
 {
-    private static readonly DateTimeOffset Now = DateTimeOffset.Parse("2026-11-10T17:42:00+02:00");
+    internal static readonly DateTimeOffset Now = DateTimeOffset.Parse("2026-11-10T17:42:00+02:00");
 
     [Theory]
     [InlineData("he", false)]
@@ -282,7 +282,7 @@ public sealed class DesignRenderTests(WpfAppFixture app)
         return host;
     }
 
-    private static ResourceDictionary Strings(string language) => new() { Source = new Uri(Wpf.Pack + $"Resources/Strings.{language}.xaml") };
+    internal static ResourceDictionary Strings(string language) => new() { Source = new Uri(Wpf.Pack + $"Resources/Strings.{language}.xaml") };
 
     private static void Layout(FrameworkElement host, double width = 600)
     {
@@ -398,7 +398,7 @@ public sealed class DesignRenderTests(WpfAppFixture app)
 
     // ------------------------------------------------------------------------------------------------ helpers
 
-    private static void Save(FrameworkElement element, string name)
+    internal static void Save(FrameworkElement element, string name)
     {
         var directory = Environment.GetEnvironmentVariable("BUSPULSE_SCREENSHOT_DIR");
         var bitmap = Render(element);
@@ -471,7 +471,7 @@ public sealed class DesignRenderTests(WpfAppFixture app)
 
     // ------------------------------------------------------------------------------------------------ sample data
 
-    private static readonly Stop[] SampleStops =
+    internal static readonly Stop[] SampleStops =
     [
         new("21385", "ז'בוטינסקי/אבא הלל", "רמת גן", 32.0841, 34.8061),
         new("21240", "ז'בוטינסקי/רבי עקיבא", "בני ברק", 32.0838, 34.8341),
@@ -480,7 +480,7 @@ public sealed class DesignRenderTests(WpfAppFixture app)
         new("21533", "רבי עקיבא/חזון איש", "בני ברק", 32.0867, 34.8366),
     ];
 
-    private sealed class SampleArrivals : ILiveDataAggregator
+    internal sealed class SampleArrivals : ILiveDataAggregator
     {
         public Task<AggregatedArrivals> GetArrivalsAsync(string stopCode, CancellationToken cancellationToken = default)
         {
@@ -510,7 +510,7 @@ public sealed class DesignRenderTests(WpfAppFixture app)
             new TaskCompletionSource<IReadOnlyList<Stop>>().Task;
     }
 
-    private sealed class DictionaryLocalizer(ResourceDictionary strings) : ILocalizer
+    internal sealed class DictionaryLocalizer(ResourceDictionary strings) : ILocalizer
     {
         public event EventHandler? LanguageChanged { add { } remove { } }
 

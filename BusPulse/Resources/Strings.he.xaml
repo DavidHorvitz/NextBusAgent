@@ -224,4 +224,7 @@
   <sys:String x:Key="SecretsSourceEnvironment" xmlns:sys="clr-namespace:System;assembly=mscorlib">מקור פרטי הגישה של Google: משתני סביבה.</sys:String>
   <sys:String x:Key="SecretsSourceInfisical" xmlns:sys="clr-namespace:System;assembly=mscorlib">מקור פרטי הגישה של Google: Infisical (משתני סביבה כגיבוי).</sys:String>
   <sys:String x:Key="SecretsSourceNone" xmlns:sys="clr-namespace:System;assembly=mscorlib">מקור פרטי הגישה של Google: לא הוגדר.</sys:String>
+  <sys:String x:Key="SettingsClose" xmlns:sys="clr-namespace:System;assembly=mscorlib">סגירת ההגדרות</sys:String>
+  <sys:String x:Key="AdvancedTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">מתקדם</sys:String>
+  <sys:String x:Key="GeneralTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">כללי</sys:String>
 </ResourceDictionary>

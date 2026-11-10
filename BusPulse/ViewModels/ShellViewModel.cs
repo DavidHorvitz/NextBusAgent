@@ -8,7 +8,10 @@ namespace BusPulse.ViewModels;
 
 public sealed partial class ShellViewModel : ObservableObject
 {
-    public const int TabCount = 4;
+    /// <summary>Navigation tabs (stops, trip planner, lines). Shortcut 4 and Ctrl+comma open the settings panel instead.</summary>
+    public const int TabCount = 3;
+
+    public const int SettingsShortcut = 3;
 
     private readonly ISettingsService _settings;
     private readonly ILocalizer _localizer;
@@ -22,6 +25,10 @@ public sealed partial class ShellViewModel : ObservableObject
 
     [ObservableProperty]
     private string _activeProfile;
+
+    /// <summary>The settings side panel. Always closed at startup; never saved.</summary>
+    [ObservableProperty]
+    private bool _isSettingsOpen;
 
     [ObservableProperty]
     private bool _isWindowActive;
@@ -171,7 +178,20 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             SelectedTabIndex = index;
         }
+        else if (index == SettingsShortcut)
+        {
+            IsSettingsOpen = true;
+        }
     }
+
+    [RelayCommand]
+    private void OpenSettings() => IsSettingsOpen = true;
+
+    [RelayCommand]
+    private void CloseSettings() => IsSettingsOpen = false;
+
+    [RelayCommand]
+    private void ToggleSettings() => IsSettingsOpen = !IsSettingsOpen;
 
     private void PlanRouteFrom(Services.Stops.Stop stop)
     {

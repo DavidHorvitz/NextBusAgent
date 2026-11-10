@@ -8,98 +8,30 @@
         WindowStartupLocation="CenterScreen"
         FontFamily="{StaticResource Bp.Font}"
         FlowDirection="{Binding FlowDirection}">
+  <!-- Mica is requested above; WPF-UI falls back to the plain window background where Mica is unavailable (Windows 10). -->
   <Window.InputBindings>
     <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
     <KeyBinding Key="F" Modifiers="Control" Command="{Binding FocusSearchCommand}" />
     <KeyBinding Key="D1" Modifiers="Control" Command="{Binding SelectTabCommand}" CommandParameter="0" />
     <KeyBinding Key="D2" Modifiers="Control" Command="{Binding SelectTabCommand}" CommandParameter="1" />
     <KeyBinding Key="D3" Modifiers="Control" Command="{Binding SelectTabCommand}" CommandParameter="2" />
-    <KeyBinding Key="D4" Modifiers="Control" Command="{Binding SelectTabCommand}" CommandParameter="3" />
-    <KeyBinding Key="OemComma" Modifiers="Control" Command="{Binding SelectTabCommand}" CommandParameter="3" />
+    <KeyBinding Key="D4" Modifiers="Control" Command="{Binding OpenSettingsCommand}" />
+    <KeyBinding Key="OemComma" Modifiers="Control" Command="{Binding OpenSettingsCommand}" />
+    <KeyBinding Key="Escape" Command="{Binding CloseSettingsCommand}" />
   </Window.InputBindings>
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
-    <ui:TitleBar Grid.Row="0" Title="BusPulse" ShowMaximize="True" />
-    <Grid Grid.Row="1" Margin="24,4,24,16">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="*" />
-        <RowDefinition Height="Auto" />
-      </Grid.RowDefinitions>
-
-      <!-- Brand banner: gradient, a bus illustration, the active profile and the mute switch. -->
-      <Border Grid.Row="0" CornerRadius="18" Margin="0,0,0,16" ClipToBounds="True" Background="{DynamicResource HeaderGradientBrush}">
-        <Grid MinHeight="124">
-          <Canvas IsHitTestVisible="False">
-            <Ellipse Width="220" Height="220" Fill="White" Opacity="0.07" Canvas.Left="-60" Canvas.Top="-110" />
-            <Ellipse Width="300" Height="300" Fill="White" Opacity="0.05" Canvas.Right="-90" Canvas.Bottom="-190" />
-            <Ellipse Width="90" Height="90" Fill="White" Opacity="0.06" Canvas.Left="360" Canvas.Top="60" />
-          </Canvas>
-          <Grid Margin="26,18">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="Auto" />
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <Viewbox Width="96" Height="72" Margin="0,0,20,0" VerticalAlignment="Center" FlowDirection="LeftToRight" AutomationProperties.Name="Bus">
-              <Canvas Width="96" Height="72">
-                <Rectangle Width="80" Height="50" RadiusX="11" RadiusY="11" Fill="White" Canvas.Left="8" Canvas.Top="6" />
-                <Rectangle Width="28" Height="9" RadiusX="4" RadiusY="4" Fill="#FFC766" Canvas.Left="34" Canvas.Top="9" />
-                <Rectangle Width="64" Height="22" RadiusX="6" RadiusY="6" Fill="#0E5A50" Canvas.Left="16" Canvas.Top="21" />
-                <Ellipse Width="11" Height="11" Fill="#F5A623" Canvas.Left="17" Canvas.Top="42" />
-                <Ellipse Width="11" Height="11" Fill="#F5A623" Canvas.Left="68" Canvas.Top="42" />
-                <Rectangle Width="30" Height="4" RadiusX="2" RadiusY="2" Fill="#0E5A50" Opacity="0.45" Canvas.Left="33" Canvas.Top="48" />
-                <Ellipse Width="17" Height="17" Fill="#0B3F39" Canvas.Left="14" Canvas.Top="50" />
-                <Ellipse Width="17" Height="17" Fill="#0B3F39" Canvas.Left="65" Canvas.Top="50" />
-                <Ellipse Width="6" Height="6" Fill="#9AD6CC" Canvas.Left="19.5" Canvas.Top="55.5" />
-                <Ellipse Width="6" Height="6" Fill="#9AD6CC" Canvas.Left="70.5" Canvas.Top="55.5" />
-              </Canvas>
-            </Viewbox>
-
-            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-              <TextBlock Text="BusPulse" FontSize="32" FontWeight="Bold" Foreground="White" />
-              <TextBlock Text="{DynamicResource DashboardSubtitle}" Foreground="#E6F4F1" FontSize="15" Margin="0,2,0,0" TextWrapping="Wrap" />
-              <Border Background="#33FFFFFF" CornerRadius="12" Padding="12,4" HorizontalAlignment="Left" Margin="0,10,0,0">
-                <TextBlock Foreground="White" FontSize="13">
-                  <Run Text="{DynamicResource ActiveProfile}" /><Run Text=": " /><Run Text="{Binding ActiveProfile, Mode=OneWay}" FontWeight="SemiBold" />
-                </TextBlock>
-              </Border>
-            </StackPanel>
-
-            <StackPanel Grid.Column="2" Orientation="Vertical" VerticalAlignment="Center" Margin="16,0,0,0">
-              <Button Content="{Binding MuteButtonText}" Command="{Binding ToggleMuteCommand}" Padding="16,8" HorizontalAlignment="Stretch"
-                      Background="#33FFFFFF" Foreground="White" BorderBrush="#66FFFFFF" />
-              <Button Content="{DynamicResource MinimizeToTray}" Command="{Binding HideCommand}" Padding="16,8" Margin="0,8,0,0" HorizontalAlignment="Stretch"
-                      Background="Transparent" Foreground="White" BorderBrush="#66FFFFFF" />
-            </StackPanel>
-          </Grid>
-        </Grid>
-      </Border>
-
-      <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex}" Background="Transparent" BorderThickness="0" Padding="0">
-        <TabItem>
-          <TabItem.Header><TextBlock Text="{DynamicResource TabStops}" ToolTip="Ctrl+1" /></TabItem.Header>
-          <views:StopsView DataContext="{Binding Stops}" Margin="0,12,0,0" />
-        </TabItem>
-        <TabItem>
-          <TabItem.Header><TextBlock Text="{DynamicResource TabTrip}" ToolTip="Ctrl+2" /></TabItem.Header>
-          <views:TripPlannerView DataContext="{Binding TripPlanner}" Margin="0,12,0,0" />
-        </TabItem>
-        <TabItem>
-          <TabItem.Header><TextBlock Text="{DynamicResource TabLines}" ToolTip="Ctrl+3" /></TabItem.Header>
-          <views:LinesView DataContext="{Binding Lines}" Margin="0,12,0,0" />
-        </TabItem>
-        <TabItem>
-          <TabItem.Header><TextBlock Text="{DynamicResource TabSettings}" ToolTip="Ctrl+4  ·  Ctrl+," /></TabItem.Header>
-          <views:SettingsView DataContext="{Binding SettingsTab}" Margin="0,12,0,0" />
-        </TabItem>
-      </TabControl>
-      <TextBlock Grid.Row="2" Text="{DynamicResource UserModeNotice}" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                 FontSize="12" Margin="0,12,0,0" TextWrapping="Wrap" />
-    </Grid>
+    <ui:TitleBar Grid.Row="0" Title="BusPulse" ShowMaximize="True">
+      <ui:TitleBar.TrailingContent>
+        <Button Style="{StaticResource Bp.Button.Icon}" Command="{Binding ToggleSettingsCommand}" Margin="0,0,8,0"
+                ToolTip="{DynamicResource TabSettings}" AutomationProperties.Name="{DynamicResource TabSettings}">
+          <ui:SymbolIcon Symbol="Settings24" FontSize="20" />
+        </Button>
+      </ui:TitleBar.TrailingContent>
+    </ui:TitleBar>
+    <views:ShellView Grid.Row="1" />
   </Grid>
 </ui:FluentWindow>

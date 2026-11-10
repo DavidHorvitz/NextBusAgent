@@ -177,7 +177,7 @@ public sealed class ShellAndSettingsTests
     [Theory]
     [InlineData("0", 0)]
     [InlineData("1", 1)]
-    [InlineData("3", 3)]
+    [InlineData("3", 0)] // shortcut 4 opens the settings panel; it is not a tab
     [InlineData("4", 0)]
     [InlineData("-1", 0)]
     [InlineData("abc", 0)]
@@ -403,11 +403,15 @@ public sealed class ShellAndSettingsTests
 
     internal sealed class Fixture
     {
-        public Fixture(Action<AppConfig>? configure = null)
+        public Fixture(Action<AppConfig>? configure = null, ILocalizer? localizer = null, IStopCatalog? catalog = null, ILiveDataAggregator? arrivals = null, FakeLocation? location = null, IClock? clock = null)
         {
             Settings = new MemorySettings();
             configure?.Invoke(Settings.Config);
             Localizer = new TemplateLocalizer();
+            var loc = localizer ?? Localizer;
+            var clk = clock ?? new FixedClock(DateTimeOffset.UtcNow);
+            var cat = catalog ?? new FakeCatalog();
+            var loca = location ?? new FakeLocation();
             Places = new SavedPlaceCollection(Settings);
             History = new FakeHistory();
             Curlbus = new FakeProvider(ArrivalSource.Curlbus);
@@ -416,18 +420,18 @@ public sealed class ShellAndSettingsTests
             Notifier = new RecordingNotifier();
             Theme = new FakeTheme();
             Calendar = new FakeCalendar();
-            SettingsTab = new SettingsViewModel(Settings, Places, Localizer, [Rail, Curlbus], Schedule, History, Notifier, Calendar);
+            SettingsTab = new SettingsViewModel(Settings, Places, loc, [Rail, Curlbus], Schedule, History, Notifier, Calendar);
             Shell = new ShellViewModel(
                 Settings,
-                Localizer,
+                loc,
                 new StopsViewModel(
-                    Settings, new FakeLocation(), new FakeCatalog(), new NullAggregator(), Places, Localizer,
-                    new FixedClock(DateTimeOffset.UtcNow), new ImmediateDispatcher(), NullLogger<StopsViewModel>.Instance),
+                    Settings, loca, cat, arrivals ?? new NullAggregator(), Places, loc,
+                    clk, new ImmediateDispatcher(), NullLogger<StopsViewModel>.Instance),
                 new TripPlannerViewModel(
-                    Settings, Places, Localizer, new FakeTripPlanner(), new FakeCatalog(), new FakeLocation(), History,
-                    new FakeReminder(), Notifier, new FixedClock(DateTimeOffset.UtcNow), new ImmediateDispatcher(),
+                    Settings, Places, loc, new FakeTripPlanner(), cat, loca, History,
+                    new FakeReminder(), Notifier, clk, new ImmediateDispatcher(),
                     NullLogger<TripPlannerViewModel>.Instance, new FakeCalendar()),
-                new LinesViewModel(Settings, Places, Localizer, new FakeCatalog(), new FakeLocation(), new LinesViewModelTests.FakeSchedule(), new FixedClock(DateTimeOffset.UtcNow), NullLogger<LinesViewModel>.Instance),
+                new LinesViewModel(Settings, Places, loc, cat, loca, new LinesViewModelTests.FakeSchedule(), clk, NullLogger<LinesViewModel>.Instance),
                 SettingsTab,
                 Theme);
         }
@@ -824,7 +828,7 @@ public sealed class TripPlannerViewModelTests
 
     private sealed class Fixture
     {
-        public Fixture(Action<AppConfig>? configure = null)
+        public Fixture(Action<AppConfig>? configure = null, ILocalizer? localizer = null, IStopCatalog? catalog = null, ILiveDataAggregator? arrivals = null, FakeLocation? location = null, IClock? clock = null)
         {
             Settings = new MemorySettings();
             configure?.Invoke(Settings.Config);

@@ -292,6 +292,8 @@ public sealed class DesignSystemTests
     /// <summary>DESIGN.md "do not" list: views on the design system use tokens only.</summary>
     [Theory]
     [InlineData("StopsView.xaml")]
+    [InlineData("ShellView.xaml")]
+    [InlineData("SettingsView.xaml")]
     public void RebuiltViews_UseNoRawColours(string view)
     {
         var xaml = File.ReadAllText(Wpf.RepoFile("BusPulse", "Views", view));

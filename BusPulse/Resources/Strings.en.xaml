@@ -224,4 +224,7 @@
   <sys:String x:Key="SecretsSourceEnvironment" xmlns:sys="clr-namespace:System;assembly=mscorlib">Google credentials source: environment variables.</sys:String>
   <sys:String x:Key="SecretsSourceInfisical" xmlns:sys="clr-namespace:System;assembly=mscorlib">Google credentials source: Infisical (environment variables as fallback).</sys:String>
   <sys:String x:Key="SecretsSourceNone" xmlns:sys="clr-namespace:System;assembly=mscorlib">Google credentials source: not configured.</sys:String>
+  <sys:String x:Key="SettingsClose" xmlns:sys="clr-namespace:System;assembly=mscorlib">Close settings</sys:String>
+  <sys:String x:Key="AdvancedTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Advanced</sys:String>
+  <sys:String x:Key="GeneralTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">General</sys:String>
 </ResourceDictionary>

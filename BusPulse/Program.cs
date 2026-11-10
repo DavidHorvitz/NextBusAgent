@@ -62,8 +62,14 @@ internal static class Program
                 {
                     AllowAutoRedirect = false
                 });
-                services.AddSingleton<IGeocoder, NominatimGeocoder>();
+                services.AddSingleton<GeocodeDiskCache>();
+                services.AddSingleton<PlacesUsageStore>();
+                services.AddSingleton<NominatimGeocoder>();
+                services.AddSingleton<GooglePlacesGeocoder>();
+                services.AddSingleton<IGeocoder, GeocoderSelector>();
                 services.AddHttpClient(NominatimGeocoder.ClientName, client => client.Timeout = TimeSpan.FromSeconds(15))
+                    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+                services.AddHttpClient(GooglePlacesGeocoder.ClientName, client => client.Timeout = TimeSpan.FromSeconds(10))
                     .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
                 services.AddSingleton<IDispatcher, WpfDispatcher>();
                 services.AddSingleton(InfisicalOptions.FromEnvironment());

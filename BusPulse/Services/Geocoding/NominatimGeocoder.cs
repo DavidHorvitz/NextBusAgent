@@ -20,7 +20,8 @@ public sealed partial class NominatimGeocoder(
     IClock clock,
     ISettingsService settings,
     ILogger<NominatimGeocoder> logger,
-    Func<TimeSpan, CancellationToken, Task>? delay = null) : IGeocoder
+    Func<TimeSpan, CancellationToken, Task>? delay = null,
+    GeocodeDiskCache? diskCache = null) : IGeocoder
 {
     public const string ClientName = "Geocoder";
     public const string Attribution = "© OpenStreetMap contributors";
@@ -40,6 +41,7 @@ public sealed partial class NominatimGeocoder(
     private readonly SemaphoreSlim _requestGate = new(1, 1);
     private readonly object _cacheLock = new();
     private readonly Dictionary<string, (DateTimeOffset StoredAt, GeocodeResult Result)> _cache = new(StringComparer.Ordinal);
+    private readonly ServiceCircuitBreaker _breaker = new(clock);
     private DateTimeOffset _lastRequestAt = DateTimeOffset.MinValue;
 
     [GeneratedRegex(@"^(?:רחוב|רח'|רח׳|רח|street|st\.)\s+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
@@ -84,6 +86,11 @@ public sealed partial class NominatimGeocoder(
             return cached;
         }
 
+        if (_breaker.IsOpen)
+        {
+            return GeocodeResult.Of(GeocodeStatus.RateLimited);
+        }
+
         await _requestGate.WaitAsync(cancellationToken);
         try
         {
@@ -91,6 +98,11 @@ public sealed partial class NominatimGeocoder(
             if (TryGetCached(key, out cached))
             {
                 return cached;
+            }
+
+            if (_breaker.IsOpen)
+            {
+                return GeocodeResult.Of(GeocodeStatus.RateLimited);
             }
 
             var wait = _lastRequestAt + MinRequestSpacing - clock.UtcNow;
@@ -155,12 +167,19 @@ public sealed partial class NominatimGeocoder(
         {
             var uri = new Uri(baseUri, "search?q=" + Uri.EscapeDataString(normalized) +
                 "&format=jsonv2&addressdetails=1&countrycodes=il&limit=" + MaxResults.ToString(CultureInfo.InvariantCulture) +
-                "&accept-language=he,en");
+                "&accept-language=he");
             var client = httpClientFactory.CreateClient(ClientName);
             using var request = new HttpRequestMessage(HttpMethod.Get, uri);
             request.Headers.Accept.ParseAdd("application/json");
             request.Headers.UserAgent.ParseAdd(UserAgent);
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if (ServiceCircuitBreaker.ShouldTrip(response.StatusCode))
+            {
+                _breaker.Trip();
+                logger.LogWarning("Address service answered {Status}; pausing it for ten minutes.", (int)response.StatusCode);
+                return GeocodeResult.Of(GeocodeStatus.RateLimited);
+            }
+
             response.EnsureSuccessStatusCode();
             if (response.Content.Headers.ContentLength is > MaxResponseBytes)
             {
@@ -200,6 +219,22 @@ public sealed partial class NominatimGeocoder(
 
     private bool TryGetCached(string key, out GeocodeResult result)
     {
+        if (TryGetMemory(key, out result))
+        {
+            return true;
+        }
+
+        if (diskCache is not null && diskCache.TryGet(key, out result))
+        {
+            StoreMemory(key, result);
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryGetMemory(string key, out GeocodeResult result)
+    {
         lock (_cacheLock)
         {
             if (_cache.TryGetValue(key, out var entry))
@@ -219,6 +254,12 @@ public sealed partial class NominatimGeocoder(
     }
 
     private void Store(string key, GeocodeResult result)
+    {
+        StoreMemory(key, result);
+        diskCache?.Store(key, result);
+    }
+
+    private void StoreMemory(string key, GeocodeResult result)
     {
         lock (_cacheLock)
         {

@@ -47,6 +47,9 @@ public sealed class AppConfig
     /// <summary>Address search server (Nominatim API). Must be an absolute https URL so it can be redirected without an update.</summary>
     public string GeocoderBaseUrl { get; set; } = "https://nominatim.openstreetmap.org/";
 
+    /// <summary>Hard local cap on Google Places autocomplete sessions per day; at the cap the API is not called (only used when a key exists).</summary>
+    public int GooglePlacesDailySessionCap { get; set; } = 200;
+
     public void Validate()
     {
         if (Language is not ("en" or "he"))
@@ -115,7 +118,12 @@ public sealed class AppConfig
             throw new InvalidDataException("The geocoder address must be an absolute https URL of at most 200 characters.");
         }
 
-        if (Theme is not ("system" or "light" or "dark"))
+        if (GooglePlacesDailySessionCap is < 1 or > 10000)
+        {
+            throw new InvalidDataException("The Places session cap must be between 1 and 10000.");
+        }
+
+        if (Theme is not ("system"or "light" or "dark"))
         {
             throw new InvalidDataException("Theme must be 'system', 'light' or 'dark'.");
         }

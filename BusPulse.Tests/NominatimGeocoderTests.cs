@@ -50,7 +50,7 @@ public sealed class NominatimGeocoderTests
         Assert.Contains("addressdetails=1", uri.Query);
         Assert.Contains("countrycodes=il", uri.Query);
         Assert.Contains("limit=5", uri.Query);
-        Assert.Contains("accept-language=he,en", uri.Query);
+        Assert.Contains("accept-language=he", uri.Query);
         Assert.Equal(NominatimGeocoder.UserAgent, handler.LastUserAgent);
         Assert.DoesNotContain("@", NominatimGeocoder.UserAgent.Replace("(+", string.Empty));
     }

@@ -16,6 +16,7 @@ public static partial class SecretNames
 {
     public const string GoogleClientId = "GOOGLE_CLIENT_ID";
     public const string GoogleClientSecret = "GOOGLE_CLIENT_SECRET";
+    public const string GooglePlacesApiKey = "GOOGLE_PLACES_API_KEY";
 
     public static bool IsValid(string? name) => name is not null && NamePattern().IsMatch(name);
 

@@ -234,9 +234,43 @@ internal sealed class FakeGeocoder : BusPulse.Services.Geocoding.IGeocoder
 
     public List<string> Queries { get; } = [];
 
-    public Task<BusPulse.Services.Geocoding.GeocodeResult> SearchAsync(string query, CancellationToken cancellationToken = default)
+    /// <summary>Behaves like Google Places: suggestions while typing.</summary>
+    public bool Autocomplete { get; set; }
+
+    public List<string> SuggestQueries { get; } = [];
+
+    public List<BusPulse.Services.Geocoding.GeocodedPlace> Resolved { get; } = [];
+
+    /// <summary>When set, a lookup waits for this task, so a test can observe the in-flight state.</summary>
+    public Task? Gate { get; set; }
+
+    public bool SupportsAutocomplete => Autocomplete;
+
+    public async Task<BusPulse.Services.Geocoding.GeocodeResult> SearchAsync(string query, CancellationToken cancellationToken = default)
     {
         Queries.Add(query);
-        return Task.FromResult(Result);
+        if (Gate is not null)
+        {
+            await Gate.WaitAsync(cancellationToken);
+        }
+
+        return Result;
     }
-}
+
+    public async Task<BusPulse.Services.Geocoding.GeocodeResult> SuggestAsync(string query, CancellationToken cancellationToken = default)
+    {
+        SuggestQueries.Add(query);
+        if (Gate is not null)
+        {
+            await Gate.WaitAsync(cancellationToken);
+        }
+
+        return Result;
+    }
+
+    public Task<BusPulse.Services.Geocoding.GeocodedPlace?> ResolveAsync(BusPulse.Services.Geocoding.GeocodedPlace place, CancellationToken cancellationToken = default)
+    {
+        Resolved.Add(place);
+        return Task.FromResult<BusPulse.Services.Geocoding.GeocodedPlace?>(place.IsUnresolved ? place with { Latitude = 32.07, Longitude = 34.78 } : place);
+    }
+}

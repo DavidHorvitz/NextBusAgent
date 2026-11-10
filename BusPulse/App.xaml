@@ -10,17 +10,11 @@
         <ResourceDictionary Source="Resources/Strings.en.xaml" />
         <ui:ThemesDictionary Theme="Light" />
         <ui:ControlsDictionary />
+        <!-- Design tokens and component styles (docs/DESIGN.md). IThemeService writes the Bp.* alias brushes and the older
+             AccentBrush, HeaderGradientBrush, LiveBadgeBrush, ScheduledBadgeBrush, WarningTextBrush and ErrorTextBrush
+             (now mapped onto the tokens) into this dictionary on every theme change. -->
+        <ResourceDictionary Source="Themes/Theme.xaml" />
       </ResourceDictionary.MergedDictionaries>
-      <!-- Brand colours; the theme service re-points AccentBrush for dark mode. -->
-      <SolidColorBrush x:Key="AccentBrush" Color="#147D70" />
-      <LinearGradientBrush x:Key="HeaderGradientBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#0B4F47" Offset="0" />
-        <GradientStop Color="#137A6D" Offset="1" />
-      </LinearGradientBrush>
-      <SolidColorBrush x:Key="LiveBadgeBrush" Color="#D8F1EC" />
-      <SolidColorBrush x:Key="ScheduledBadgeBrush" Color="#FFF1D6" />
-      <SolidColorBrush x:Key="WarningTextBrush" Color="#8A5A00" />
-      <SolidColorBrush x:Key="ErrorTextBrush" Color="#B01E1E" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

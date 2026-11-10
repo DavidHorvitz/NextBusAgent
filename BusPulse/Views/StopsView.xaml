@@ -1,162 +1,230 @@
+<!--
+  Reference implementation of the design system (docs/DESIGN.md). Only Bp.* tokens and Theme.xaml styles; no raw colours,
+  no card per row. Layout mirrors in RTL through FlowDirection; nothing here sets Left/Right by hand except the
+  numeric alignment documented in DESIGN.md.
+-->
 <UserControl x:Class="BusPulse.Views.StopsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:controls="clr-namespace:BusPulse.Views.Controls"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
-    <!-- A full-width row that is still a real Button (keyboard and screen-reader friendly). -->
-    <Style x:Key="RowButton" TargetType="Button">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Padding" Value="8,6" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="Cursor" Value="Hand" />
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="Button">
-            <Border x:Name="Row" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
-              <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
-            </Border>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Row" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-              </Trigger>
-              <Trigger Property="IsKeyboardFocused" Value="True">
-                <Setter TargetName="Row" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
-              </Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
+
+    <!-- Three skeleton rows, shaped like the stop rows they stand in for. -->
+    <DataTemplate x:Key="SkeletonRow">
+      <Grid Height="56">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="40" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+          <Border Style="{StaticResource Bp.Skeleton}" Width="180" Height="14" HorizontalAlignment="Left" />
+          <Border Style="{StaticResource Bp.Skeleton}" Width="64" Height="10" HorizontalAlignment="Left" Margin="0,8,0,0" />
+        </StackPanel>
+        <Border Grid.Column="2" Style="{StaticResource Bp.Skeleton}" Width="48" Height="12" Margin="8,0" />
+      </Grid>
+    </DataTemplate>
   </UserControl.Resources>
-  <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="20">
-    <Grid>
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="*" />
-      </Grid.RowDefinitions>
-      <StackPanel Grid.Row="1" Margin="0,12,0,8">
-        <TextBlock Text="{Binding LocationText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
-        <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
-        <ProgressBar IsIndeterminate="True" Height="3" Margin="0,6,0,0"
-                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
-      </StackPanel>
-      <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-        <ItemsControl ItemsSource="{Binding Stops}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <Border BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Padding="0,8"
-                      Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
-                <Border.ContextMenu>
-                  <ContextMenu>
-                    <MenuItem Header="{DynamicResource MenuPinStop}"
-                              Command="{Binding PlacementTarget.Tag.TogglePinStopCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                    <MenuItem Header="{DynamicResource MenuPlanRoute}"
-                              Command="{Binding PlacementTarget.Tag.PlanRouteFromStopCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                    <MenuItem Header="{DynamicResource MenuShowLines}"
-                              Command="{Binding PlacementTarget.Tag.ShowLinesFromStopCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                  </ContextMenu>
-                </Border.ContextMenu>
-                <StackPanel>
-                  <Grid>
-                    <Grid.ColumnDefinitions>
-                      <ColumnDefinition Width="*" />
-                      <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Button Command="{Binding DataContext.ToggleStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                            CommandParameter="{Binding}" Style="{StaticResource RowButton}"
-                            AutomationProperties.Name="{Binding Name}">
-                      <Grid>
-                        <Grid.ColumnDefinitions>
-                          <ColumnDefinition Width="*" />
-                          <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                          <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="★ " Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibility}}" />
-                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                          </StackPanel>
-                          <TextBlock Text="{Binding Code}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
-                        </StackPanel>
-                        <Border Grid.Column="1" Background="{DynamicResource LiveBadgeBrush}" CornerRadius="12" Padding="12,4" VerticalAlignment="Center">
-                          <TextBlock Text="{Binding DistanceText}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" />
-                        </Border>
-                      </Grid>
-                    </Button>
-                    <Button Grid.Column="1" VerticalAlignment="Center" Padding="8,2" Margin="6,0,0,0" Background="Transparent" BorderThickness="0" FontSize="18"
-                            Command="{Binding DataContext.TogglePinStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                            CommandParameter="{Binding}">
-                      <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                          <Setter Property="Content" Value="☆" />
-                          <Setter Property="ToolTip" Value="{DynamicResource StopPin}" />
-                          <Setter Property="AutomationProperties.Name" Value="{DynamicResource StopPin}" />
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- The one hint line of this section: where "nearby" is measured from. -->
+    <TextBlock Grid.Row="0" Text="{Binding LocationText}" Style="{StaticResource Bp.Type.Hint}" Margin="8,0,8,8" />
+
+    <!-- Status (no location, no stops, load failed) as a banner; hidden while loading, when the skeleton speaks instead. -->
+    <StackPanel Grid.Row="1">
+      <ProgressBar IsIndeterminate="True" Height="2" Margin="8,0,8,8"
+                   Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+      <controls:Banner Tone="Info" Text="{Binding StatusText}" Margin="0,0,0,8" controls:Motion.FadeInOnShow="True">
+        <controls:Banner.Style>
+          <Style TargetType="controls:Banner" BasedOn="{StaticResource {x:Type controls:Banner}}">
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding StatusText}" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+              </DataTrigger>
+              <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                <Setter Property="Visibility" Value="Collapsed" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </controls:Banner.Style>
+      </controls:Banner>
+      <ItemsControl ItemTemplate="{StaticResource SkeletonRow}" Focusable="False" AutomationProperties.Name="{Binding StatusText}">
+        <ItemsControl.ItemsSource>
+          <x:Array Type="{x:Type sys:Int32}"><sys:Int32>1</sys:Int32><sys:Int32>2</sys:Int32><sys:Int32>3</sys:Int32></x:Array>
+        </ItemsControl.ItemsSource>
+        <ItemsControl.Style>
+          <Style TargetType="ItemsControl">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                  <Condition Binding="{Binding IsLoading}" Value="True" />
+                  <Condition Binding="{Binding Stops.Count}" Value="0" />
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Visibility" Value="Visible" />
+              </MultiDataTrigger>
+            </Style.Triggers>
+          </Style>
+        </ItemsControl.Style>
+      </ItemsControl>
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <!-- End margin (logical: left in RTL, right in LTR) keeps the overlay scrollbar of WPF-UI off the chevrons. -->
+      <ItemsControl ItemsSource="{Binding Stops}" Focusable="False" Margin="0,0,16,0">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <!-- One stop: a row with a divider, not a card. -->
+            <Border BorderBrush="{DynamicResource Bp.Border.Subtle}" BorderThickness="0,0,0,1" Padding="0,4"
+                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+              <Border.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="{DynamicResource MenuPinStop}"
+                            Command="{Binding PlacementTarget.Tag.TogglePinStopCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                            CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                  <MenuItem Header="{DynamicResource MenuPlanRoute}"
+                            Command="{Binding PlacementTarget.Tag.PlanRouteFromStopCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                            CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                  <MenuItem Header="{DynamicResource MenuShowLines}"
+                            Command="{Binding PlacementTarget.Tag.ShowLinesFromStopCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                            CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                </ContextMenu>
+              </Border.ContextMenu>
+              <StackPanel>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="40" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+
+                  <!-- Pin: a quiet icon button at the leading edge; filled star when pinned. -->
+                  <Button VerticalAlignment="Center" HorizontalAlignment="Left"
+                          Command="{Binding DataContext.TogglePinStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                          CommandParameter="{Binding}">
+                    <Button.Style>
+                      <Style TargetType="Button" BasedOn="{StaticResource Bp.Button.Icon}">
+                        <Setter Property="Content">
+                          <Setter.Value>
+                            <ui:SymbolIcon Symbol="Star24" />
+                          </Setter.Value>
+                        </Setter>
+                        <Setter Property="ToolTip" Value="{DynamicResource StopPin}" />
+                        <Setter Property="AutomationProperties.Name" Value="{DynamicResource StopPin}" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                            <Setter Property="Content">
+                              <Setter.Value>
+                                <ui:SymbolIcon Symbol="Star24" Filled="True" />
+                              </Setter.Value>
+                            </Setter>
+                            <Setter Property="Foreground" Value="{DynamicResource Bp.Accent.11}" />
+                            <Setter Property="ToolTip" Value="{DynamicResource StopUnpin}" />
+                            <Setter Property="AutomationProperties.Name" Value="{DynamicResource StopUnpin}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Button.Style>
+                  </Button>
+
+                  <!-- The stop itself: name (title), code (caption), distance, and an expand chevron. -->
+                  <Button Grid.Column="1" Style="{StaticResource Bp.Button.ListRow}"
+                          Command="{Binding DataContext.ToggleStopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                          CommandParameter="{Binding}" AutomationProperties.Name="{Binding Name}">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+                      <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" Style="{StaticResource Bp.Type.Title}" />
+                        <TextBlock Text="{Binding Code}" Style="{StaticResource Bp.Type.Caption}" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="1" Text="{Binding DistanceText}" Style="{StaticResource Bp.Type.Caption}"
+                                 VerticalAlignment="Center" Margin="8,0" />
+                      <ui:SymbolIcon Grid.Column="2" FontSize="16" Foreground="{DynamicResource Bp.Text.Secondary}" VerticalAlignment="Center">
+                        <ui:SymbolIcon.Style>
+                          <Style TargetType="ui:SymbolIcon">
+                            <Setter Property="Symbol" Value="ChevronDown24" />
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                <Setter Property="Symbol" Value="ChevronUp24" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </ui:SymbolIcon.Style>
+                      </ui:SymbolIcon>
+                    </Grid>
+                  </Button>
+                </Grid>
+
+                <!-- Departures of an expanded stop: related content, so one subtle card holds the rows. -->
+                <Border Margin="40,4,0,8" Padding="8,4" CornerRadius="{StaticResource Bp.Radius.Card}"
+                        Background="{DynamicResource Bp.Bg.Subtle}" controls:Motion.FadeInOnShow="True"
+                        Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
+                  <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                      <StackPanel.Style>
+                        <Style TargetType="StackPanel">
                           <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsFavorite}" Value="True">
-                              <Setter Property="Content" Value="★" />
-                              <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
-                              <Setter Property="ToolTip" Value="{DynamicResource StopUnpin}" />
-                              <Setter Property="AutomationProperties.Name" Value="{DynamicResource StopUnpin}" />
+                            <DataTrigger Binding="{Binding ArrivalsStatus}" Value="">
+                              <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
                           </Style.Triggers>
                         </Style>
-                      </Button.Style>
-                    </Button>
-                  </Grid>
-                  <StackPanel Margin="12,6,0,0" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Text="{Binding ArrivalsStatus}" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" />
-                    <ItemsControl ItemsSource="{Binding Arrivals}">
+                      </StackPanel.Style>
+                      <ui:SymbolIcon Symbol="Info24" FontSize="14" Foreground="{DynamicResource Bp.Text.Secondary}" Margin="0,0,4,0" />
+                      <TextBlock Text="{Binding ArrivalsStatus}" Style="{StaticResource Bp.Type.Hint}" />
+                    </StackPanel>
+
+                    <ItemsControl ItemTemplate="{StaticResource SkeletonRow}" Focusable="False"
+                                  Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
+                      <ItemsControl.ItemsSource>
+                        <x:Array Type="{x:Type sys:Int32}"><sys:Int32>1</sys:Int32><sys:Int32>2</sys:Int32></x:Array>
+                      </ItemsControl.ItemsSource>
+                    </ItemsControl>
+
+                    <ItemsControl ItemsSource="{Binding Arrivals}" Focusable="False" Grid.IsSharedSizeScope="True">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                          <Grid Margin="0,3" ToolTip="{Binding Tooltip}">
-                            <Grid.Style>
-                              <Style TargetType="Grid">
-                                <Style.Triggers>
-                                  <DataTrigger Binding="{Binding IsStale}" Value="True">
-                                    <Setter Property="Opacity" Value="0.5" />
-                                  </DataTrigger>
-                                </Style.Triggers>
-                              </Style>
-                            </Grid.Style>
-                            <Grid.ColumnDefinitions>
-                              <ColumnDefinition Width="56" />
-                              <ColumnDefinition Width="*" />
-                              <ColumnDefinition Width="Auto" />
-                              <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Border Background="#147D70" CornerRadius="10" Padding="8,2" HorizontalAlignment="Left">
-                              <TextBlock Text="{Binding LineName}" Foreground="White" FontWeight="Bold" />
-                            </Border>
-                            <TextBlock Grid.Column="1" Text="{Binding Destination}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="8,0" />
-                            <TextBlock Grid.Column="2" Text="{Binding EtaText}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0" />
-                            <Border Grid.Column="3" CornerRadius="8" Padding="8,2" VerticalAlignment="Center">
-                              <Border.Style>
-                                <Style TargetType="Border">
-                                  <Setter Property="Background" Value="{DynamicResource ScheduledBadgeBrush}" />
-                                  <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsLive}" Value="True">
-                                      <Setter Property="Background" Value="{DynamicResource LiveBadgeBrush}" />
-                                    </DataTrigger>
-                                  </Style.Triggers>
-                                </Style>
-                              </Border.Style>
-                              <TextBlock Text="{Binding BadgeText}" FontSize="12" />
-                            </Border>
-                          </Grid>
+                          <!-- DepartureRow: badge | destination | status | ETA (hero, reserved width). -->
+                          <Border Style="{StaticResource Bp.DepartureRow}" ToolTip="{Binding Tooltip}">
+                            <Grid>
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Badge" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Status" />
+                                <ColumnDefinition Width="{StaticResource Bp.EtaColumnWidth}" />
+                              </Grid.ColumnDefinitions>
+                              <controls:LineBadge LineName="{Binding LineName}" OperatorName="{Binding OperatorName}" />
+                              <TextBlock Grid.Column="1" Text="{Binding Destination}" Style="{StaticResource Bp.Type.Body}"
+                                         TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="16,0,8,0" />
+                              <controls:StatusChip Grid.Column="2" Status="{Binding Status}" Text="{Binding BadgeText}" HorizontalAlignment="Left" />
+                              <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <controls:TickerText Text="{Binding EtaValue}" Style="{StaticResource Bp.Eta.Number}" />
+                                <TextBlock Text="{Binding EtaUnit}" Style="{StaticResource Bp.Eta.Unit}" />
+                              </StackPanel>
+                            </Grid>
+                          </Border>
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
                   </StackPanel>
-                </StackPanel>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
-    </Grid>
-  </Border>
+                </Border>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Grid>
 </UserControl>

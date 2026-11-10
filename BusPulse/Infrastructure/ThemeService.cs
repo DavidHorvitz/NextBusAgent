@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media;
+using BusPulse.Themes;
 using Wpf.Ui.Appearance;
 using Application = System.Windows.Application;
 using Color = System.Windows.Media.Color;
@@ -18,9 +19,6 @@ public interface IThemeService
 
 public sealed class WpfUiThemeService : IThemeService
 {
-    private static readonly Color LightAccent = Color.FromRgb(0x14, 0x7D, 0x70);
-    private static readonly Color DarkAccent = Color.FromRgb(0x3F, 0xC8, 0xB4);
-
     private Window? _window;
 
     public WpfUiThemeService()
@@ -65,28 +63,46 @@ public sealed class WpfUiThemeService : IThemeService
     }
 
     /// <summary>
-    /// The app's own brushes (accent, badges, warnings, header) for the current theme. Also runs when Windows switches theme
-    /// while "system" is selected, because WPF-UI then changes only its own resources.
+    /// Older brush keys still used by the views that were not rebuilt yet, mapped onto design tokens (DESIGN.md, "Legacy
+    /// brushes"). AccentBrush is used as text, so it is accent step 11, which reads on the backgrounds in both themes.
+    /// </summary>
+    private static readonly (string Legacy, string Token)[] LegacyBrushes =
+    [
+        ("AccentBrush", "Accent.11"),
+        ("LiveBadgeBrush", "Success.3"),
+        ("ScheduledBadgeBrush", "Neutral.3"),
+        ("WarningTextBrush", "Warning.12"),
+        ("ErrorTextBrush", "Danger.11"),
+    ];
+
+    /// <summary>
+    /// The app's own brushes (design tokens, legacy keys, header) for the current theme. Also runs when Windows switches
+    /// theme while "system" is selected, because WPF-UI then changes only its own resources.
     /// </summary>
     private static void ApplyBrushes(bool dark)
     {
-        var accent = dark ? DarkAccent : LightAccent;
-        ApplicationAccentColorManager.Apply(accent, dark ? ApplicationTheme.Dark : ApplicationTheme.Light);
         var resources = Application.Current.Resources;
-        resources["AccentBrush"] = new SolidColorBrush(accent);
-        resources["HeaderGradientBrush"] = Gradient(dark ? 0x072E2A : 0x0B4F47, dark ? 0x0E5249 : 0x137A6D);
-        resources["LiveBadgeBrush"] = Brush(dark ? 0x1F4A44 : 0xD8F1EC);
-        resources["ScheduledBadgeBrush"] = Brush(dark ? 0x4A3A14 : 0xFFF1D6);
-        resources["WarningTextBrush"] = Brush(dark ? 0xFFC766 : 0x8A5A00);
-        resources["ErrorTextBrush"] = Brush(dark ? 0xFF8A8A : 0xB01E1E);
+        if (ThemeTokens.FindTokenDictionary(resources) is not { } tokenDictionary)
+        {
+            return;
+        }
+
+        var tokens = ThemeTokens.Read(tokenDictionary, dark);
+        ThemeTokens.Apply(resources, tokenDictionary, dark);
+        ApplicationAccentColorManager.Apply(tokens["Accent.9"], dark ? ApplicationTheme.Dark : ApplicationTheme.Light);
+        foreach (var (legacy, token) in LegacyBrushes)
+        {
+            resources[legacy] = resources[ThemeTokens.Prefix + token];
+        }
+
+        // White header text: accent 12 -> 9 in light, accent 3 -> 6 in dark (white measured at least 5.2:1 on all four).
+        resources["HeaderGradientBrush"] = Gradient(tokens[dark ? "Accent.3" : "Accent.12"], tokens[dark ? "Accent.6" : "Accent.9"]);
     }
 
-    private static LinearGradientBrush Gradient(int from, int to) => new(
-        Color.FromRgb((byte)(from >> 16), (byte)(from >> 8), (byte)from),
-        Color.FromRgb((byte)(to >> 16), (byte)(to >> 8), (byte)to),
-        new System.Windows.Point(0, 0),
-        new System.Windows.Point(1, 1));
-
-    private static SolidColorBrush Brush(int rgb) =>
-        new(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
+    private static LinearGradientBrush Gradient(Color from, Color to)
+    {
+        var brush = new LinearGradientBrush(from, to, new System.Windows.Point(0, 0), new System.Windows.Point(1, 1));
+        brush.Freeze();
+        return brush;
+    }
 }

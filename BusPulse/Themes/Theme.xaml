@@ -1,0 +1,656 @@
+<!--
+  BusPulse design system: tokens and component styles. docs/DESIGN.md is the spec; this file is the implementation.
+
+  How the tokens work
+  - Every colour exists twice, as "Bp.Light.<Name>" and "Bp.Dark.<Name>": a Color for scale steps, or a string naming a
+    step of the same mode for role aliases ("Neutral.12"), so a role can map to a different step in dark.
+  - Views never use those. They use the alias brush "Bp.<Name>" through DynamicResource, for example
+    {DynamicResource Bp.Text.Primary} or {DynamicResource Bp.Neutral.3}.
+  - ThemeTokens.Apply (Themes/ThemeTokens.cs) creates the alias brushes from the Light or Dark set whenever the theme changes,
+    so adding a colour means adding it to both sets here; the DesignSystemTests fail if one set misses a key.
+  - Scales follow the Radix Colors 12-step model (Radix Colors 3.0.0, MIT). Steps: 1 app bg, 2 subtle bg, 3 component bg,
+    4 hover, 5 pressed/selected, 6 subtle border, 7 interactive border, 8 strong border, 9 solid, 10 solid hover,
+    11 low-contrast text, 12 high-contrast text.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                    xmlns:controls="clr-namespace:BusPulse.Views.Controls">
+
+  <!-- ===================================================================== Colour scales (generated from @radix-ui/colors 3.0.0) -->
+  <!-- Light set -->
+  <!-- Neutral: Radix slate -->
+  <Color x:Key="Bp.Light.Neutral.1">#FCFCFD</Color>
+  <Color x:Key="Bp.Light.Neutral.2">#F9F9FB</Color>
+  <Color x:Key="Bp.Light.Neutral.3">#F0F0F3</Color>
+  <Color x:Key="Bp.Light.Neutral.4">#E8E8EC</Color>
+  <Color x:Key="Bp.Light.Neutral.5">#E0E1E6</Color>
+  <Color x:Key="Bp.Light.Neutral.6">#D9D9E0</Color>
+  <Color x:Key="Bp.Light.Neutral.7">#CDCED6</Color>
+  <Color x:Key="Bp.Light.Neutral.8">#B9BBC6</Color>
+  <Color x:Key="Bp.Light.Neutral.9">#8B8D98</Color>
+  <Color x:Key="Bp.Light.Neutral.10">#80838D</Color>
+  <Color x:Key="Bp.Light.Neutral.11">#60646C</Color>
+  <Color x:Key="Bp.Light.Neutral.12">#1C2024</Color>
+  <!-- Accent: Radix indigo -->
+  <Color x:Key="Bp.Light.Accent.1">#FDFDFE</Color>
+  <Color x:Key="Bp.Light.Accent.2">#F7F9FF</Color>
+  <Color x:Key="Bp.Light.Accent.3">#EDF2FE</Color>
+  <Color x:Key="Bp.Light.Accent.4">#E1E9FF</Color>
+  <Color x:Key="Bp.Light.Accent.5">#D2DEFF</Color>
+  <Color x:Key="Bp.Light.Accent.6">#C1D0FF</Color>
+  <Color x:Key="Bp.Light.Accent.7">#ABBDF9</Color>
+  <Color x:Key="Bp.Light.Accent.8">#8DA4EF</Color>
+  <Color x:Key="Bp.Light.Accent.9">#3E63DD</Color>
+  <Color x:Key="Bp.Light.Accent.10">#3358D4</Color>
+  <Color x:Key="Bp.Light.Accent.11">#3A5BC7</Color>
+  <Color x:Key="Bp.Light.Accent.12">#1F2D5C</Color>
+  <!-- Success: Radix green -->
+  <Color x:Key="Bp.Light.Success.1">#FBFEFC</Color>
+  <Color x:Key="Bp.Light.Success.2">#F4FBF6</Color>
+  <Color x:Key="Bp.Light.Success.3">#E6F6EB</Color>
+  <Color x:Key="Bp.Light.Success.4">#D6F1DF</Color>
+  <Color x:Key="Bp.Light.Success.5">#C4E8D1</Color>
+  <Color x:Key="Bp.Light.Success.6">#ADDDC0</Color>
+  <Color x:Key="Bp.Light.Success.7">#8ECEAA</Color>
+  <Color x:Key="Bp.Light.Success.8">#5BB98B</Color>
+  <Color x:Key="Bp.Light.Success.9">#30A46C</Color>
+  <Color x:Key="Bp.Light.Success.10">#2B9A66</Color>
+  <Color x:Key="Bp.Light.Success.11">#218358</Color>
+  <Color x:Key="Bp.Light.Success.12">#193B2D</Color>
+  <!-- Warning: Radix amber -->
+  <Color x:Key="Bp.Light.Warning.1">#FEFDFB</Color>
+  <Color x:Key="Bp.Light.Warning.2">#FEFBE9</Color>
+  <Color x:Key="Bp.Light.Warning.3">#FFF7C2</Color>
+  <Color x:Key="Bp.Light.Warning.4">#FFEE9C</Color>
+  <Color x:Key="Bp.Light.Warning.5">#FBE577</Color>
+  <Color x:Key="Bp.Light.Warning.6">#F3D673</Color>
+  <Color x:Key="Bp.Light.Warning.7">#E9C162</Color>
+  <Color x:Key="Bp.Light.Warning.8">#E2A336</Color>
+  <Color x:Key="Bp.Light.Warning.9">#FFC53D</Color>
+  <Color x:Key="Bp.Light.Warning.10">#FFBA18</Color>
+  <Color x:Key="Bp.Light.Warning.11">#AB6400</Color>
+  <Color x:Key="Bp.Light.Warning.12">#4F3422</Color>
+  <!-- Danger: Radix red -->
+  <Color x:Key="Bp.Light.Danger.1">#FFFCFC</Color>
+  <Color x:Key="Bp.Light.Danger.2">#FFF7F7</Color>
+  <Color x:Key="Bp.Light.Danger.3">#FEEBEC</Color>
+  <Color x:Key="Bp.Light.Danger.4">#FFDBDC</Color>
+  <Color x:Key="Bp.Light.Danger.5">#FFCDCE</Color>
+  <Color x:Key="Bp.Light.Danger.6">#FDBDBE</Color>
+  <Color x:Key="Bp.Light.Danger.7">#F4A9AA</Color>
+  <Color x:Key="Bp.Light.Danger.8">#EB8E90</Color>
+  <Color x:Key="Bp.Light.Danger.9">#E5484D</Color>
+  <Color x:Key="Bp.Light.Danger.10">#DC3E42</Color>
+  <Color x:Key="Bp.Light.Danger.11">#CE2C31</Color>
+  <Color x:Key="Bp.Light.Danger.12">#641723</Color>
+  <!-- Dark set -->
+  <!-- Neutral: Radix slate-dark -->
+  <Color x:Key="Bp.Dark.Neutral.1">#111113</Color>
+  <Color x:Key="Bp.Dark.Neutral.2">#18191B</Color>
+  <Color x:Key="Bp.Dark.Neutral.3">#212225</Color>
+  <Color x:Key="Bp.Dark.Neutral.4">#272A2D</Color>
+  <Color x:Key="Bp.Dark.Neutral.5">#2E3135</Color>
+  <Color x:Key="Bp.Dark.Neutral.6">#363A3F</Color>
+  <Color x:Key="Bp.Dark.Neutral.7">#43484E</Color>
+  <Color x:Key="Bp.Dark.Neutral.8">#5A6169</Color>
+  <Color x:Key="Bp.Dark.Neutral.9">#696E77</Color>
+  <Color x:Key="Bp.Dark.Neutral.10">#777B84</Color>
+  <Color x:Key="Bp.Dark.Neutral.11">#B0B4BA</Color>
+  <Color x:Key="Bp.Dark.Neutral.12">#EDEEF0</Color>
+  <!-- Accent: Radix indigo-dark -->
+  <Color x:Key="Bp.Dark.Accent.1">#11131F</Color>
+  <Color x:Key="Bp.Dark.Accent.2">#141726</Color>
+  <Color x:Key="Bp.Dark.Accent.3">#182449</Color>
+  <Color x:Key="Bp.Dark.Accent.4">#1D2E62</Color>
+  <Color x:Key="Bp.Dark.Accent.5">#253974</Color>
+  <Color x:Key="Bp.Dark.Accent.6">#304384</Color>
+  <Color x:Key="Bp.Dark.Accent.7">#3A4F97</Color>
+  <Color x:Key="Bp.Dark.Accent.8">#435DB1</Color>
+  <Color x:Key="Bp.Dark.Accent.9">#3E63DD</Color>
+  <Color x:Key="Bp.Dark.Accent.10">#5472E4</Color>
+  <Color x:Key="Bp.Dark.Accent.11">#9EB1FF</Color>
+  <Color x:Key="Bp.Dark.Accent.12">#D6E1FF</Color>
+  <!-- Success: Radix green-dark -->
+  <Color x:Key="Bp.Dark.Success.1">#0E1512</Color>
+  <Color x:Key="Bp.Dark.Success.2">#121B17</Color>
+  <Color x:Key="Bp.Dark.Success.3">#132D21</Color>
+  <Color x:Key="Bp.Dark.Success.4">#113B29</Color>
+  <Color x:Key="Bp.Dark.Success.5">#174933</Color>
+  <Color x:Key="Bp.Dark.Success.6">#20573E</Color>
+  <Color x:Key="Bp.Dark.Success.7">#28684A</Color>
+  <Color x:Key="Bp.Dark.Success.8">#2F7C57</Color>
+  <Color x:Key="Bp.Dark.Success.9">#30A46C</Color>
+  <Color x:Key="Bp.Dark.Success.10">#33B074</Color>
+  <Color x:Key="Bp.Dark.Success.11">#3DD68C</Color>
+  <Color x:Key="Bp.Dark.Success.12">#B1F1CB</Color>
+  <!-- Warning: Radix amber-dark -->
+  <Color x:Key="Bp.Dark.Warning.1">#16120C</Color>
+  <Color x:Key="Bp.Dark.Warning.2">#1D180F</Color>
+  <Color x:Key="Bp.Dark.Warning.3">#302008</Color>
+  <Color x:Key="Bp.Dark.Warning.4">#3F2700</Color>
+  <Color x:Key="Bp.Dark.Warning.5">#4D3000</Color>
+  <Color x:Key="Bp.Dark.Warning.6">#5C3D05</Color>
+  <Color x:Key="Bp.Dark.Warning.7">#714F19</Color>
+  <Color x:Key="Bp.Dark.Warning.8">#8F6424</Color>
+  <Color x:Key="Bp.Dark.Warning.9">#FFC53D</Color>
+  <Color x:Key="Bp.Dark.Warning.10">#FFD60A</Color>
+  <Color x:Key="Bp.Dark.Warning.11">#FFCA16</Color>
+  <Color x:Key="Bp.Dark.Warning.12">#FFE7B3</Color>
+  <!-- Danger: Radix red-dark -->
+  <Color x:Key="Bp.Dark.Danger.1">#191111</Color>
+  <Color x:Key="Bp.Dark.Danger.2">#201314</Color>
+  <Color x:Key="Bp.Dark.Danger.3">#3B1219</Color>
+  <Color x:Key="Bp.Dark.Danger.4">#500F1C</Color>
+  <Color x:Key="Bp.Dark.Danger.5">#611623</Color>
+  <Color x:Key="Bp.Dark.Danger.6">#72232D</Color>
+  <Color x:Key="Bp.Dark.Danger.7">#8C333A</Color>
+  <Color x:Key="Bp.Dark.Danger.8">#B54548</Color>
+  <Color x:Key="Bp.Dark.Danger.9">#E5484D</Color>
+  <Color x:Key="Bp.Dark.Danger.10">#EC5D5E</Color>
+  <Color x:Key="Bp.Dark.Danger.11">#FF9592</Color>
+  <Color x:Key="Bp.Dark.Danger.12">#FFD1D9</Color>
+
+  <!-- ===================================================================== Role aliases (per mode, so a role may map to a different step in dark) -->
+  <!-- Light -->
+  <sys:String x:Key="Bp.Light.Bg.App">Neutral.1</sys:String>
+  <sys:String x:Key="Bp.Light.Bg.Subtle">Neutral.2</sys:String>
+  <sys:String x:Key="Bp.Light.Bg.Control">Neutral.3</sys:String>
+  <sys:String x:Key="Bp.Light.Bg.ControlHover">Neutral.4</sys:String>
+  <sys:String x:Key="Bp.Light.Bg.ControlPressed">Neutral.5</sys:String>
+  <sys:String x:Key="Bp.Light.Border.Subtle">Neutral.6</sys:String>
+  <sys:String x:Key="Bp.Light.Border.Control">Neutral.7</sys:String>
+  <sys:String x:Key="Bp.Light.Border.Strong">Neutral.8</sys:String>
+  <sys:String x:Key="Bp.Light.Text.Primary">Neutral.12</sys:String>
+  <sys:String x:Key="Bp.Light.Text.Secondary">Neutral.11</sys:String>
+  <sys:String x:Key="Bp.Light.Text.Disabled">Neutral.8</sys:String>
+  <sys:String x:Key="Bp.Light.Text.Link">Accent.11</sys:String>
+  <!-- Focus ring: step 9, not 8. Measured: accent 8 on neutral 2 is 2.30:1 in light, below the 3:1 for non-text UI. -->
+  <sys:String x:Key="Bp.Light.Focus">Accent.9</sys:String>
+  <Color x:Key="Bp.Light.Text.OnSolid">#FFFFFF</Color>
+  <sys:String x:Key="Bp.Light.Primary.Rest">Accent.9</sys:String>
+  <sys:String x:Key="Bp.Light.Primary.Hover">Accent.10</sys:String>
+  <sys:String x:Key="Bp.Light.Primary.Pressed">Accent.11</sys:String>
+  <!-- Dark -->
+  <sys:String x:Key="Bp.Dark.Bg.App">Neutral.1</sys:String>
+  <sys:String x:Key="Bp.Dark.Bg.Subtle">Neutral.2</sys:String>
+  <sys:String x:Key="Bp.Dark.Bg.Control">Neutral.3</sys:String>
+  <sys:String x:Key="Bp.Dark.Bg.ControlHover">Neutral.4</sys:String>
+  <sys:String x:Key="Bp.Dark.Bg.ControlPressed">Neutral.5</sys:String>
+  <sys:String x:Key="Bp.Dark.Border.Subtle">Neutral.6</sys:String>
+  <sys:String x:Key="Bp.Dark.Border.Control">Neutral.7</sys:String>
+  <sys:String x:Key="Bp.Dark.Border.Strong">Neutral.8</sys:String>
+  <sys:String x:Key="Bp.Dark.Text.Primary">Neutral.12</sys:String>
+  <sys:String x:Key="Bp.Dark.Text.Secondary">Neutral.11</sys:String>
+  <sys:String x:Key="Bp.Dark.Text.Disabled">Neutral.8</sys:String>
+  <sys:String x:Key="Bp.Dark.Text.Link">Accent.11</sys:String>
+  <sys:String x:Key="Bp.Dark.Focus">Accent.9</sys:String>
+  <Color x:Key="Bp.Dark.Text.OnSolid">#FFFFFF</Color>
+  <sys:String x:Key="Bp.Dark.Primary.Rest">Accent.9</sys:String>
+  <!-- Dark hover is step 8, not 10: white on dark accent 10 measured 4.28:1, below 4.5. White on dark accent 8 is 6.11:1. -->
+  <sys:String x:Key="Bp.Dark.Primary.Hover">Accent.8</sys:String>
+  <sys:String x:Key="Bp.Dark.Primary.Pressed">Accent.7</sys:String>
+
+  <!-- ===================================================================== Typography -->
+  <!-- Heebo (SIL OFL 1.1, Assets/Fonts/OFL.txt), embedded; Segoe UI is the fallback for any glyph Heebo lacks. -->
+  <FontFamily x:Key="Bp.Font">pack://application:,,,/BusPulse;component/Assets/Fonts/#Heebo, Segoe UI</FontFamily>
+  <sys:Double x:Key="Bp.FontSize.Display">26</sys:Double>
+  <sys:Double x:Key="Bp.FontSize.Title">16</sys:Double>
+  <sys:Double x:Key="Bp.FontSize.Body">14</sys:Double>
+  <sys:Double x:Key="Bp.FontSize.Caption">12</sys:Double>
+
+  <Style x:Key="Bp.Type.Display" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Bp.FontSize.Display}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Primary}" />
+  </Style>
+  <Style x:Key="Bp.Type.Title" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Bp.FontSize.Title}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Primary}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style x:Key="Bp.Type.Body" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Bp.FontSize.Body}" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Primary}" />
+  </Style>
+  <Style x:Key="Bp.Type.BodyStrong" TargetType="TextBlock" BasedOn="{StaticResource Bp.Type.Body}">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style x:Key="Bp.Type.Caption" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Bp.FontSize.Caption}" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Secondary}" />
+  </Style>
+  <!-- One hint line per section (DESIGN.md, density rules). -->
+  <Style x:Key="Bp.Type.Hint" TargetType="TextBlock" BasedOn="{StaticResource Bp.Type.Caption}">
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <!-- ===================================================================== Shape and spacing (8 px grid) -->
+  <CornerRadius x:Key="Bp.Radius.Control">8</CornerRadius>
+  <CornerRadius x:Key="Bp.Radius.Card">12</CornerRadius>
+  <sys:Double x:Key="Bp.Space.1">8</sys:Double>
+  <sys:Double x:Key="Bp.Space.2">16</sys:Double>
+  <sys:Double x:Key="Bp.Space.3">24</sys:Double>
+  <sys:Double x:Key="Bp.Space.4">32</sys:Double>
+  <!-- Width reserved for the ETA so "9 min" -> "10 min" -> "Now" never moves the row (DESIGN.md, typography). -->
+  <GridLength x:Key="Bp.EtaColumnWidth">96</GridLength>
+  <sys:Double x:Key="Bp.EtaNumberMinWidth">32</sys:Double>
+
+  <!-- ===================================================================== Focus visual (keyboard only, i.e. focus-visible) -->
+  <Style x:Key="Bp.FocusVisual">
+    <Setter Property="Control.Template">
+      <Setter.Value>
+        <ControlTemplate>
+          <Border Margin="-3" CornerRadius="10" BorderThickness="2" BorderBrush="{DynamicResource Bp.Focus}" SnapsToDevicePixels="True" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===================================================================== Buttons -->
+  <Style x:Key="Bp.Button.Base" TargetType="ButtonBase">
+    <Setter Property="FocusVisualStyle" Value="{StaticResource Bp.FocusVisual}" />
+    <Setter Property="FontFamily" Value="{StaticResource Bp.Font}" />
+    <Setter Property="FontSize" Value="{StaticResource Bp.FontSize.Body}" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Padding" Value="16,6" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ButtonBase">
+          <Border x:Name="Chrome" CornerRadius="{StaticResource Bp.Radius.Control}" Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="Bp.Button.Primary" TargetType="Button" BasedOn="{StaticResource Bp.Button.Base}">
+    <Setter Property="Background" Value="{DynamicResource Bp.Primary.Rest}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.OnSolid}" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Primary.Hover}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Primary.Pressed}" />
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.Control}" />
+        <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Disabled}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style x:Key="Bp.Button.Secondary" TargetType="Button" BasedOn="{StaticResource Bp.Button.Base}">
+    <Setter Property="Background" Value="{DynamicResource Bp.Bg.Control}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Bp.Border.Control}" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Primary}" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.ControlHover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Bp.Border.Strong}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.ControlPressed}" />
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.Subtle}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Bp.Border.Subtle}" />
+        <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Disabled}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style x:Key="Bp.Button.Quiet" TargetType="Button" BasedOn="{StaticResource Bp.Button.Base}">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Link}" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.Control}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.ControlHover}" />
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Disabled}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- Destructive rests on neutral 3: danger 11 text measured 4.07:1 on danger 4 and 3.69:1 on danger 5 in light, so the
+       red background appears on hover (danger 3, 4.54:1) and the text goes to step 12 while pressed. -->
+  <Style x:Key="Bp.Button.Destructive" TargetType="Button" BasedOn="{StaticResource Bp.Button.Base}">
+    <Setter Property="Background" Value="{DynamicResource Bp.Bg.Control}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Bp.Danger.7}" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Danger.11}" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Danger.3}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Bp.Danger.8}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Danger.4}" />
+        <Setter Property="Foreground" Value="{DynamicResource Bp.Danger.12}" />
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.Subtle}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Bp.Border.Subtle}" />
+        <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Disabled}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- A 32x32 quiet button holding one ui:SymbolIcon (pin, settings gear, close). Always give it AutomationProperties.Name. -->
+  <Style x:Key="Bp.Button.Icon" TargetType="Button" BasedOn="{StaticResource Bp.Button.Quiet}">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Secondary}" />
+  </Style>
+
+  <!-- Full-width list row that is still a real Button (keyboard and screen-reader friendly). Hover = background only. -->
+  <Style x:Key="Bp.Button.ListRow" TargetType="Button" BasedOn="{StaticResource Bp.Button.Base}">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Primary}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="MinHeight" Value="48" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.Control}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.ControlHover}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- ===================================================================== Inputs -->
+  <!-- Plain text box. For a placeholder or clear button use ui:TextBox with this style (it keeps the WPF-UI template). -->
+  <Style x:Key="Bp.TextBox" TargetType="TextBox">
+    <Setter Property="FontFamily" Value="{StaticResource Bp.Font}" />
+    <Setter Property="FontSize" Value="{StaticResource Bp.FontSize.Body}" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Primary}" />
+    <Setter Property="Background" Value="{DynamicResource Bp.Bg.App}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Bp.Border.Control}" />
+    <Setter Property="CaretBrush" Value="{DynamicResource Bp.Text.Primary}" />
+    <Setter Property="SelectionBrush" Value="{DynamicResource Bp.Accent.9}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TextBox">
+          <Border x:Name="Frame" CornerRadius="{StaticResource Bp.Radius.Control}" Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"
+                          HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Bp.Border.Strong}" />
+            </Trigger>
+            <!-- A text box shows focus for mouse and keyboard alike: the caret is where typing goes. -->
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Bp.Focus}" />
+              <Setter TargetName="Frame" Property="BorderThickness" Value="2" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Bp.Bg.Subtle}" />
+              <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Bp.Border.Subtle}" />
+              <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Disabled}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- A row in a suggestion list (ListBox.ItemContainerStyle). -->
+  <Style x:Key="Bp.SuggestionRow" TargetType="ListBoxItem">
+    <Setter Property="FocusVisualStyle" Value="{StaticResource Bp.FocusVisual}" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Primary}" />
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListBoxItem">
+          <Border x:Name="Row" CornerRadius="{StaticResource Bp.Radius.Control}" Background="Transparent" Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Row" Property="Background" Value="{DynamicResource Bp.Bg.Control}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Row" Property="Background" Value="{DynamicResource Bp.Accent.4}" />
+              <Setter Property="Foreground" Value="{DynamicResource Bp.Accent.12}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Chip / toggle button for mutually exclusive modes ("now", "depart at", "arrive by"). Pill shaped. -->
+  <Style x:Key="Bp.ToggleChip" TargetType="ToggleButton" BasedOn="{StaticResource Bp.Button.Base}">
+    <Setter Property="Background" Value="{DynamicResource Bp.Bg.Control}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Bp.Border.Control}" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Primary}" />
+    <Setter Property="Padding" Value="16,4" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border x:Name="Chrome" CornerRadius="16" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.ControlHover}" />
+      </Trigger>
+      <Trigger Property="IsChecked" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Accent.4}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Bp.Accent.8}" />
+        <Setter Property="Foreground" Value="{DynamicResource Bp.Accent.12}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Bp.Accent.5}" />
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Background" Value="{DynamicResource Bp.Bg.Subtle}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Bp.Border.Subtle}" />
+        <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Disabled}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- ===================================================================== LineBadge -->
+  <!-- Fill and text come from GTFS route_color / route_text_color (LineBadgeColors). No colour: neutral pill plus operator. -->
+  <Style TargetType="controls:LineBadge">
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="controls:LineBadge">
+          <StackPanel Orientation="Horizontal">
+            <Border x:Name="Pill" MinWidth="40" Height="28" CornerRadius="14" Padding="8,0" BorderThickness="1"
+                    Background="{TemplateBinding Fill}" BorderBrush="{TemplateBinding Fill}">
+              <TextBlock x:Name="Number" Text="{TemplateBinding LineName}" Foreground="{TemplateBinding TextBrush}" FontWeight="Bold"
+                         FontSize="{StaticResource Bp.FontSize.Body}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <TextBlock x:Name="Operator" Text="{TemplateBinding OperatorName}" Style="{StaticResource Bp.Type.Caption}"
+                       Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="HasRouteColor" Value="False">
+              <Setter TargetName="Pill" Property="Background" Value="{DynamicResource Bp.Bg.ControlHover}" />
+              <Setter TargetName="Pill" Property="BorderBrush" Value="{DynamicResource Bp.Border.Control}" />
+              <Setter TargetName="Number" Property="Foreground" Value="{DynamicResource Bp.Text.Primary}" />
+              <Setter TargetName="Operator" Property="Visibility" Value="Visible" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===================================================================== StatusChip -->
+  <!-- Never colour alone: every state has an icon and a word. Text is step 12 (step 11 on step 3 measured 4.21:1 for
+       success and 4.25:1 for warning in light); the icon is step 11 (non-text, needs 3:1). -->
+  <Style TargetType="controls:StatusChip">
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="controls:StatusChip">
+          <Border x:Name="Chip" Height="24" CornerRadius="12" Padding="8,0" Background="{DynamicResource Bp.Neutral.3}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <ui:SymbolIcon x:Name="Icon" Symbol="CalendarClock24" FontSize="14" Foreground="{DynamicResource Bp.Neutral.11}" VerticalAlignment="Center" />
+              <TextBlock x:Name="Label" Text="{TemplateBinding Text}" FontSize="{StaticResource Bp.FontSize.Caption}" FontWeight="SemiBold"
+                         Foreground="{DynamicResource Bp.Neutral.12}" Margin="4,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="Status" Value="Live">
+              <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Bp.Success.3}" />
+              <Setter TargetName="Icon" Property="Symbol" Value="Live24" />
+              <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource Bp.Success.11}" />
+              <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Bp.Success.12}" />
+            </Trigger>
+            <Trigger Property="Status" Value="Stale">
+              <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Bp.Warning.3}" />
+              <Setter TargetName="Icon" Property="Symbol" Value="Warning24" />
+              <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource Bp.Warning.11}" />
+              <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Bp.Warning.12}" />
+            </Trigger>
+            <Trigger Property="Status" Value="Delayed">
+              <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Bp.Warning.3}" />
+              <Setter TargetName="Icon" Property="Symbol" Value="Clock24" />
+              <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource Bp.Warning.11}" />
+              <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Bp.Warning.12}" />
+            </Trigger>
+            <Trigger Property="Status" Value="Cancelled">
+              <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Bp.Danger.3}" />
+              <Setter TargetName="Icon" Property="Symbol" Value="DismissCircle24" />
+              <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource Bp.Danger.11}" />
+              <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Bp.Danger.12}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===================================================================== Banner (offline, no service, location off) -->
+  <Style TargetType="controls:Banner">
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="controls:Banner">
+          <Border x:Name="Frame" CornerRadius="{StaticResource Bp.Radius.Control}" BorderThickness="1" Padding="16,8"
+                  Background="{DynamicResource Bp.Accent.3}" BorderBrush="{DynamicResource Bp.Accent.6}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <ui:SymbolIcon x:Name="Icon" Symbol="Info24" FontSize="16" Foreground="{DynamicResource Bp.Accent.11}" VerticalAlignment="Top" Margin="0,1,8,0" />
+              <TextBlock x:Name="Message" Grid.Column="1" Text="{TemplateBinding Text}" TextWrapping="Wrap" FontSize="{StaticResource Bp.FontSize.Body}"
+                         Foreground="{DynamicResource Bp.Accent.12}" />
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="Tone" Value="Warning">
+              <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Bp.Warning.3}" />
+              <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Bp.Warning.6}" />
+              <Setter TargetName="Icon" Property="Symbol" Value="Warning24" />
+              <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource Bp.Warning.11}" />
+              <Setter TargetName="Message" Property="Foreground" Value="{DynamicResource Bp.Warning.12}" />
+            </Trigger>
+            <Trigger Property="Tone" Value="Danger">
+              <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Bp.Danger.3}" />
+              <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Bp.Danger.6}" />
+              <Setter TargetName="Icon" Property="Symbol" Value="ErrorCircle24" />
+              <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource Bp.Danger.11}" />
+              <Setter TargetName="Message" Property="Foreground" Value="{DynamicResource Bp.Danger.12}" />
+            </Trigger>
+            <Trigger Property="Tone" Value="Offline">
+              <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Bp.Neutral.3}" />
+              <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Bp.Neutral.6}" />
+              <Setter TargetName="Icon" Property="Symbol" Value="WifiOff24" />
+              <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource Bp.Neutral.11}" />
+              <Setter TargetName="Message" Property="Foreground" Value="{DynamicResource Bp.Neutral.12}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===================================================================== Skeleton (first load only) -->
+  <Style x:Key="Bp.Skeleton" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource Bp.Neutral.4}" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="controls:Motion.Pulse" Value="True" />
+  </Style>
+
+  <!-- ===================================================================== DepartureRow parts -->
+  <!-- A departure is a row, never a card: no background at rest, a subtle divider below, 48 px minimum height. -->
+  <Style x:Key="Bp.DepartureRow" TargetType="Border">
+    <Setter Property="MinHeight" Value="48" />
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Bp.Border.Subtle}" />
+  </Style>
+  <!-- TickerText: two stacked TextBlocks so a changing number cross-fades (Motion rules); no motion when reduced. -->
+  <Style TargetType="controls:TickerText">
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="IsTabStop" Value="False" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="controls:TickerText">
+          <Grid>
+            <TextBlock x:Name="PART_Back" TextAlignment="{TemplateBinding TextAlignment}" Opacity="0" />
+            <TextBlock x:Name="PART_Front" TextAlignment="{TemplateBinding TextAlignment}" />
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <!-- The hero: minutes to departure. Display size, step 12, digits in a reserved box that is aligned towards the unit. -->
+  <Style x:Key="Bp.Eta.Number" TargetType="controls:TickerText" BasedOn="{StaticResource {x:Type controls:TickerText}}">
+    <Setter Property="FontSize" Value="{StaticResource Bp.FontSize.Display}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource Bp.Text.Primary}" />
+    <Setter Property="MinWidth" Value="{StaticResource Bp.EtaNumberMinWidth}" />
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style x:Key="Bp.Eta.Unit" TargetType="TextBlock" BasedOn="{StaticResource Bp.Type.Caption}">
+    <Setter Property="Margin" Value="4,0,0,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+</ResourceDictionary>

@@ -39,14 +39,16 @@ public partial class App : Application
             _host = Program.BuildHost(configStore, config);
             var window = _host.Services.GetRequiredService<MainWindow>();
             MainWindow = window;
+            var themeService = _host.Services.GetRequiredService<Infrastructure.IThemeService>();
+            var theme = LaunchOption(e.Args, "theme", ["system", "light", "dark"]) ?? config.Theme;
+            // Applied before Show so the first frame already has the design tokens; Attach re-applies with the window's watcher.
+            themeService.Apply(theme);
             window.ShowInTaskbar = true;
             window.WindowState = WindowState.Normal;
             window.Show();
             window.Visibility = Visibility.Visible;
             window.Activate();
-            var themeService = _host.Services.GetRequiredService<Infrastructure.IThemeService>();
             themeService.Attach(window);
-            themeService.Apply(LaunchOption(e.Args, "theme", ["system", "light", "dark"]) ?? config.Theme);
             if (LaunchOption(e.Args, "tab", ["0", "1", "2", "3"]) is { } tab)
             {
                 _host.Services.GetRequiredService<ViewModels.ShellViewModel>().SelectTabCommand.Execute(tab);

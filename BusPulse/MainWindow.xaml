@@ -6,6 +6,7 @@
         Title="BusPulse" Height="760" Width="980" MinHeight="640" MinWidth="440"
         WindowBackdropType="Mica" ExtendsContentIntoTitleBar="True"
         WindowStartupLocation="CenterScreen"
+        FontFamily="{StaticResource Bp.Font}"
         FlowDirection="{Binding FlowDirection}">
   <Window.InputBindings>
     <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />

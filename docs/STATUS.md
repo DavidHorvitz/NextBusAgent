@@ -152,3 +152,37 @@ Still open:
 4. Decide on a live vehicle source (Curlbus does not expose one), or keep the Lines tab schedule-only.
 5. Apply for official Ministry of Transport access (see PLAN.md).
 6. AUMID and Start Menu shortcut for toasts, installer.
+
+## Session 0 done (2026-11-10): design system
+
+Design system only, no feature changes. Spec: [DESIGN.md](DESIGN.md).
+
+What changed:
+
+- `BusPulse/Themes/Theme.xaml`: Radix Colors 3.0.0 scales (slate, indigo accent, green, amber, red) as full light and dark token sets, role aliases, type scale, spacing and radius, and styles for buttons (primary, secondary, quiet, destructive, icon, list row), text box, suggestion row, toggle chip, `LineBadge`, `StatusChip`, `Banner`, skeleton and the departure row. `ThemeTokens` turns the active set into `Bp.*` brushes; `IThemeService` applies them and maps the older brush keys (`AccentBrush` and friends) onto tokens, so every tab now uses the indigo palette.
+- Heebo (SIL OFL 1.1, static Regular/Medium/SemiBold/Bold) embedded and set on the window; Segoe UI as fallback.
+- New controls in `Views/Controls/DesignControls.cs`: `LineBadge` (GTFS route colours with a luminance fallback), `StatusChip`, `Banner`, `TickerText` (cross-fading countdown) and `Motion` (fade/slide, skeleton pulse, honours Windows "Animation effects").
+- Stops tab rebuilt on tokens and styles only. `ArrivalRowViewModel` gained `EtaValue`, `EtaUnit` and `Status`; live data older than 120 s now shows a "not updated" chip instead of a faded row. New strings `StaleBadge` and `EtaUnitMinutes` (en/he).
+- `App.OnStartup` applies the theme before the window is shown, so the first frame has the tokens.
+
+Verified:
+
+- `dotnet build` (Debug and Release) and `dotnet test --filter "Category!=Live"`: 598 passed. `dotnet list package --vulnerable --include-transitive`: none.
+- New tests: `DesignSystemTests` (token sets complete, 31 contrast pairs in both themes, line badge colours against the four `route_color` values in the real feed, Heebo weights with tabular digits and Hebrew glyphs, licence, no raw colours in the Stops view, theme merged after the strings dictionary) and `DesignRenderTests` (Stops screen rendered in he/en x light/dark, skeleton, component gallery, "9 to 10 to 99 min" moves nothing, font icons do not mirror in RTL while paths do).
+- Mutation checks: the no-shift test fails with an `Auto` ETA column, and the `FindTokenDictionary` test fails with the old lookup.
+- The real app was launched with `--theme=dark` and `--theme=light`: it starts, the Stops tab shows nearby stops with the new styles in Hebrew. The first launch failed at startup ("The given key 'Accent.9' was not present"): `ResourceDictionary.Contains` also searches merged dictionaries, so the token lookup returned the App dictionary. Fixed and covered by a regression test.
+- Screenshots: `docs/screens/session-0/` (offscreen render with sample data; real-app captures were not committed because they show stops near the real location).
+
+Not verified:
+
+- Animations on a real screen, with Windows "Animation effects" on and off.
+- An expanded stop with real live data in the running app (the expanded state was seen only in the offscreen render).
+- The English UI in the running app (seen only in the offscreen render).
+- The other tabs after the palette change: they use the mapped legacy brushes and were not checked on screen.
+
+Found and left open:
+
+- Line names that mix digits and Hebrew follow the text direction: "54א" shows as "א54" in the Hebrew UI. Open question for the maintainer (DESIGN.md, RTL checklist).
+- `Arrival` carries no route colour yet, so every badge on the Stops tab is neutral with the operator name. The Ministry feed has `route_color` on 1,380 of 7,855 routes (four values) and no `route_text_color`.
+- `OperatorBrushConverter` in the trip planner invents operator colours, against the new rule; replace it when the planner is rebuilt.
+- Raw colours remain in `MainWindow` (header) and the other views; listed in DESIGN.md section 9.

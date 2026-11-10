@@ -43,6 +43,8 @@
   <sys:String x:Key="AddPlaceFirst" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save a place with a stop code first, then check the connection.</sys:String>
   <sys:String x:Key="LiveBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">live</sys:String>
   <sys:String x:Key="ScheduledBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">scheduled</sys:String>
+  <sys:String x:Key="StaleBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">not updated</sys:String>
+  <sys:String x:Key="EtaUnitMinutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">min</sys:String>
   <sys:String x:Key="StatusOk" xmlns:sys="clr-namespace:System;assembly=mscorlib">OK</sys:String>
   <sys:String x:Key="StatusNoData" xmlns:sys="clr-namespace:System;assembly=mscorlib">No data</sys:String>
   <sys:String x:Key="StatusUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">Unavailable</sys:String>

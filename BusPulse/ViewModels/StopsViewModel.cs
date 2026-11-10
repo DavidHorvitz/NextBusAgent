@@ -14,6 +14,16 @@ using Microsoft.Extensions.Logging;
 
 namespace BusPulse.ViewModels;
 
+/// <summary>What the status chip says about a departure (DESIGN.md, StatusChip). Delayed and Cancelled have no source yet.</summary>
+public enum DepartureStatus
+{
+    Live,
+    Scheduled,
+    Delayed,
+    Cancelled,
+    Stale
+}
+
 public sealed partial class ArrivalRowViewModel : ObservableObject
 {
     private static readonly TimeSpan StaleAfter = TimeSpan.FromSeconds(120);
@@ -22,6 +32,14 @@ public sealed partial class ArrivalRowViewModel : ObservableObject
 
     [ObservableProperty]
     private string _etaText = string.Empty;
+
+    /// <summary>The countdown number ("9") or the word for now; the hero of the departure row.</summary>
+    [ObservableProperty]
+    private string _etaValue = string.Empty;
+
+    /// <summary>The unit next to <see cref="EtaValue"/> ("min"); empty when the bus is due now.</summary>
+    [ObservableProperty]
+    private string _etaUnit = string.Empty;
 
     [ObservableProperty]
     private string _tooltip = string.Empty;
@@ -44,7 +62,20 @@ public sealed partial class ArrivalRowViewModel : ObservableObject
 
     public bool IsLive => _arrival.IsLive;
 
-    public string BadgeText => _localizer.Get(_arrival.IsLive ? "LiveBadge" : "ScheduledBadge");
+    public DepartureStatus Status => IsStale ? DepartureStatus.Stale : _arrival.IsLive ? DepartureStatus.Live : DepartureStatus.Scheduled;
+
+    public string BadgeText => _localizer.Get(Status switch
+    {
+        DepartureStatus.Stale => "StaleBadge",
+        DepartureStatus.Live => "LiveBadge",
+        _ => "ScheduledBadge"
+    });
+
+    partial void OnIsStaleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(BadgeText));
+    }
 
     public void Update(Arrival arrival, DateTimeOffset now)
     {
@@ -53,6 +84,7 @@ public sealed partial class ArrivalRowViewModel : ObservableObject
         OnPropertyChanged(nameof(Destination));
         OnPropertyChanged(nameof(OperatorName));
         OnPropertyChanged(nameof(IsLive));
+        OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(BadgeText));
         Refresh(now);
     }
@@ -64,6 +96,8 @@ public sealed partial class ArrivalRowViewModel : ObservableObject
         EtaText = minutes <= 0
             ? _localizer.Get("EtaNow")
             : string.Format(CultureInfo.CurrentCulture, _localizer.Get("EtaMinutes"), minutes);
+        EtaValue = minutes <= 0 ? _localizer.Get("EtaNow") : minutes.ToString(CultureInfo.CurrentCulture);
+        EtaUnit = minutes <= 0 ? string.Empty : _localizer.Get("EtaUnitMinutes");
         var age = now - _arrival.ObservedAt;
         IsStale = _arrival.IsLive && age > StaleAfter;
         var seconds = Math.Max(0, (int)age.TotalSeconds);

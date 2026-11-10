@@ -43,6 +43,8 @@
   <sys:String x:Key="AddPlaceFirst" xmlns:sys="clr-namespace:System;assembly=mscorlib">שמרו קודם מקום עם קוד תחנה, ואז בדקו את החיבור.</sys:String>
   <sys:String x:Key="LiveBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">חי</sys:String>
   <sys:String x:Key="ScheduledBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">מתוכנן</sys:String>
+  <sys:String x:Key="StaleBadge" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא עדכני</sys:String>
+  <sys:String x:Key="EtaUnitMinutes" xmlns:sys="clr-namespace:System;assembly=mscorlib">דק׳</sys:String>
   <sys:String x:Key="StatusOk" xmlns:sys="clr-namespace:System;assembly=mscorlib">תקין</sys:String>
   <sys:String x:Key="StatusNoData" xmlns:sys="clr-namespace:System;assembly=mscorlib">אין נתונים</sys:String>
   <sys:String x:Key="StatusUnavailable" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא זמין</sys:String>

@@ -51,6 +51,8 @@ public partial class ShellView : UserControl, INavigationViewPageProvider
                 _ => _shell.Lines
             };
             page.Margin = new Thickness(16, 8, 16, 0);
+            // A Frame does not pass inherited properties to its content, so the page takes the shell's direction itself.
+            page.SetBinding(FlowDirectionProperty, new System.Windows.Data.Binding(nameof(ShellViewModel.FlowDirection)) { Source = _shell });
             _pages[pageType] = page;
         }
 

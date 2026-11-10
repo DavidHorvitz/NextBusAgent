@@ -46,6 +46,18 @@ The app signs in to Infisical with a **Machine Identity** (Universal Auth), not 
    - Name: GOOGLE_CLIENT_ID → Value: <your_client_id>
    - Name: GOOGLE_CLIENT_SECRET → Value: <your_client_secret>
 
+## Google Places key (optional, as-you-type suggestions)
+
+Without this key the trip planner uses the public Nominatim server: no suggestions while typing, only a lookup on Enter or when a box loses focus. With the key, origin and destination suggest places after a 400 ms pause (3 characters minimum). The UI is the same either way.
+
+1. In Google Cloud Console enable **Places API (New)** only.
+2. Create an API key and **restrict it to the Places API (New) only** (API restrictions). Add an application restriction if you can.
+3. Set a **daily quota** for the Places API in the console (Quotas and system limits), well above the local cap below.
+4. Set up **billing alerts** (Billing, Budgets and alerts), for example at 50%, 90% and 100% of a small budget.
+5. In Infisical create `GOOGLE_PLACES_API_KEY`; the fallback is the environment variable `BUSPULSE_GOOGLE_PLACES_API_KEY`.
+
+Local protections in the app: one typing session (several Autocomplete calls plus one Place Details call) shares a session token and counts as one session; the app stops calling the API after `GooglePlacesDailySessionCap` sessions per day (default 200, range 1-10000, stored in the encrypted config; the count is in `%LOCALAPPDATA%\BusPulse\places_usage.json`); after HTTP 429 or 403 it pauses for 10 minutes and shows a calm message; for explicit searches it then falls back to Nominatim. The key is never logged and is sent in a header, not the URL. Turning off "address search" in Settings disables both providers.
+
 ## Running the App
 
 Once you have set the environment variables, run:

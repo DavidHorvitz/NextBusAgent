@@ -692,7 +692,7 @@ public sealed class TripPlannerViewModelTests
 
         Assert.Equal("Work annex", f.Vm.SelectedDestination!.DisplayName);
         Assert.Empty(f.Vm.Suggestions);
-        Assert.Equal(string.Empty, f.Vm.DestinationQuery);
+        Assert.Equal("Work annex", f.Vm.DestinationQuery);
     }
 
     [Fact]

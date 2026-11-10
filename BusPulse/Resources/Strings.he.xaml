@@ -227,4 +227,15 @@
   <sys:String x:Key="SettingsClose" xmlns:sys="clr-namespace:System;assembly=mscorlib">סגירת ההגדרות</sys:String>
   <sys:String x:Key="AdvancedTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">מתקדם</sys:String>
   <sys:String x:Key="GeneralTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">כללי</sys:String>
+  <sys:String x:Key="SuggestSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">שמור</sys:String>
+  <sys:String x:Key="SuggestRecent" xmlns:sys="clr-namespace:System;assembly=mscorlib">אחרון</sys:String>
+  <sys:String x:Key="SuggestCalendar" xmlns:sys="clr-namespace:System;assembly=mscorlib">מהיומן</sys:String>
+  <sys:String x:Key="SuggestStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">תחנה</sys:String>
+  <sys:String x:Key="SuggestAddress" xmlns:sys="clr-namespace:System;assembly=mscorlib">כתובת</sys:String>
+  <sys:String x:Key="NoResultsLine" xmlns:sys="clr-namespace:System;assembly=mscorlib">לא נמצאו תוצאות</sys:String>
+  <sys:String x:Key="GeocodeRateLimited" xmlns:sys="clr-namespace:System;assembly=mscorlib">שירות הכתובות ביקש להאט. אפשר לנסות שוב בעוד כעשר דקות.</sys:String>
+  <sys:String x:Key="GeocodeDailyCap" xmlns:sys="clr-namespace:System;assembly=mscorlib">הגעתם למכסת החיפושים היומית. אפשר עדיין להקליד כתובת ולהקיש Enter.</sys:String>
+  <sys:String x:Key="OriginPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">מאיפה? רחוב, מקום או עסק</sys:String>
+  <sys:String x:Key="DestinationPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">לאן? רחוב, מקום או עסק</sys:String>
+  <sys:String x:Key="SearchingAddress" xmlns:sys="clr-namespace:System;assembly=mscorlib">מחפש כתובת</sys:String>
 </ResourceDictionary>

@@ -227,4 +227,15 @@
   <sys:String x:Key="SettingsClose" xmlns:sys="clr-namespace:System;assembly=mscorlib">Close settings</sys:String>
   <sys:String x:Key="AdvancedTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Advanced</sys:String>
   <sys:String x:Key="GeneralTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">General</sys:String>
+  <sys:String x:Key="SuggestSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">Saved</sys:String>
+  <sys:String x:Key="SuggestRecent" xmlns:sys="clr-namespace:System;assembly=mscorlib">Recent</sys:String>
+  <sys:String x:Key="SuggestCalendar" xmlns:sys="clr-namespace:System;assembly=mscorlib">From calendar</sys:String>
+  <sys:String x:Key="SuggestStop" xmlns:sys="clr-namespace:System;assembly=mscorlib">Stop</sys:String>
+  <sys:String x:Key="SuggestAddress" xmlns:sys="clr-namespace:System;assembly=mscorlib">Address</sys:String>
+  <sys:String x:Key="NoResultsLine" xmlns:sys="clr-namespace:System;assembly=mscorlib">No results found</sys:String>
+  <sys:String x:Key="GeocodeRateLimited" xmlns:sys="clr-namespace:System;assembly=mscorlib">The address service asked us to slow down. Try again in about ten minutes.</sys:String>
+  <sys:String x:Key="GeocodeDailyCap" xmlns:sys="clr-namespace:System;assembly=mscorlib">The daily search limit is reached. You can still type an address and press Enter.</sys:String>
+  <sys:String x:Key="OriginPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">From where? Street, place or business</sys:String>
+  <sys:String x:Key="DestinationPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">To where? Street, place or business</sys:String>
+  <sys:String x:Key="SearchingAddress" xmlns:sys="clr-namespace:System;assembly=mscorlib">Searching for an address</sys:String>
 </ResourceDictionary>

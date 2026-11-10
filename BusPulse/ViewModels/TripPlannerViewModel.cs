@@ -23,22 +23,32 @@ public enum LocationChoiceKind
     Stop,
 
     /// <summary>An ad-hoc address found by the address search: coordinates and a label, nothing else.</summary>
-    Address
+    Address,
+
+    /// <summary>Text only (a calendar event's location): it has no point until the user picks it and it is looked up.</summary>
+    Text
 }
 
 /// <summary>An origin or destination: the user's current location, a saved place, a specific stop or a searched address.</summary>
 public sealed partial class LocationChoice : ObservableObject
 {
-    public LocationChoice(string displayName, SavedPlace? place = null, Stop? stop = null, GeocodedPlace? address = null)
+    public LocationChoice(string displayName, SavedPlace? place = null, Stop? stop = null, GeocodedPlace? address = null, bool isText = false)
     {
         _displayName = displayName;
         Place = place;
         Stop = stop;
         Address = address;
+        IsText = isText;
     }
 
     [ObservableProperty]
     private string _displayName;
+
+    /// <summary>The kind of suggestion in words (saved, recent, calendar, stop, address); empty where the name says it all.</summary>
+    [ObservableProperty]
+    private string _detail = string.Empty;
+
+    public bool IsText { get; }
 
     public SavedPlace? Place { get; }
 
@@ -46,11 +56,12 @@ public sealed partial class LocationChoice : ObservableObject
 
     public GeocodedPlace? Address { get; }
 
-    public bool IsMyLocation => Place is null && Stop is null && Address is null;
+    public bool IsMyLocation => Place is null && Stop is null && Address is null && !IsText;
 
     public LocationChoiceKind Kind => Place is not null ? LocationChoiceKind.Place
         : Stop is not null ? LocationChoiceKind.Stop
         : Address is not null ? LocationChoiceKind.Address
+        : IsText ? LocationChoiceKind.Text
         : LocationChoiceKind.MyLocation;
 
     /// <summary>Stops and addresses can be kept as a saved place; the rest already are, or have no fixed point.</summary>
@@ -205,13 +216,17 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     private readonly INotifier _notifier;
     private readonly ICalendarService _calendar;
     private readonly IGeocoder? _geocoder;
-    private CancellationTokenSource? _originSuggestCts;
+    // Index 0 is the destination box, 1 the origin box.
+    private readonly CancellationTokenSource?[] _typingTokens = new CancellationTokenSource?[2];
+    private readonly CancellationTokenSource?[] _lookupTokens = new CancellationTokenSource?[2];
+    private readonly string[] _lastSearched = ["", ""];
+    private List<string> _calendarLocations = [];
+    private bool _suppressText;
     private DateTimeOffset _lastPromptAt = DateTimeOffset.MinValue;
     private readonly IClock _clock;
     private readonly IDispatcher _dispatcher;
     private readonly ILogger<TripPlannerViewModel> _logger;
     private CancellationTokenSource? _tickerCts;
-    private CancellationTokenSource? _suggestCts;
     private TripRequest? _lastRequest;
     private string _hintText;
 
@@ -253,6 +268,27 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     /// <summary>Outcome of the last address search started from the origin box (empty when none).</summary>
     [ObservableProperty]
     private string _originSearchMessage = string.Empty;
+
+    /// <summary>The suggestion the arrow keys are on (Enter takes it); null means nothing is highlighted and Enter looks the text up.</summary>
+    [ObservableProperty]
+    private LocationChoice? _highlightedOrigin;
+
+    [ObservableProperty]
+    private LocationChoice? _highlightedDestination;
+
+    /// <summary>True only while a real network call from that box is in flight and has been for <see cref="SpinnerDelay"/>.</summary>
+    [ObservableProperty]
+    private bool _isOriginSearching;
+
+    [ObservableProperty]
+    private bool _isDestinationSearching;
+
+    /// <summary>The last lookup from that box found nothing: the list shows one "no results" line.</summary>
+    [ObservableProperty]
+    private bool _originNoResults;
+
+    [ObservableProperty]
+    private bool _destinationNoResults;
 
     /// <summary>Shown when the chosen time has already passed today, so the jump to tomorrow is never silent.</summary>
     [ObservableProperty]
@@ -298,6 +334,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         _selectedDestination = settings.Config.DestinationPlaceId is { } destinationId
             ? Choices.FirstOrDefault(c => c.Place?.Id == destinationId)
             : null;
+        _originQuery = MyLocation.DisplayName;
+        _destinationQuery = _selectedDestination?.DisplayName ?? string.Empty;
         _lineName = settings.Config.LineName ?? string.Empty;
         _statusText = _hintText;
         _targetTime = TimeSpan.FromHours(DateTime.Now.Hour).Add(TimeSpan.FromMinutes(DateTime.Now.Minute));
@@ -318,7 +356,13 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     public ObservableCollection<CalendarSuggestionItem> CalendarSuggestions { get; } = [];
 
     /// <summary>Delay before suggestions are recomputed after typing; zero in tests.</summary>
-    public TimeSpan DebounceDelay { get; set; } = TimeSpan.FromMilliseconds(250);
+    public TimeSpan DebounceDelay { get; set; } = TimeSpan.Zero;
+
+    /// <summary>The pause after the last keystroke before a provider with autocomplete is asked (400 ms; zero in tests).</summary>
+    public TimeSpan AutocompleteDelay { get; set; } = TimeSpan.FromMilliseconds(400);
+
+    /// <summary>A network call must run this long before the inline spinner appears (300 ms; zero in tests).</summary>
+    public TimeSpan SpinnerDelay { get; set; } = TimeSpan.FromMilliseconds(300);
 
     public bool HasHome => FindPlace(_settings.Config.HomePlaceId) is not null;
 
@@ -359,14 +403,42 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     partial void OnSelectedOriginChanged(LocationChoice value)
     {
+        SetTextSilently(origin: true, value.DisplayName);
         OnPropertyChanged(nameof(RouteSummary));
         OnPropertyChanged(nameof(CanSaveOrigin));
     }
 
     partial void OnSelectedDestinationChanged(LocationChoice? value)
     {
+        if (value is not null)
+        {
+            SetTextSilently(origin: false, value.DisplayName);
+        }
+
         OnPropertyChanged(nameof(RouteSummary));
         OnPropertyChanged(nameof(CanSaveDestination));
+    }
+
+    /// <summary>Puts a chosen name into a box without treating it as typing (no suggestions, no lookup).</summary>
+    private void SetTextSilently(bool origin, string text)
+    {
+        var previous = _suppressText;
+        _suppressText = true;
+        try
+        {
+            if (origin)
+            {
+                OriginQuery = text;
+            }
+            else
+            {
+                DestinationQuery = text;
+            }
+        }
+        finally
+        {
+            _suppressText = previous;
+        }
     }
 
     partial void OnSelectedModeIndexChanged(int value)
@@ -474,12 +546,35 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         _notifier.Notify("BusPulse", _localizer.Get(key), NotificationKind.Info);
     }
 
-    partial void OnDestinationQueryChanged(string value) => _ = UpdateSuggestionsAsync();
+    partial void OnDestinationQueryChanged(string value)
+    {
+        if (_suppressText)
+        {
+            return;
+        }
+
+        // Editing the text makes the previous pick stale: the box is free text again until something is chosen.
+        if (SelectedDestination is { } selected && !string.Equals(value.Trim(), selected.DisplayName, StringComparison.CurrentCulture))
+        {
+            SelectedDestination = null;
+        }
+
+        _ = UpdateSuggestionsAsync();
+    }
 
     /// <summary>Re-reads text that was captured while the previous language was active.</summary>
     private void RefreshLanguage()
     {
+        var previousName = MyLocation.DisplayName;
         MyLocation.DisplayName = _localizer.Get("MyLocation");
+        if (string.Equals(OriginQuery, previousName, StringComparison.CurrentCulture))
+        {
+            SetTextSilently(origin: true, MyLocation.DisplayName);
+        }
+
+        // Suggestion captions were built in the previous language.
+        Suggestions.Clear();
+        OriginSuggestions.Clear();
         var newHint = _localizer.Get("PlanHint");
         if (StatusText == _hintText)
         {
@@ -531,12 +626,21 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         {
             if (!_calendar.IsConnected)
             {
+                _calendarLocations = [];
                 CalendarSuggestions.Clear();
                 return;
             }
 
             var now = _clock.UtcNow;
             var events = await _calendar.GetUpcomingAsync(now, ct);
+            // Event locations feed the suggestion list (in memory only; they are looked up only if the user picks one).
+            _calendarLocations = events
+                .Select(item => item.Location?.Trim())
+                .Where(location => !string.IsNullOrEmpty(location) && location.Length <= 120 && !location.Any(char.IsControl))
+                .Select(location => location!)
+                .Distinct(StringComparer.CurrentCultureIgnoreCase)
+                .Take(10)
+                .ToList();
             var suggestions = CalendarTripSuggester.Suggest(events, _places.Items, now);
             CalendarSuggestions.Clear();
             foreach (var suggestion in suggestions)
@@ -586,9 +690,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         }
 
         SelectedDestination = choice;
-        DestinationQuery = string.Empty;
-        Suggestions.Clear();
-        DestinationSearchMessage = string.Empty;
+        SetTextSilently(origin: false, choice.DisplayName);
+        CloseSuggestions(origin: false);
     }
 
     public void SetOrigin(Stop stop)
@@ -612,9 +715,8 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         }
 
         SelectedOrigin = choice;
-        OriginQuery = string.Empty;
-        OriginSuggestions.Clear();
-        OriginSearchMessage = string.Empty;
+        SetTextSilently(origin: true, choice.DisplayName);
+        CloseSuggestions(origin: true);
     }
 
     /// <summary>Finds the rebuilt choice for a previous selection: the same saved place, my location, or a kept stop.</summary>
@@ -673,37 +775,355 @@ public sealed partial class TripPlannerViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ChooseSuggestion(LocationChoice? choice)
-    {
-        if (choice is not null)
-        {
-            SetDestination(choice);
-        }
-    }
+    private Task ChooseSuggestionAsync(LocationChoice? choice, CancellationToken cancellationToken) =>
+        choice is null ? Task.CompletedTask : ChooseAsync(origin: false, choice, cancellationToken);
 
     [RelayCommand]
-    private void ClearSuggestions()
+    private Task ChooseOriginSuggestionAsync(LocationChoice? choice, CancellationToken cancellationToken) =>
+        choice is null ? Task.CompletedTask : ChooseAsync(origin: true, choice, cancellationToken);
+
+    /// <summary>Esc: closes the suggestions and keeps the text.</summary>
+    [RelayCommand]
+    private void ClearSuggestions() => CloseSuggestions(origin: false);
+
+    [RelayCommand]
+    private void ClearOriginSuggestions() => CloseSuggestions(origin: true);
+
+    private void CloseSuggestions(bool origin)
     {
-        DestinationQuery = string.Empty;
-        Suggestions.Clear();
-        DestinationSearchMessage = string.Empty;
+        CancelLookup(origin);
+        ListFor(origin).Clear();
+        Highlight(origin, null);
+        SetNoResults(origin, false);
+        SetMessage(origin, string.Empty);
+    }
+
+    /// <summary>Enter in the box: takes the highlighted suggestion, or, with none highlighted, looks the text up as an address.</summary>
+    [RelayCommand]
+    private Task CommitDestinationAsync(CancellationToken cancellationToken) => CommitAsync(origin: false, cancellationToken);
+
+    [RelayCommand]
+    private Task CommitOriginAsync(CancellationToken cancellationToken) => CommitAsync(origin: true, cancellationToken);
+
+    private Task CommitAsync(bool origin, CancellationToken cancellationToken) =>
+        (origin ? HighlightedOrigin : HighlightedDestination) is { } highlighted
+            ? ChooseAsync(origin, highlighted, cancellationToken)
+            : SearchAddressAsync(origin, highlightFirstResult: true, cancellationToken);
+
+    /// <summary>
+    /// The box lost focus. Looks the text up once, unless a provider with autocomplete already did, the text is a pick,
+    /// a local suggestion has exactly this name, or this exact text was already searched.
+    /// </summary>
+    [RelayCommand]
+    private Task LeaveDestinationAsync(CancellationToken cancellationToken) => LeaveAsync(origin: false, cancellationToken);
+
+    [RelayCommand]
+    private Task LeaveOriginAsync(CancellationToken cancellationToken) => LeaveAsync(origin: true, cancellationToken);
+
+    private async Task LeaveAsync(bool origin, CancellationToken cancellationToken)
+    {
+        var query = EffectiveQuery(origin);
+        if (query.Length < MinLookupLength || _geocoder is null || _geocoder.SupportsAutocomplete ||
+            string.Equals(_lastSearched[Index(origin)], query, StringComparison.Ordinal) ||
+            BuildLocal(query, origin).Any(choice => string.Equals(choice.DisplayName, query, StringComparison.CurrentCultureIgnoreCase)))
+        {
+            return;
+        }
+
+        await SearchAddressAsync(origin, highlightFirstResult: false, cancellationToken);
+    }
+
+    /// <summary>The box got keyboard focus: with no text of its own it offers the defaults (my location, saved places, ...).</summary>
+    public void ShowDefaultSuggestions(bool origin)
+    {
+        if (EffectiveQuery(origin).Length == 0)
+        {
+            _ = RefreshAsync(origin);
+        }
     }
 
     private const int MaxSuggestions = 10;
+    private const int MaxLocal = 12;
+    private const int MinLookupLength = 3;
 
-    private Task UpdateSuggestionsNowAsync()
+    private static int Index(bool origin) => origin ? 1 : 0;
+
+    private ObservableCollection<LocationChoice> ListFor(bool origin) => origin ? OriginSuggestions : Suggestions;
+
+    private string QueryFor(bool origin) => origin ? OriginQuery : DestinationQuery;
+
+    private LocationChoice? SelectedFor(bool origin) => origin ? SelectedOrigin : SelectedDestination;
+
+    private void Highlight(bool origin, LocationChoice? choice)
     {
-        var delay = DebounceDelay;
-        DebounceDelay = TimeSpan.Zero;
+        if (origin)
+        {
+            HighlightedOrigin = choice;
+        }
+        else
+        {
+            HighlightedDestination = choice;
+        }
+    }
+
+    private void SetNoResults(bool origin, bool value)
+    {
+        if (origin)
+        {
+            OriginNoResults = value;
+        }
+        else
+        {
+            DestinationNoResults = value;
+        }
+    }
+
+    private void SetMessage(bool origin, string text)
+    {
+        if (origin)
+        {
+            OriginSearchMessage = text;
+        }
+        else
+        {
+            DestinationSearchMessage = text;
+        }
+    }
+
+    private void SetSearching(bool origin, bool value)
+    {
+        if (origin)
+        {
+            IsOriginSearching = value;
+        }
+        else
+        {
+            IsDestinationSearching = value;
+        }
+    }
+
+    /// <summary>What the user typed, or nothing when the box only shows the name of the current pick.</summary>
+    private string EffectiveQuery(bool origin)
+    {
+        var text = QueryFor(origin).Trim();
+        return SelectedFor(origin) is { } selected && string.Equals(text, selected.DisplayName, StringComparison.CurrentCulture)
+            ? string.Empty
+            : text;
+    }
+
+    private void CancelLookup(bool origin)
+    {
+        var index = Index(origin);
+        _lookupTokens[index]?.Cancel();
+        _lookupTokens[index] = null;
+        SetSearching(origin, false);
+    }
+
+    private Task UpdateSuggestionsNowAsync() => RefreshAsync(origin: false, immediate: true);
+
+    /// <summary>Filters the local sources as you type (no network) and, for a provider with autocomplete, asks it after a pause.</summary>
+    public Task UpdateSuggestionsAsync() => RefreshAsync(origin: false);
+
+    public Task UpdateOriginSuggestionsAsync() => RefreshAsync(origin: true);
+
+    partial void OnOriginQueryChanged(string value)
+    {
+        if (!_suppressText)
+        {
+            _ = RefreshAsync(origin: true);
+        }
+    }
+
+    private async Task RefreshAsync(bool origin, bool immediate = false)
+    {
+        var index = Index(origin);
+        _typingTokens[index]?.Cancel();
+        CancelLookup(origin);
+        var cts = _typingTokens[index] = new CancellationTokenSource();
         try
         {
-            return UpdateSuggestionsAsync();
+            if (!immediate && DebounceDelay > TimeSpan.Zero)
+            {
+                await Task.Delay(DebounceDelay, cts.Token);
+            }
+
+            var query = EffectiveQuery(origin);
+            SetMessage(origin, string.Empty);
+            SetNoResults(origin, false);
+            Highlight(origin, null);
+            Replace(ListFor(origin), BuildLocal(query, origin));
+
+            if (query.Length >= MinLookupLength && _geocoder is { SupportsAutocomplete: true } && _settings.Config.AddressSearchEnabled)
+            {
+                await AutocompleteAsync(origin, query, cts.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    /// <summary>As-you-type suggestions from a provider that allows them (Google Places): after a 400 ms pause, one call in flight.</summary>
+    private async Task AutocompleteAsync(bool origin, string query, CancellationToken typingToken)
+    {
+        if (AutocompleteDelay > TimeSpan.Zero)
+        {
+            await Task.Delay(AutocompleteDelay, typingToken);
+        }
+
+        var result = await RunLookupAsync(origin, token => _geocoder!.SuggestAsync(query, token), typingToken);
+        if (typingToken.IsCancellationRequested || !string.Equals(EffectiveQuery(origin), query, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        ApplyGeocode(origin, query, result, explicitSearch: false, highlightFirstResult: false);
+    }
+
+    /// <summary>
+    /// Runs one real network call for a box. The inline spinner appears only after <see cref="SpinnerDelay"/> and only while
+    /// the call is in flight; a newer call or a text change cancels this one.
+    /// </summary>
+    private async Task<T> RunLookupAsync<T>(bool origin, Func<CancellationToken, Task<T>> call, CancellationToken outer)
+    {
+        var index = Index(origin);
+        _lookupTokens[index]?.Cancel();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(outer);
+        _lookupTokens[index] = cts;
+        var finished = false;
+
+        async Task ShowSpinnerLater()
+        {
+            try
+            {
+                if (SpinnerDelay > TimeSpan.Zero)
+                {
+                    await Task.Delay(SpinnerDelay, cts.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (!finished && ReferenceEquals(_lookupTokens[index], cts))
+            {
+                SetSearching(origin, true);
+            }
+        }
+
+        var spinner = ShowSpinnerLater();
+        try
+        {
+            return await call(cts.Token);
         }
         finally
         {
-            DebounceDelay = delay;
+            finished = true;
+            if (ReferenceEquals(_lookupTokens[index], cts))
+            {
+                _lookupTokens[index] = null;
+                SetSearching(origin, false);
+            }
+
+            // Stop a spinner timer that has not fired yet; a call that finished quickly never shows it.
+            await cts.CancelAsync();
+            await spinner;
         }
     }
+
+    private static void Replace(ObservableCollection<LocationChoice> list, IReadOnlyList<LocationChoice> items)
+    {
+        list.Clear();
+        foreach (var item in items)
+        {
+            list.Add(item);
+        }
+    }
+
+    /// <summary>
+    /// The local sources, in order, without a network call: my location (origin only, always first), saved places (recent
+    /// ones leading), locations of upcoming calendar events, then stops by name. Duplicates by name or coordinates are dropped.
+    /// </summary>
+    private List<LocationChoice> BuildLocal(string query, bool origin)
+    {
+        var result = new List<LocationChoice>();
+
+        void Add(LocationChoice choice, string detail)
+        {
+            if (result.Count < MaxLocal && !result.Any(existing => IsDuplicate(existing, choice)))
+            {
+                choice.Detail = detail;
+                result.Add(choice);
+            }
+        }
+
+        if (origin)
+        {
+            Add(MyLocation, string.Empty);
+        }
+
+        var recentIds = _history.Recent.Take(MaxRecent).Select(entry => entry.PlaceId).ToList();
+        foreach (var choice in Choices
+                     .Where(choice => choice.Place is { } place &&
+                         (query.Length == 0 ||
+                          choice.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
+                          place.Address?.Contains(query, StringComparison.CurrentCultureIgnoreCase) == true))
+                     .OrderBy(choice => recentIds.IndexOf(choice.Place!.Id) is var index && index < 0 ? int.MaxValue : index)
+                     .ThenBy(choice => choice.DisplayName, StringComparer.CurrentCultureIgnoreCase))
+        {
+            Add(choice, _localizer.Get(recentIds.Contains(choice.Place!.Id) ? "SuggestRecent" : "SuggestSaved"));
+        }
+
+        foreach (var location in _calendarLocations.Where(location => query.Length == 0 ||
+                     location.Contains(query, StringComparison.CurrentCultureIgnoreCase)))
+        {
+            Add(new LocationChoice(location, isText: true), _localizer.Get("SuggestCalendar"));
+        }
+
+        foreach (var stop in FindStopsByName(query, MaxSuggestions))
+        {
+            Add(new LocationChoice(StopLabel(stop), stop: stop), _localizer.Get("SuggestStop"));
+        }
+
+        return result;
+    }
+
+    private const int MaxRecent = 20;
+
+    private static string NormalizeName(string text) =>
+        string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+
+    private static bool TryGetPoint(LocationChoice choice, out double latitude, out double longitude)
+    {
+        if (choice.Address is { IsUnresolved: false } address)
+        {
+            (latitude, longitude) = (address.Latitude, address.Longitude);
+            return true;
+        }
+
+        if (choice.Stop is { } stop)
+        {
+            (latitude, longitude) = (stop.Latitude, stop.Longitude);
+            return true;
+        }
+
+        if (choice.Place is { Latitude: { } lat, Longitude: { } lon })
+        {
+            (latitude, longitude) = (lat, lon);
+            return true;
+        }
+
+        (latitude, longitude) = (0, 0);
+        return false;
+    }
+
+    /// <summary>The same name, or two known points less than 50 m apart.</summary>
+    private static bool IsDuplicate(LocationChoice a, LocationChoice b) =>
+        ReferenceEquals(a, b) ||
+        string.Equals(NormalizeName(a.DisplayName), NormalizeName(b.DisplayName), StringComparison.Ordinal) ||
+        (TryGetPoint(a, out var latA, out var lonA) && TryGetPoint(b, out var latB, out var lonB) &&
+         Geo.DistanceMeters(latA, lonA, latB, lonB) < 50);
 
     /// <summary>Stops whose name contains the text, names that start with it first; one entry per name and city.</summary>
     private IEnumerable<Stop> FindStopsByName(string query, int count)
@@ -724,172 +1144,172 @@ public sealed partial class TripPlannerViewModel : ObservableObject
 
     private static string StopLabel(Stop stop) => string.IsNullOrWhiteSpace(stop.City) ? stop.Name : $"{stop.Name}, {stop.City}";
 
-    /// <summary>Filters as you type (debounced): recent destinations first, then matching saved places, then stops by name.</summary>
-    public async Task UpdateSuggestionsAsync()
-    {
-        _suggestCts?.Cancel();
-        var cts = _suggestCts = new CancellationTokenSource();
-        try
-        {
-            if (DebounceDelay > TimeSpan.Zero)
-            {
-                await Task.Delay(DebounceDelay, cts.Token);
-            }
-
-            var query = DestinationQuery.Trim();
-            Suggestions.Clear();
-            if (query.Length == 0)
-            {
-                return;
-            }
-
-            foreach (var choice in LocalMatches(query))
-            {
-                Suggestions.Add(choice);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-        }
-    }
-
-    /// <summary>Saved places first (recent ones leading), then stops by name. Searched locally: nothing is sent anywhere.</summary>
-    private List<LocationChoice> LocalMatches(string query)
-    {
-        var recentIds = _history.Recent.Select(entry => entry.PlaceId).ToList();
-        var matches = Choices
-            .Where(choice => choice.Place is not null &&
-                choice.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase))
-            .OrderBy(choice => recentIds.IndexOf(choice.Place!.Id) is var index && index < 0 ? int.MaxValue : index)
-            .ThenBy(choice => choice.DisplayName, StringComparer.CurrentCultureIgnoreCase)
-            .Take(6)
-            .ToList();
-        var result = new List<LocationChoice>(matches);
-
-        // Any stop by name (for example "אסף הרופא"), searched in the local stop list.
-        foreach (var stop in FindStopsByName(query, MaxSuggestions - matches.Count))
-        {
-            result.Add(new LocationChoice(StopLabel(stop), stop: stop));
-        }
-
-        return result;
-    }
-
-    partial void OnOriginQueryChanged(string value) => _ = UpdateOriginSuggestionsAsync();
-
-    /// <summary>The origin box filters the same way as the destination box (debounced, local only).</summary>
-    public async Task UpdateOriginSuggestionsAsync()
-    {
-        _originSuggestCts?.Cancel();
-        var cts = _originSuggestCts = new CancellationTokenSource();
-        try
-        {
-            if (DebounceDelay > TimeSpan.Zero)
-            {
-                await Task.Delay(DebounceDelay, cts.Token);
-            }
-
-            var query = OriginQuery.Trim();
-            OriginSuggestions.Clear();
-            OriginSearchMessage = string.Empty;
-            if (query.Length == 0)
-            {
-                return;
-            }
-
-            foreach (var choice in LocalMatches(query))
-            {
-                OriginSuggestions.Add(choice);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-        }
-    }
-
-    [RelayCommand]
-    private void ChooseOriginSuggestion(LocationChoice? choice)
-    {
-        if (choice is not null)
-        {
-            SetOrigin(choice);
-        }
-    }
-
-    [RelayCommand]
-    private void ClearOriginSuggestions()
-    {
-        OriginQuery = string.Empty;
-        OriginSuggestions.Clear();
-        OriginSearchMessage = string.Empty;
-    }
-
     /// <summary>
-    /// Looks the typed text up as an address. Runs only from this command (button or Enter), never while typing and never on
-    /// a timer. Results replace the suggestion list; nothing is written to the history.
+    /// Looks the typed text up as an address. Runs only from Enter or when the box loses focus (or the Search commands),
+    /// never while typing on the public Nominatim server and never on a timer. Nothing is written to the history.
     /// </summary>
     [RelayCommand]
     private Task SearchDestinationAddressAsync(CancellationToken cancellationToken) =>
-        SearchAddressAsync(DestinationQuery, Suggestions, message => DestinationSearchMessage = message, LocalMatches, query => _destinationAddressQuery = query, cancellationToken);
+        SearchAddressAsync(origin: false, highlightFirstResult: true, cancellationToken);
 
     [RelayCommand]
     private Task SearchOriginAddressAsync(CancellationToken cancellationToken) =>
-        SearchAddressAsync(OriginQuery, OriginSuggestions, message => OriginSearchMessage = message, LocalMatches, query => _originAddressQuery = query, cancellationToken);
+        SearchAddressAsync(origin: true, highlightFirstResult: true, cancellationToken);
 
-    private async Task SearchAddressAsync(
-        string text,
-        ObservableCollection<LocationChoice> target,
-        Action<string> setMessage,
-        Func<string, List<LocationChoice>> localMatches,
-        Action<string> rememberSearched,
-        CancellationToken cancellationToken)
+    private async Task SearchAddressAsync(bool origin, bool highlightFirstResult, CancellationToken cancellationToken)
     {
-        var query = text.Trim();
-        setMessage(string.Empty);
-        if (_geocoder is null)
+        var query = EffectiveQuery(origin);
+        SetMessage(origin, string.Empty);
+        SetNoResults(origin, false);
+        if (query.Length == 0)
         {
-            setMessage(_localizer.Get("GeocodeUnavailable"));
             return;
         }
 
+        if (_geocoder is null)
+        {
+            SetMessage(origin, _localizer.Get("GeocodeUnavailable"));
+            return;
+        }
+
+        // A lookup replaces whatever typing or an earlier lookup was doing for this box.
+        _typingTokens[Index(origin)]?.Cancel();
         GeocodeResult result;
         try
         {
-            result = await _geocoder.SearchAsync(query, cancellationToken);
+            result = await RunLookupAsync(origin, token => _geocoder.SearchAsync(query, token), cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return;
         }
-
-        if (result.Status != GeocodeStatus.Ok || result.Places.Count == 0)
+        catch (OperationCanceledException)
         {
-            setMessage(_localizer.Get(result.Status switch
-            {
-                GeocodeStatus.Disabled => "GeocodeDisabled",
-                GeocodeStatus.Unavailable => "GeocodeUnavailable",
-                GeocodeStatus.TooShort => "GeocodeTooShort",
-                _ => "GeocodeNoResults"
-            }));
             return;
         }
 
-        target.Clear();
-        rememberSearched(query);
-        if (query.Length > 0)
+        if (!string.Equals(EffectiveQuery(origin), query, StringComparison.Ordinal))
         {
-            foreach (var local in localMatches(query).Take(MaxSuggestions - MaxAddressResults))
+            // The text changed while the call was in flight: this answer no longer belongs to the box.
+            return;
+        }
+
+        if (result.Status is GeocodeStatus.Ok or GeocodeStatus.NoResults)
+        {
+            _lastSearched[Index(origin)] = query;
+        }
+
+        ApplyGeocode(origin, query, result, explicitSearch: true, highlightFirstResult);
+    }
+
+    private void ApplyGeocode(bool origin, string query, GeocodeResult result, bool explicitSearch, bool highlightFirstResult)
+    {
+        SetMessage(origin, string.Empty);
+        SetNoResults(origin, false);
+        if (result.Status == GeocodeStatus.Ok && result.Places.Count > 0)
+        {
+            var items = BuildLocal(query, origin);
+            LocationChoice? firstAddress = null;
+            foreach (var place in result.Places.Take(MaxAddressResults))
             {
-                target.Add(local);
+                var choice = new LocationChoice(place.Label, address: place) { Detail = _localizer.Get("SuggestAddress") };
+                // A calendar location that was just looked up is replaced by its resolved address.
+                items.RemoveAll(existing => existing.IsText && IsDuplicate(existing, choice));
+                if (items.Any(existing => IsDuplicate(existing, choice)))
+                {
+                    continue;
+                }
+
+                items.Add(choice);
+                firstAddress ??= choice;
+                if (origin)
+                {
+                    _originAddressQuery = query;
+                }
+                else
+                {
+                    _destinationAddressQuery = query;
+                }
             }
+
+            Replace(ListFor(origin), items);
+            Highlight(origin, highlightFirstResult ? firstAddress : null);
+            return;
         }
 
-        foreach (var place in result.Places.Take(MaxAddressResults))
+        switch (result.Status)
         {
-            target.Add(new LocationChoice(place.Label, address: place));
+            case GeocodeStatus.NoResults:
+                SetNoResults(origin, explicitSearch || ListFor(origin).Count == 0);
+                break;
+            case GeocodeStatus.Disabled when !explicitSearch:
+            case GeocodeStatus.TooShort when !explicitSearch:
+            case GeocodeStatus.Ok:
+                break;
+            default:
+                SetMessage(origin, _localizer.Get(result.Status switch
+                {
+                    GeocodeStatus.Disabled => "GeocodeDisabled",
+                    GeocodeStatus.TooShort => "GeocodeTooShort",
+                    GeocodeStatus.RateLimited => "GeocodeRateLimited",
+                    GeocodeStatus.DailyCapReached => "GeocodeDailyCap",
+                    _ => "GeocodeUnavailable"
+                }));
+                break;
+        }
+    }
+
+    /// <summary>Takes a suggestion: a Google suggestion first gets its coordinates, a calendar text is looked up as an address.</summary>
+    private async Task ChooseAsync(bool origin, LocationChoice choice, CancellationToken cancellationToken)
+    {
+        if (choice.IsText)
+        {
+            // Picking a calendar location is an explicit request to find it: put it in the box and look it up.
+            SetTextSilently(origin, choice.DisplayName);
+            if (!origin && SelectedDestination is not null)
+            {
+                SelectedDestination = null;
+                SetTextSilently(origin, choice.DisplayName);
+            }
+
+            await SearchAddressAsync(origin, highlightFirstResult: true, cancellationToken);
+            return;
         }
 
-        setMessage(_localizer.Get("GeocodeResults"));
+        if (choice.Address is { IsUnresolved: true } unresolved)
+        {
+            if (_geocoder is null)
+            {
+                return;
+            }
+
+            GeocodedPlace? resolved;
+            try
+            {
+                resolved = await RunLookupAsync(origin, token => _geocoder.ResolveAsync(unresolved, token), cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (resolved is null || resolved.IsUnresolved)
+            {
+                SetMessage(origin, _localizer.Get("GeocodeUnavailable"));
+                return;
+            }
+
+            choice = new LocationChoice(choice.DisplayName, address: resolved) { Detail = choice.Detail };
+        }
+
+        if (origin)
+        {
+            SetOrigin(choice);
+        }
+        else
+        {
+            SetDestination(choice);
+        }
     }
 
     private const int MaxAddressResults = 5;
@@ -1036,11 +1456,19 @@ public sealed partial class TripPlannerViewModel : ObservableObject
         }
 
         // The same for a typed start: use the best local match instead of silently planning from "my location".
-        if (OriginQuery.Trim().Length > 0)
+        if (OriginQuery.Trim().Length == 0)
+        {
+            // An emptied box means the current location again.
+            if (!SelectedOrigin.IsMyLocation)
+            {
+                SelectedOrigin = MyLocation;
+            }
+        }
+        else if (EffectiveQuery(origin: true).Length > 0)
         {
             var origins = AddressResultFor(OriginQuery, OriginSuggestions, _originAddressQuery) is { } searchedOrigin
                 ? [searchedOrigin]
-                : LocalMatches(OriginQuery.Trim());
+                : BuildLocal(OriginQuery.Trim(), origin: true).Where(choice => !choice.IsMyLocation && !choice.IsText).ToList();
             if (origins.Count == 0)
             {
                 StatusText = _localizer.Get("GeocodeNoResults");

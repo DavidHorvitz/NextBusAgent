@@ -207,3 +207,13 @@ Unverified:
 Carry-over (other tabs, for the sessions that rebuild them): Trip planner and Lines still use default controls in a card; in dark mode the planner's summary line ("origin → destination") is black on dark and almost unreadable; both views are flush with no density pass. The Stops hint line ("Your location…") stays Hebrew after switching to English until the next load. `HeaderGradientBrush` in `ThemeService` has no user left. Test hosts must put strings, WPF-UI dictionaries and tokens at application level for views inside the navigation frame (see `ShellRenderTests.Build`).
 
 Next: session 2.
+
+## Session 2 done (2026-11-10): free-text origin and destination
+
+Origin and destination are free-text boxes (no combo boxes, no search button). Suggestions: my location (origin only, first), saved places (recent first), calendar event locations, stops by name, then geocoder results; deduplicated by name or 50 m. Local sources filter instantly, no network. Enter takes the highlighted row, or with none highlighted looks the text up (Nominatim) and highlights the first address; losing focus looks it up once. Up/Down/Esc/click work. "לא נמצאו תוצאות" is the single empty line; the thin progress bar shows only after 300 ms of a real call. With `GOOGLE_PLACES_API_KEY` (see SECRETS_SETUP.md) suggestions come as you type after 400 ms, min 3 chars, previous call cancelled, session tokens, cap 200/day. Nominatim: accept-language=he, 10-minute pause after 429/403, encrypted 24 h disk cache.
+Build clean; 671 tests pass (`Category!=Live`).
+
+Verified on screen: the real app starts on the Trip planner tab; a typed text plus Enter ran a real lookup and showed the no-results line; RTL of the page (found and fixed: pages inside the navigation Frame did not get the window's FlowDirection; now bound in `ShellView.GetPage`). Committed sample screenshots (made-up data, off-screen): `docs/screens/session-2/freetext-{typing,geocoder,empty}-*.png`.
+Unit tests only: the progress bar timing, Google provider (request shape, sessions, cap, breaker), disk cache, focus-loss lookup, keyboard handling in code-behind.
+Unverified: Google Places against the real API (no key; response shapes are from the docs, not recorded); a successful Nominatim result in the real app; focus-loss behaviour with the mouse; Hebrew placeholder in the real app.
+Notes: "recent trips" come from user_history.json, which only holds saved-place ids, so they rank saved places (no address is ever written to it). The rest of the planner view still uses legacy brushes. Spinner is a 2 px progress bar (ProgressRing was replaced after a test-host crash that turned out to be a blocking-wait in my test, not the control).

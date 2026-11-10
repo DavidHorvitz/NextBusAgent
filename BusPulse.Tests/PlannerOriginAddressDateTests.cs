@@ -71,9 +71,9 @@ public sealed class PlannerOriginAddressDateTests
 
         Assert.Contains(f.Vm.OriginSuggestions, c => c.Place?.Name == "Work");
         Assert.Contains(f.Vm.OriginSuggestions, c => c.Stop?.Code == "200");
-        f.Vm.ChooseOriginSuggestionCommand.Execute(f.Vm.OriginSuggestions[0]);
+        f.Vm.ChooseOriginSuggestionCommand.Execute(f.Vm.OriginSuggestions.First(c => c.Place?.Name == "Work"));
         Assert.Equal("Work", f.Vm.SelectedOrigin.DisplayName);
-        Assert.Equal(string.Empty, f.Vm.OriginQuery);
+        Assert.Equal("Work", f.Vm.OriginQuery);
         Assert.Empty(f.Vm.OriginSuggestions);
 
         f.Vm.SetDestination(f.Choice("Home"));
@@ -143,7 +143,8 @@ public sealed class PlannerOriginAddressDateTests
 
         Assert.Equal(["Herzl"], f.Geocoder.Queries);
         Assert.Equal(5, f.Vm.Suggestions.Count(c => c.Kind == LocationChoiceKind.Address));
-        Assert.Equal("GeocodeResults", f.Vm.DestinationSearchMessage);
+        Assert.Equal(string.Empty, f.Vm.DestinationSearchMessage);
+        Assert.Equal(LocationChoiceKind.Address, f.Vm.HighlightedDestination?.Kind);
     }
 
     [Fact]
@@ -218,7 +219,8 @@ public sealed class PlannerOriginAddressDateTests
     [Theory]
     [InlineData(GeocodeStatus.Disabled, "GeocodeDisabled")]
     [InlineData(GeocodeStatus.Unavailable, "GeocodeUnavailable")]
-    [InlineData(GeocodeStatus.NoResults, "GeocodeNoResults")]
+    [InlineData(GeocodeStatus.RateLimited, "GeocodeRateLimited")]
+    [InlineData(GeocodeStatus.DailyCapReached, "GeocodeDailyCap")]
     [InlineData(GeocodeStatus.TooShort, "GeocodeTooShort")]
     public async Task Geocode_problems_show_a_localized_message_and_no_suggestions(GeocodeStatus status, string key)
     {

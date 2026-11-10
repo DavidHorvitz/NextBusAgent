@@ -1,6 +1,10 @@
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
-using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using System.Windows.Media;
+using ListBox = System.Windows.Controls.ListBox;
 using BusPulse.ViewModels;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 
 namespace BusPulse.Views;
 
@@ -33,100 +37,123 @@ public partial class TripPlannerView : System.Windows.Controls.UserControl
             SearchBox.SelectAll();
         }, System.Windows.Threading.DispatcherPriority.Input);
 
-    // Keyboard navigation for the destination search: Down enters the list, Esc clears, Enter picks the first match.
+    private static void MoveHighlight(ListBox list, int delta)
+    {
+        if (list.Items.Count == 0)
+        {
+            return;
+        }
+
+        var index = Math.Clamp(list.SelectedIndex + delta, delta < 0 ? -1 : 0, list.Items.Count - 1);
+        list.SelectedIndex = index;
+        if (index >= 0)
+        {
+            list.ScrollIntoView(list.Items[index]);
+        }
+    }
+
+    // Down/Up move the highlight, Enter takes it (or looks the text up when nothing is highlighted), Esc closes the list.
+    private void HandleKey(KeyEventArgs e, ListBox list, ICommand commit, ICommand close)
+    {
+        switch (e.Key)
+        {
+            case Key.Down:
+                MoveHighlight(list, 1);
+                e.Handled = true;
+                break;
+            case Key.Up:
+                MoveHighlight(list, -1);
+                e.Handled = true;
+                break;
+            case Key.Escape:
+                close.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.Enter:
+                commit.Execute(null);
+                e.Handled = true;
+                break;
+        }
+    }
+
     private void SearchBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        switch (e.Key)
+        if (ViewModel is { } vm)
         {
-            case Key.Down when SuggestionList.Items.Count > 0:
-                SuggestionList.SelectedIndex = 0;
-                (SuggestionList.ItemContainerGenerator.ContainerFromIndex(0) as System.Windows.Controls.ListBoxItem)?.Focus();
-                e.Handled = true;
-                break;
-            case Key.Escape:
-                ViewModel?.ClearSuggestionsCommand.Execute(null);
-                e.Handled = true;
-                break;
-            case Key.Enter when SuggestionList.Items.Count > 0:
-                ViewModel?.ChooseSuggestionCommand.Execute(SuggestionList.Items[0]);
-                e.Handled = true;
-                break;
-            case Key.Enter when SearchBox.Text.Trim().Length > 0:
-                // Nothing local matches: Enter is an explicit request to look the text up as an address.
-                ViewModel?.SearchDestinationAddressCommand.Execute(null);
-                e.Handled = true;
-                break;
+            HandleKey(e, SuggestionList, vm.CommitDestinationCommand, vm.ClearSuggestionsCommand);
         }
     }
 
-    // The origin search box works the same way as the destination one.
     private void OriginSearchBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        switch (e.Key)
+        if (ViewModel is { } vm)
         {
-            case Key.Down when OriginSuggestionList.Items.Count > 0:
-                OriginSuggestionList.SelectedIndex = 0;
-                (OriginSuggestionList.ItemContainerGenerator.ContainerFromIndex(0) as System.Windows.Controls.ListBoxItem)?.Focus();
-                e.Handled = true;
-                break;
-            case Key.Escape:
-                ViewModel?.ClearOriginSuggestionsCommand.Execute(null);
-                e.Handled = true;
-                break;
-            case Key.Enter when OriginSuggestionList.Items.Count > 0:
-                ViewModel?.ChooseOriginSuggestionCommand.Execute(OriginSuggestionList.Items[0]);
-                e.Handled = true;
-                break;
-            case Key.Enter when OriginSearchBox.Text.Trim().Length > 0:
-                ViewModel?.SearchOriginAddressCommand.Execute(null);
-                e.Handled = true;
-                break;
+            HandleKey(e, OriginSuggestionList, vm.CommitOriginCommand, vm.ClearOriginSuggestionsCommand);
         }
     }
 
-    private void OriginSuggestionList_PreviewKeyDown(object sender, KeyEventArgs e)
+    private void SearchBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
-        if (e.Key == Key.Enter && OriginSuggestionList.SelectedItem is not null)
+        SearchBox.SelectAll();
+        ViewModel?.ShowDefaultSuggestions(origin: false);
+    }
+
+    private void OriginSearchBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        OriginSearchBox.SelectAll();
+        ViewModel?.ShowDefaultSuggestions(origin: true);
+    }
+
+    // Leaving the box looks the text up once, unless focus only moved into the list below it (a click on a row).
+    private void SearchBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (!IsInside(e.NewFocus as DependencyObject, SuggestionList))
         {
-            ViewModel?.ChooseOriginSuggestionCommand.Execute(OriginSuggestionList.SelectedItem);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Escape)
-        {
-            ViewModel?.ClearOriginSuggestionsCommand.Execute(null);
-            OriginSearchBox.Focus();
-            e.Handled = true;
+            ViewModel?.LeaveDestinationCommand.Execute(null);
         }
     }
 
-    private void OriginSuggestionList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void OriginSearchBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
-        if (OriginSuggestionList.SelectedItem is not null)
+        if (!IsInside(e.NewFocus as DependencyObject, OriginSuggestionList))
         {
-            ViewModel?.ChooseOriginSuggestionCommand.Execute(OriginSuggestionList.SelectedItem);
+            ViewModel?.LeaveOriginCommand.Execute(null);
         }
     }
 
-    private void SuggestionList_PreviewKeyDown(object sender, KeyEventArgs e)
+    private void SuggestionList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (e.Key == Key.Enter && SuggestionList.SelectedItem is not null)
+        if (ItemFrom(SuggestionList, e.OriginalSource) is { } item)
         {
-            ViewModel?.ChooseSuggestionCommand.Execute(SuggestionList.SelectedItem);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Escape)
-        {
-            ViewModel?.ClearSuggestionsCommand.Execute(null);
-            SearchBox.Focus();
-            e.Handled = true;
+            ViewModel?.ChooseSuggestionCommand.Execute(item);
         }
     }
 
-    private void SuggestionList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void OriginSuggestionList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (SuggestionList.SelectedItem is not null)
+        if (ItemFrom(OriginSuggestionList, e.OriginalSource) is { } item)
         {
-            ViewModel?.ChooseSuggestionCommand.Execute(SuggestionList.SelectedItem);
+            ViewModel?.ChooseOriginSuggestionCommand.Execute(item);
         }
+    }
+
+    private static object? ItemFrom(ListBox list, object source) =>
+        source is DependencyObject element && ItemsControl.ContainerFromElement(list, element) is ListBoxItem container
+            ? container.DataContext
+            : null;
+
+    private static bool IsInside(DependencyObject? element, DependencyObject parent)
+    {
+        for (var current = element; current is not null; current = current is Visual or System.Windows.Media.Media3D.Visual3D
+                 ? VisualTreeHelper.GetParent(current)
+                 : LogicalTreeHelper.GetParent(current))
+        {
+            if (ReferenceEquals(current, parent))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

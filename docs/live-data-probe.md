@@ -80,12 +80,12 @@ The first version used a 16-byte row and measured 104 MB per index; the ride is 
 
 Not found as an explicit open licence. Searched on 2026-11-07: the Ministry publishes the feed under its own Hebrew "terms of use" on gov.il (referenced from the MobilityData catalogue entry mdb-2519). Secondary sources (OpenStreetMap community threads) report that the terms only reserve the right to change them without notice and disclaim liability for errors and out-of-date data. No attribution or non-commercial clause was found, but this was not read from the official page. Treat it as: free to download and use for personal, non-commercial purposes, no warranty. Re-check the official terms before any redistribution or publication.
 
-## Infisical (not yet probed live)
+## Infisical (probed live on 2026-11-10)
 
-No Infisical credentials existed when this provider was written, so nothing here was observed against a live service. The shapes come from the official API reference (checked on 2026-11-07) and the test fixtures say the same.
+The provider was written from the official API reference (checked on 2026-11-07), which is also where the unit-test fixtures come from. On 2026-11-10 `InfisicalLiveProbeTests` ran against `app.infisical.com` with a project-level machine identity (Universal Auth, role Viewer) on the "Bus Pulse" project, environment `dev`, path `/`: login succeeded and both `GOOGLE_CLIENT_ID` (72 characters, ending `.apps.googleusercontent.com`) and `GOOGLE_CLIENT_SECRET` (35 characters) were read in about 2 s. Without credentials both routes answer 401 (an unknown route answers 404). The real response bodies were not recorded as fixtures because they contain the secrets.
 
 - Login: `POST {url}/api/v1/auth/universal-auth/login` with JSON `clientId` and `clientSecret` returns `accessToken`, `expiresIn` (seconds), `accessTokenMaxTTL`, `tokenType` ("Bearer").
 - Read: `GET {url}/api/v4/secrets/{secretName}?projectId=&environment=&secretPath=` with `Authorization: Bearer <accessToken>` returns `{ "secret": { "secretKey", "secretValue", ... } }`. The older `/api/v3/secrets/raw/{name}` with `workspaceId` is not used; the current reference documents v4 with `projectId`.
 - Errors (400, 401, 403, 404, 422, 500) return JSON with `reqId`, `statusCode`, `message`, `error`; the app only looks at the status code.
 
-Run a real probe once the maintainer has set `BUSPULSE_INFISICAL_*` and record the result here.
+Re-run with `dotnet test --filter "FullyQualifiedName~InfisicalLiveProbeTests"` (needs `BUSPULSE_INFISICAL_*`; prints lengths only).

@@ -54,7 +54,7 @@ flowchart LR
 | Variable | Purpose |
 | --- | --- |
 | `BUSPULSE_GOOGLE_CLIENT_ID`, `BUSPULSE_GOOGLE_CLIENT_SECRET` | Google OAuth client (type Desktop app) for the Calendar connection |
-| `BUSPULSE_INFISICAL_CLIENT_ID`, `BUSPULSE_INFISICAL_CLIENT_SECRET`, `BUSPULSE_INFISICAL_PROJECT_ID` | Read `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` from Infisical instead (Machine Identity with read-only access). Optional: `BUSPULSE_INFISICAL_ENV` (default `dev`), `BUSPULSE_INFISICAL_PATH` (default `/`), `BUSPULSE_INFISICAL_URL` (default `https://app.infisical.com`). Infisical is tried first, then the `BUSPULSE_GOOGLE_*` variables. Written from the Infisical documentation; not yet verified against a live server |
+| `BUSPULSE_INFISICAL_CLIENT_ID`, `BUSPULSE_INFISICAL_CLIENT_SECRET`, `BUSPULSE_INFISICAL_PROJECT_ID` | Read `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` from Infisical instead (Machine Identity with read-only access). Optional: `BUSPULSE_INFISICAL_ENV` (default `dev`), `BUSPULSE_INFISICAL_PATH` (default `/`), `BUSPULSE_INFISICAL_URL` (default `https://app.infisical.com`). Infisical is tried first, then the `BUSPULSE_GOOGLE_*` variables. Verified against the live project on 2026-11-10; setup steps are in `docs/SECRETS_SETUP.md` |
 
 No credentials are needed to build the current scaffold. Do not place credentials in source control or plaintext config files. The current baseline encrypts its complete settings document with per-user DPAPI.
 

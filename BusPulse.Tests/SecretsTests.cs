@@ -15,7 +15,8 @@ namespace BusPulse.Tests;
 public sealed class SecretsTests
 {
     // These response shapes come from the official Infisical API reference (Universal Auth login and "Retrieve secret"),
-    // not from a live service: no credentials were available. See docs/live-data-probe.md.
+    // not from a recorded response (a real one contains the secrets). InfisicalLiveProbeTests checks the live service;
+    // see docs/live-data-probe.md.
     private const string LoginJson = """{"accessToken":"tok-1","expiresIn":7200,"accessTokenMaxTTL":2592000,"tokenType":"Bearer"}""";
     private const string SecretJson = """{"secret":{"id":"1","_id":"1","workspace":"w","environment":"dev","version":1,"type":"shared","secretKey":"GOOGLE_CLIENT_ID","secretValue":"value-abc","secretComment":"","createdAt":"2025-01-01T00:00:00Z","updatedAt":"2025-01-01T00:00:00Z","secretValueHidden":false,"secretPath":"/"}}""";
 

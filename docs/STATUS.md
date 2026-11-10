@@ -52,7 +52,7 @@ All of this is in local commits (`git log --oneline a136d63..HEAD`); nothing is 
 What changed:
 
 - **.NET 10 (LTS to 2028-11-14).** `net10.0-windows10.0.19041.0`, `Microsoft.Extensions.*` 10.0.14, xunit 2.9.3. The `System.Drawing.Common` and `ProtectedData` package references are gone (both are in the framework now). .NET 11 was still a release candidate.
-- **Infisical secret provider** (`Services/Secrets`). Environment variables `BUSPULSE_INFISICAL_CLIENT_ID`, `_CLIENT_SECRET`, `_PROJECT_ID` (and optionally `_ENV`, default `dev`; `_PATH`, default `/`; `_URL`, default `https://app.infisical.com`). It reads `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` and falls back to `BUSPULSE_GOOGLE_*`. Not verified against a live Infisical: there are no credentials, and the fixtures come from the official documentation (v4 read endpoint). The maintainer will fill in the Infisical details later.
+- **Infisical secret provider** (`Services/Secrets`). Environment variables `BUSPULSE_INFISICAL_CLIENT_ID`, `_CLIENT_SECRET`, `_PROJECT_ID` (and optionally `_ENV`, default `dev`; `_PATH`, default `/`; `_URL`, default `https://app.infisical.com`). It reads `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` and falls back to `BUSPULSE_GOOGLE_*`. Verified against the live "Bus Pulse" project on 2026-11-10 (`InfisicalLiveProbeTests`, Viewer machine identity, both secrets read); the unit-test fixtures still come from the official documentation (v4 read endpoint).
 - **Saved places by coordinates.** `SavedPlace` has `Latitude`, `Longitude`, `Address` and `DisplayDetail`; `PlacePoint.Resolve` and `PlacePoint.NearestStop` turn a place into a point and the nearest stop. Old configs still load.
 - **Address search.** `IGeocoder` / `NominatimGeocoder` against the public OpenStreetMap Nominatim server. The maintainer explicitly confirmed the OSM usage policy on 2026-11-07: at most 1 request/s, no search-as-you-type, the typed text is sent to OSM, the location is never sent. The Settings switch `AddressSearchEnabled` turns it off. Attribution is shown, the query text is never logged, addresses are never written to the history file, and background or timer geocoding must never be added.
 - **Settings screen:** add a place by address, address-search switch with a privacy line and attribution, a secrets-source status line, a Google card that says what is missing, and an advanced add-by-stop-code section.
@@ -77,7 +77,6 @@ Not verified on screen:
 - The tray tooltip and the context menus.
 - Dark theme and right-to-left layout of every new row, and the DatePicker look in the dark theme.
 - A real Google Calendar connection (needs OAuth client credentials).
-- Infisical against a live server.
 - How a reminder set for a future date behaves once that date becomes today (the watched ride's id comes from a different source).
 
 Lessons from bugs found only by running the app:
@@ -148,7 +147,7 @@ Still open:
 ## Next steps
 
 1. Click through the app with a person at the screen: the amber toast stages, tray tooltip, context menus, RTL and dark theme of the new rows, DatePicker, time wheel, Settings add-by-address. Record the results here.
-2. Connect a real Google account and check the calendar card (needs the OAuth client from HANDOFF.md, which can now come from Infisical or the environment). Check Infisical against a live project once the maintainer has the details.
+2. Connect a real Google account and check the calendar card (needs the OAuth client from HANDOFF.md, which now comes from Infisical; that path was verified live on 2026-11-10).
 3. Add transfers to the planner (direct trips only today).
 4. Decide on a live vehicle source (Curlbus does not expose one), or keep the Lines tab schedule-only.
 5. Apply for official Ministry of Transport access (see PLAN.md).

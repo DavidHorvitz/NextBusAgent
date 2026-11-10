@@ -186,3 +186,24 @@ Found and left open:
 - `Arrival` carries no route colour yet, so every badge on the Stops tab is neutral with the operator name. The Ministry feed has `route_color` on 1,380 of 7,855 routes (four values) and no `route_text_color`.
 - `OperatorBrushConverter` in the trip planner invents operator colours, against the new rule; replace it when the planner is rebuilt.
 - Raw colours remain in `MainWindow` (header) and the other views; listed in DESIGN.md section 9.
+
+## Session 1 done (2026-11-10): shell, navigation, settings panel
+
+Spec: [DESIGN.md](DESIGN.md) section 11. Tab control and brand header replaced by a `NavigationView` (Stops, Trip planner, Lines); a gear in the title bar opens a settings side panel (closed at startup) with an "Advanced" expander. Settings rebuilt on tokens (no cards). Ctrl+1..3 tabs, Ctrl+4 / Ctrl+comma open settings, Esc closes. `dotnet build` clean, 621 tests pass (`Category!=Live`), 21 new in `ShellRenderTests`.
+
+Verified on screen (running app, Windows 10 build 19045; real captures were not committed because they show the owner's stops):
+- App starts in Hebrew and English, light and dark; nav pane on the right in Hebrew and on the left in English; settings panel on the opposite edge; gear click, Ctrl+comma, Ctrl+3 and Esc all work; the language combo dropdown aligns correctly in RTL. Language was switched to English and back, so the saved setting is unchanged.
+- Windows without Mica (this machine): window renders cleanly on the plain background (the fallback). Mica itself: not seen.
+- An expanded stop in the English UI (schedule rows, "scheduled" chips). Committed sample screenshots (made-up data, off-screen): `docs/screens/session-1/` `shell-{he,en}-{light,dark}-tab{1,2,3}.png`, `settings-{he,en}-{light,dark}.png`, `settings-he-light-advanced.png`.
+
+Unit tests only: RTL placement of nav and panel (`ShellRenderTests`), panel closed at startup, shortcut 4 opens it, Advanced closed by default, theme choice saved (`ViewModelTests`), no raw colours in `ShellView` and `SettingsView`.
+
+Unverified:
+- An expanded stop with **live** data: the two stops tried returned "no live data", so no live row was seen.
+- Animations: with "Animation effects" on, the panel background changed over about 200 ms (29, 25, 24 in three samples); with it off the probe could not tell the difference from the first frame. Not a proof either way. The setting was restored to on.
+- Focus rings: seen on the panel's close button only; not checked on every control (nav items, combo boxes, check boxes use WPF-UI's own focus visuals).
+- The gear and title bar are not in the offscreen renders; the gear was seen only in the real app. Mica; system-theme following while running; window at the 440 px minimum width.
+
+Carry-over (other tabs, for the sessions that rebuild them): Trip planner and Lines still use default controls in a card; in dark mode the planner's summary line ("origin → destination") is black on dark and almost unreadable; both views are flush with no density pass. The Stops hint line ("Your location…") stays Hebrew after switching to English until the next load. `HeaderGradientBrush` in `ThemeService` has no user left. Test hosts must put strings, WPF-UI dictionaries and tokens at application level for views inside the navigation frame (see `ShellRenderTests.Build`).
+
+Next: session 2.
